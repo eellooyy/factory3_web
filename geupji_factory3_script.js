@@ -6,10 +6,12 @@
     // 💡 Supabase 연결 설정
     // ==========================================
     const supabaseUrl = 'https://npiflqoscsvnnauvqhrr.supabase.co'; 
+    // 공개되어도 안전한 Publishable 키입니다. (RLS로 보호됨)
+    // 만약 아까 키를 새로(Rotate) 발급받으셨다면, 아래 문자열을 새로 받은 키로만 바꿔주세요.
     const supabaseKey = 'sb_publishable__gQM3vEtMIOgdDfpueiGpw_xLLUFgGw'; 
     const supabase = window.supabase.createClient(supabaseUrl, supabaseKey);
 
-    let state = { currentDate: null, isEditMode: false, fp: null, isAdmin: true }; // isAdmin을 항상 true로 변경
+    let state = { currentDate: null, isEditMode: false, fp: null, isAdmin: true }; 
     let elements = {};
 
     const FACTOR_788 = 571;
@@ -288,6 +290,19 @@
 
     const GeupjiFactory3Module = {
         init: function() {
+            // ==========================================
+            // 🔒 간이 비밀번호 체크
+            // ==========================================
+            const input = prompt("접속 비밀번호를 입력하세요:");
+            if (input !== "mk1324") {
+                alert("비밀번호가 틀렸습니다.");
+                location.href = "about:blank"; // 잘못 입력 시 빈 화면으로 튕겨냄
+                return; // 아래 코드가 실행되지 않도록 즉시 중단
+            }
+
+            // ==========================================
+            // 원래 로직 시작
+            // ==========================================
             elements.wrapper = document.querySelector('.gf3-wrapper');
             if(!elements.wrapper) return;
             
