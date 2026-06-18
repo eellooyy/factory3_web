@@ -12,7 +12,16 @@ body {
     box-sizing: inherit;
 }
 
-.gf3-wrapper { display: flex; flex-direction: column; gap: 16px; padding: 10px 0; width: 100%; }
+/* PC에서 너무 넓게 퍼지지 않도록 max-width 지정 및 중앙 정렬 추가 */
+.gf3-wrapper { 
+    display: flex; 
+    flex-direction: column; 
+    gap: 16px; 
+    padding: 10px 0; 
+    width: 100%; 
+    max-width: 1200px; 
+    margin: 0 auto; 
+}
 
 .gf3-header { display: flex; justify-content: space-between; align-items: center; background: #fff; padding: 12px 20px; border-radius: 14px; box-shadow: 0 2px 8px rgba(0,0,0,0.03); }
 .gf3-main-title { font-size: 20px; font-weight: 700; color: #1d1d1f; letter-spacing: -0.5px; }
@@ -36,7 +45,19 @@ body {
 
 .gf3-layout { display: flex; align-items: flex-start; gap: 16px; width: 100%; }
 
-.gf3-main-table-box { flex-grow: 1; background: #fff; border-radius: 12px; padding: 16px; box-shadow: 0 2px 8px rgba(0,0,0,0.03); border: 1px solid #e5e5ea; overflow-x: auto; -webkit-overflow-scrolling: touch; }
+/* 🌟 핵심 수정 포인트: flex: 1 1 0; 과 min-width: 0; 을 주어 레이아웃이 깨지지 않게 억제함 */
+.gf3-main-table-box { 
+    flex: 1 1 0; 
+    min-width: 0; 
+    background: #fff; 
+    border-radius: 12px; 
+    padding: 16px; 
+    box-shadow: 0 2px 8px rgba(0,0,0,0.03); 
+    border: 1px solid #e5e5ea; 
+    overflow-x: auto; 
+    -webkit-overflow-scrolling: touch; 
+}
+
 .gf3-table { width: 100%; border-collapse: collapse; table-layout: fixed; min-width: 750px; }
 .gf3-th, .gf3-td { border: 1px solid #d2d2d7; height: 38px; vertical-align: middle; padding: 0; }
 .gf3-th { background: #f5f5f7; font-size: 13px; font-weight: 600; color: #1d1d1f; text-align: center; }
@@ -49,24 +70,15 @@ body {
 .border-top-thick th, .border-top-thick td { border-top: 2px solid #8e8e93 !important; }
 .border-bottom-thick th, .border-bottom-thick td { border-bottom: 2px solid #8e8e93 !important; }
 
-/* 특집 영역 병합 및 선 숨김 (동일한 텍스트 크기 매칭) */
+/* 특집 영역 병합 및 선 숨김 */
 .special-cell { border-top: none !important; border-bottom: none !important; border-left: none !important; background: #ffffff !important; }
 .special-cell.bottom-border { border-bottom: 1px solid #d2d2d7 !important; }
-.special-label { 
-    text-align: right; 
-    padding-right: 8px; 
-    font-size: 13px; 
-    font-weight: 600; 
-    color: #1d1d1f; 
-    background: transparent; 
-    border-right: none !important; 
-}
+.special-label { text-align: right; padding-right: 8px; font-size: 13px; font-weight: 600; color: #1d1d1f; background: transparent; border-right: none !important; }
 
-/* 폼 인풋 - 무조건 텍스트 중앙정렬 처리 및 박스 넘침 방지 */
+/* 폼 인풋 */
 .gf3-input { width: 100%; height: 100%; border: none; outline: none; background: transparent; text-align: center; padding: 0 8px; font-size: 14px; color: #1d1d1f; box-sizing: border-box; }
 .gf3-input::-webkit-outer-spin-button, .gf3-input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
 
-/* 볼드체 인풋 유틸리티 클래스 */
 .fw-bold { font-weight: bold; }
 
 /* 모드별 셀 배경색 지정 */
@@ -82,12 +94,13 @@ body {
 .mini-table th { font-size: 12px; height: 30px; }
 .mini-table td { height: 34px; }
 
+
 /* ==========================================
    📱 모바일 반응형 (Media Queries)
    ========================================== */
 @media (max-width: 900px) {
     body {
-        padding: 10px; /* 여백 줄임 */
+        padding: 10px;
     }
     .gf3-header {
         flex-direction: column;
@@ -117,10 +130,10 @@ body {
         flex-direction: row; 
     }
     .gf3-box {
-        flex: 1; /* 나란히 배치 */
+        flex: 1; 
     }
     
-    /* iOS 등 모바일에서 입력창 터치 시 자동 확대 방지 (최소 16px 유지) */
+    /* iOS 등 모바일에서 입력창 터치 시 자동 확대 방지 */
     .gf3-input {
         font-size: 16px;
     }
@@ -131,11 +144,4 @@ body {
     .gf3-side-panel {
         flex-direction: column;
     }
-}
-
-/* geupji_factory3_style.css 하단에 추가 */
-.flatpickr-calendar {
-    margin-top: 5px !important;  /* 날짜 텍스트와의 간격 */
-    margin-left: 12px !important; /* 좌우 미세 조정 */
-    box-shadow: 0 5px 15px rgba(0,0,0,0.2) !important; /* 그림자 효과 조절 */
 }
