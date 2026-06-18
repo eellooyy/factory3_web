@@ -7,7 +7,6 @@
     // ==========================================
     const supabaseUrl = 'https://npiflqoscsvnnauvqhrr.supabase.co';
     // 공개되어도 안전한 Publishable 키입니다. (RLS로 보호됨)
-    // 만약 아까 키를 새로(Rotate) 발급받으셨다면, 아래 문자열을 새로 받은 키로만 바꿔주세요.
     const supabaseKey = 'sb_publishable_ir-mHSsX6SSIQwHerkLbfA_2qCOP3KW'; 
     const supabase = window.supabase.createClient(supabaseUrl, supabaseKey);
 
@@ -58,6 +57,8 @@
 
             document.querySelectorAll('.gf3-input').forEach(input => input.value = "");
             
+            const loadedStartBalCols = new Set(); // 오늘 데이터가 있는 열 체크
+
             if (data && data.length > 0) {
                 data.forEach(item => {
                     const typeTokens = item.item_type.split('_');
@@ -69,16 +70,25 @@
                     let val = "";
                     
                     if (valNum !== 0) {
-                        const rInt = parseInt(r, 10);
-                        if (rInt >= 2 && rInt <= 7 && valNum >= 20) {
+                        if (item.item_type === 'stat_total_usage') {
                             val = valNum.toLocaleString() + " kg";
                         } else {
-                            val = valNum.toLocaleString();
+                            const rInt = parseInt(r, 10);
+                            if (rInt >= 2 && rInt <= 7 && valNum >= 20) {
+                                val = valNum.toLocaleString() + " kg";
+                            } else {
+                                val = valNum.toLocaleString();
+                            }
                         }
                     }
+
+                    if (item.item_type === 'start_bal_1') loadedStartBalCols.add(c);
                     
                     if (baseType === 'side_wan') {
                         const el = document.getElementById(`sideWan${c}`);
+                        if (el) el.value = val;
+                    } else if (item.item_type === 'stat_total_usage') {
+                        const el = document.getElementById('statTotalUsage');
                         if (el) el.value = val;
                     } else {
                         const el = document.querySelector(`.gf3-input[data-row="${r}"][data-col="${c}"]`);
@@ -92,11 +102,31 @@
                 });
             }
             
-            const elTotalUsage = document.getElementById('statTotalUsage');
-            if (elTotalUsage) {
-                elTotalUsage.value = "";
-                elTotalUsage.dataset.rawVal = 0;
+            // --- 전일 사용 후 잔량 불러오기 (DB 저장 없이 단순 노출) ---
+            const cols = ['B', 'C', 'D', 'E', 'F', 'G'];
+            const missingStartBalCols = cols.filter(col => !loadedStartBalCols.has(col));
+            
+            if (missingStartBalCols.length > 0) {
+                const prevDate = utils.addDays(dateStr, -1);
+                const { data: prevData, error: prevError } = await supabase
+                    .from('factory3_geupji_real')
+                    .select('*')
+                    .eq('date', prevDate)
+                    .eq('item_type', 'end_bal_10');
+                
+                if (!prevError && prevData) {
+                    prevData.forEach(item => {
+                        if (missingStartBalCols.includes(item.col_id)) {
+                            const valNum = item.value ? Number(item.value) : 0;
+                            if (valNum !== 0) {
+                                const el = document.querySelector(`.gf3-input[data-row="1"][data-col="${item.col_id}"]`);
+                                if (el) el.value = valNum.toLocaleString();
+                            }
+                        }
+                    });
+                }
             }
+            // ------------------------------------
             
             calculateAutoFields();
         } catch (err) {
@@ -152,7 +182,6 @@
         const elUsageA = document.getElementById('statUsageA');
         const elRealUsage = document.getElementById('statRealUsage');
         const elDiff = document.getElementById('statDiff');
-        const elTotalUsage = document.getElementById('statTotalUsage'); 
 
         if(elUsageD) elUsageD.value = usageD > 0 ? utils.formatKg(usageD) : "";
         if(elUsageA) elUsageA.value = usageA > 0 ? utils.formatKg(usageA) : "";
@@ -160,10 +189,8 @@
         const realUsage = usageD + usageA;
         if(elRealUsage) elRealUsage.value = realUsage > 0 ? utils.formatKg(realUsage) : "";
 
-        let totalUsageVal = 0;
-        if (elTotalUsage && elTotalUsage.dataset.rawVal) {
-            totalUsageVal = parseInt(elTotalUsage.dataset.rawVal, 10);
-        }
+        // 수동 입력된 사용량 총계를 읽어와서 증감을 계산합니다.
+        let totalUsageVal = utils.parseNum(document.getElementById('statTotalUsage')?.value);
 
         if (totalUsageVal > 0 && realUsage > 0) {
              const diff = totalUsageVal - realUsage;
@@ -186,7 +213,7 @@
     }
 
     function bindInputFormatters() {
-        elements.wrapper.querySelectorAll('.target-calc, #sideWanA, #sideWanD').forEach(input => {
+        elements.wrapper.querySelectorAll('.target-calc, #sideWanA, #sideWanD, #statTotalUsage').forEach(input => {
             input.addEventListener('focus', function() {
                 if(this.readOnly) return;
                 let v = utils.parseNum(this.value);
@@ -198,11 +225,15 @@
                 if (v === 0) {
                     this.value = "";
                 } else {
-                    const row = parseInt(this.dataset.row, 10);
-                    if (row >= 2 && row <= 7 && v >= 20) {
+                    if (this.id === 'statTotalUsage') {
                         this.value = v.toLocaleString() + " kg";
                     } else {
-                        this.value = v.toLocaleString();
+                        const row = parseInt(this.dataset.row, 10);
+                        if (row >= 2 && row <= 7 && v >= 20) {
+                            this.value = v.toLocaleString() + " kg";
+                        } else {
+                            this.value = v.toLocaleString();
+                        }
                     }
                 }
                 calculateAutoFields();
@@ -275,11 +306,8 @@
             elements.wrapper.classList.add('edit-mode');
             elements.editBtn.textContent = '보기';
             elements.saveBtn.disabled = false;
-            elements.wrapper.querySelectorAll('.gf3-td.editable .gf3-input').forEach(input => {
-                if(input.id !== 'statTotalUsage') {
-                    input.readOnly = false;
-                }
-            });
+            // 예외 없이 모든 editable 칸 쓰기 가능
+            elements.wrapper.querySelectorAll('.gf3-td.editable .gf3-input').forEach(input => input.readOnly = false);
         } else {
             elements.wrapper.classList.remove('edit-mode');
             elements.editBtn.textContent = '수정';
@@ -315,7 +343,9 @@
             
             if(state.isAdmin) elements.editBtn.disabled = false;
 
-            state.currentDate = utils.getTodayStr();
+            // 시작 날짜를 무조건 '어제'로 설정합니다.
+            const today = utils.getTodayStr();
+            state.currentDate = utils.addDays(today, -1);
             elements.dateText.innerText = utils.formatKoDate(state.currentDate);
 
             state.fp = flatpickr("#gf3Flatpickr", {
@@ -399,6 +429,9 @@
                 rawPayloadData.push({ item_type: 'side_wan_1', col_id: 'D', value: extractVal(document.getElementById('sideWanD')), memo: "" });
                 rawPayloadData.push({ item_type: 'side_geup', col_id: 'A', value: extractVal(document.getElementById('sideGeupA')), memo: "" });
                 rawPayloadData.push({ item_type: 'side_geup', col_id: 'D', value: extractVal(document.getElementById('sideGeupD')), memo: "" });
+                
+                // 수동 입력된 사용량 총계 저장
+                rawPayloadData.push({ item_type: 'stat_total_usage', col_id: 'H', value: extractVal(document.getElementById('statTotalUsage')), memo: "" });
 
                 try {
                     const { error: deleteError } = await supabase
