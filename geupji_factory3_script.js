@@ -8,7 +8,7 @@
     const supabaseUrl = 'https://npiflqoscsvnnauvqhrr.supabase.co'; 
     // 공개되어도 안전한 Publishable 키입니다. (RLS로 보호됨)
     // 만약 아까 키를 새로(Rotate) 발급받으셨다면, 아래 문자열을 새로 받은 키로만 바꿔주세요.
-    const supabaseKey = 'sb_publishable_ir-mHSsX6SSIQwHerkLbfA_2qCOP3KW'; 
+    const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5waWZscW9zY3N2bm5hdXZxaHJyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODE2NjMzODUsImV4cCI6MjA5NzIzOTM4NX0.ZfFEi2oZerbDOlBriSjEy4u3NRuTney9Z3S63-mNIgg'; 
     const supabase = window.supabase.createClient(supabaseUrl, supabaseKey);
 
     let state = { currentDate: null, isEditMode: false, fp: null, isAdmin: true }; 
