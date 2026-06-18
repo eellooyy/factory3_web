@@ -5,7 +5,7 @@
     // ==========================================
     // 💡 Supabase 연결 설정
     // ==========================================
-    const supabaseUrl = 'https://npiflqoscsvnnauvqhrr.supabase.co'; 
+    const supabaseUrl = 'https://npiflqoscsvnnauvqhrr.supabase.co';
     // 공개되어도 안전한 Publishable 키입니다. (RLS로 보호됨)
     // 만약 아까 키를 새로(Rotate) 발급받으셨다면, 아래 문자열을 새로 받은 키로만 바꿔주세요.
     const supabaseKey = 'sb_publishable_ir-mHSsX6SSIQwHerkLbfA_2qCOP3KW'; 
