@@ -45,7 +45,7 @@ body {
 
 .gf3-layout { display: flex; align-items: flex-start; gap: 16px; width: 100%; }
 
-/* 메인 테이블 박스: 테이블이 커져도 레이아웃을 깨지 않도록 억제 */
+/* 메인 테이블 박스: 모바일 스크롤 관련 코드 제거됨 */
 .gf3-main-table-box { 
     flex: 1 1 0; 
     min-width: 0; 
@@ -54,12 +54,10 @@ body {
     padding: 16px; 
     box-shadow: 0 2px 8px rgba(0,0,0,0.03); 
     border: 1px solid #e5e5ea; 
-    overflow-x: auto; 
-    -webkit-overflow-scrolling: touch; 
 }
 
-/* ⚠️ 모든 .gf3-table에 최소 750px이 걸려있습니다. (이게 문제의 원인) */
-.gf3-table { width: 100%; border-collapse: collapse; table-layout: fixed; min-width: 750px; }
+/* 테이블 기본 속성 (모바일용 강제 min-width 제거) */
+.gf3-table { width: 100%; border-collapse: collapse; table-layout: fixed; }
 .gf3-th, .gf3-td { border: 1px solid #d2d2d7; height: 38px; vertical-align: middle; padding: 0; }
 .gf3-th { background: #f5f5f7; font-size: 13px; font-weight: 600; color: #1d1d1f; text-align: center; }
 .row-title { background: #fafafc; color: #1d1d1f; }
@@ -71,8 +69,8 @@ body {
 .border-top-thick th, .border-top-thick td { border-top: 2px solid #8e8e93 !important; }
 .border-bottom-thick th, .border-bottom-thick td { border-bottom: 2px solid #8e8e93 !important; }
 
-/* 특집 영역 병합 및 선 숨김 */
-.special-cell { border-top: none !important; border-bottom: none !important; border-left: none !important; background: #ffffff !important; }
+/* 특집 영역 병합 및 선 숨김 (중요: 강제 배경색 제거) */
+.special-cell { border-top: none !important; border-bottom: none !important; border-left: none !important; background: #ffffff; }
 .special-cell.bottom-border { border-bottom: 1px solid #d2d2d7 !important; }
 .special-label { text-align: right; padding-right: 8px; font-size: 13px; font-weight: 600; color: #1d1d1f; background: transparent; border-right: none !important; }
 
@@ -85,15 +83,17 @@ body {
 /* 모드별 셀 배경색 지정 */
 .gf3-td.readonly { background: #fbfbfd; }
 .gf3-td.editable { background: #ffffff; transition: background-color 0.3s; }
-.gf3-wrapper.edit-mode .gf3-td.editable { background-color: #fff9e6; }
-.gf3-wrapper.edit-mode .gf3-td.editable .gf3-input:focus { background-color: #fff2cc; }
+
+/* 수정 모드일 때 배경색 강조 (특집 영역 special-cell도 이 색상으로 덮어씌움) */
+.gf3-wrapper.edit-mode .gf3-td.editable { background-color: #fff9e6 !important; }
+.gf3-wrapper.edit-mode .gf3-td.editable .gf3-input:focus { background-color: #fff2cc !important; }
 
 /* 우측 사이드 패널 */
 .gf3-side-panel { width: 180px; flex-shrink: 0; display: flex; flex-direction: column; gap: 16px; }
 .gf3-box { background: #fff; border-radius: 12px; padding: 16px; box-shadow: 0 2px 8px rgba(0,0,0,0.03); border: 1px solid #e5e5ea; }
 .gf3-box-header { font-size: 14px; font-weight: 700; color: #1d1d1f; text-align: center; margin-bottom: 12px; padding-bottom: 8px; border-bottom: 1px solid #f2f2f7; }
 
-/* 🌟 오류 해결: 사이드 패널의 미니 테이블은 750px 강제 확장을 무시하도록 설정 */
+/* 사이드 패널 미니 테이블 */
 .mini-table { min-width: 0 !important; width: 100%; }
 .mini-table th { font-size: 12px; height: 30px; }
 .mini-table td { height: 34px; }
