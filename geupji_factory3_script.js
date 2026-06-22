@@ -10,7 +10,8 @@
     const supabaseKey = 'sb_publishable_ir-mHSsX6SSIQwHerkLbfA_2qCOP3KW'; 
     const supabase = window.supabase.createClient(supabaseUrl, supabaseKey);
 
-    let state = { currentDate: null, isEditMode: false, fp: null, isAdmin: true }; 
+    // 💡 isAdmin의 기본값을 false로 변경했습니다.
+    let state = { currentDate: null, isEditMode: false, fp: null, isAdmin: false }; 
     let elements = {};
 
     const FACTOR_788 = 571;
@@ -299,7 +300,7 @@
     }
 
     function toggleEditMode() {
-        if (!state.isAdmin) return;
+        if (!state.isAdmin) return; // 💡 권한 없으면 차단
         state.isEditMode = !state.isEditMode;
         
         if (state.isEditMode) {
@@ -319,11 +320,17 @@
     const GeupjiFactory3Module = {
         init: function() {
             // ==========================================
-            // 🔒 간이 비밀번호 체크
+            // 🔒 비밀번호 체크 및 권한 할당
             // ==========================================
-            const input = prompt("접속 비밀번호를 입력하세요:");
-            if (input !== "mk1324") {
-                alert("비밀번호가 틀렸습니다.");
+            const pwInput = prompt("접속 비밀번호를 입력하세요:");
+            
+            if (pwInput === "mk1324") {
+                state.isAdmin = true;  // 수정 및 저장 가능
+            } else if (pwInput === "mk1111") {
+                state.isAdmin = false; // 읽기 전용 모드
+                // alert("조회 모드로 접속되었습니다. (수정 불가)"); // 필요시 주석 해제하여 사용
+            } else {
+                alert("비밀번호가 올바르지 않습니다.");
                 location.href = "about:blank"; 
                 return; 
             }
@@ -341,7 +348,10 @@
             elements.editBtn = document.getElementById('gf3EditBtn');
             elements.saveBtn = document.getElementById('gf3SaveBtn');
             
-            if(state.isAdmin) elements.editBtn.disabled = false;
+            // 💡 권한에 따라 수정 버튼 활성화
+            if(state.isAdmin) {
+                elements.editBtn.disabled = false;
+            }
 
             const today = utils.getTodayStr();
             state.currentDate = utils.addDays(today, -1);
