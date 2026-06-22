@@ -36,7 +36,7 @@ body {
 /* ========================================== */
 
 .gf3-header { display: flex; justify-content: space-between; align-items: center; background: #fff; padding: 12px 20px; border-radius: 14px; box-shadow: 0 2px 8px rgba(0,0,0,0.03); }
-.gf3-main-title { font-size: 26px; font-weight: 700; color: #1d1d1f; letter-spacing: -0.5px; }
+.gf3-main-title { font-size: 20px; font-weight: 700; color: #1d1d1f; letter-spacing: -0.5px; }
 
 .gf3-controls { display: flex; align-items: center; gap: 8px; }
 .gf3-nav-group { display: flex; align-items: center; background: #f5f5f7; border-radius: 20px; padding: 4px; }
