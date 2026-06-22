@@ -1,11 +1,4 @@
 /* geupji_factory3_style.css */
-.flatpickr-calendar { 
-    border-radius: 12px; 
-    box-shadow: 0 10px 25px rgba(0,0,0,0.1); 
-    border: none; 
-    margin-top: 16px; 
-    margin-left: -75px; 
-}
 
 /* 기본 문서 초기화 및 배경설정 추가 */
 body {

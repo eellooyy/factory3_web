@@ -366,6 +366,11 @@
                 positionElement: elements.dateText, // 위치 기준을 dateText로 유지
                 position: "auto center", 
                 clickOpens: false, // 기본 클릭 방지
+                
+                onReady: function(selectedDates, dateStr, instance) { 
+                 instance.calendarContainer.style.marginTop = "10px"; 
+                 },
+                
                 onChange: (dates, str) => {
                     state.currentDate = str;
                     elements.dateText.innerText = utils.formatKoDate(str);
