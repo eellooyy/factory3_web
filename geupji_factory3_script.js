@@ -364,6 +364,7 @@
                 defaultDate: state.currentDate,
                 positionElement: elements.dateText, 
                 position: "auto center", 
+                clickOpens: false, // 기본 클릭 시 무조건 열리는 동작 방지 (Index 페이지와 동일)
                 onChange: (dates, str) => {
                     state.currentDate = str;
                     elements.dateText.innerText = utils.formatKoDate(str);
@@ -371,13 +372,10 @@
                 }
             });
 
-            // 💡 날짜 클릭 시 캘린더 토글(열림/닫힘) 기능 적용 및 충돌 방지
-            elements.dateText.addEventListener('click', (e) => {
-                e.stopPropagation(); // 이벤트 버블링을 막아 Flatpickr 기본 동작과 충돌하는 것을 방지합니다.
-                if (state.fp.isOpen) {
-                    state.fp.close();
-                } else {
-                    state.fp.open();
+            // 💡 날짜 클릭 시 캘린더 토글(열림/닫힘) 기능 적용
+            elements.dateText.addEventListener('click', () => {
+                if (state.fp) {
+                    state.fp.toggle();
                 }
             });
             
