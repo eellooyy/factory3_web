@@ -9,7 +9,6 @@
     const supabaseKey = 'sb_publishable_ir-mHSsX6SSIQwHerkLbfA_2qCOP3KW'; 
     const supabase = window.supabase.createClient(supabaseUrl, supabaseKey);
 
-    // 💡 state 객체에 전일 완롤 잔량 임시 보관 필드(prevWanA, prevWanD) 추가
     let state = { currentDate: null, isEditMode: false, fp: null, isAdmin: false, prevWanA: 0, prevWanD: 0 }; 
     let elements = {};
 
@@ -66,7 +65,6 @@
             
             const loadedStartBalCols = new Set(); 
             
-            // 전일 데이터 값 초기화
             state.prevWanA = 0;
             state.prevWanD = 0;
 
@@ -122,7 +120,6 @@
             const cols = ['B', 'C', 'D', 'E', 'F', 'G'];
             const missingStartBalCols = cols.filter(col => !loadedStartBalCols.has(col));
             
-            // 💡 전일 데이터 통합 조회 (기존의 사용 전 잔량 채우기 + 신규 급지 출고 연산용 전일 완롤 데이터 확보)
             const prevDate = utils.addDays(dateStr, -1);
             const { data: prevData, error: prevError } = await supabase
                 .from('factory3_geupji_real')
@@ -131,7 +128,6 @@
             
             if (!prevError && prevData) {
                 prevData.forEach(item => {
-                    // 전일 사용 후 잔량 -> 금일 사용 전 잔량 바인딩 (기존)
                     if (item.item_type === 'end_bal_10' && missingStartBalCols.includes(item.col_id)) {
                         const valNum = item.value ? Number(item.value) : 0;
                         if (valNum !== 0) {
@@ -139,7 +135,6 @@
                             if (el) el.value = valNum.toLocaleString();
                         }
                     }
-                    // 전일 완롤 잔량 캐싱 (신규)
                     if (item.item_type === 'side_wan_1') {
                         if (item.col_id === 'A') state.prevWanA = item.value ? Number(item.value) : 0;
                         if (item.col_id === 'D') state.prevWanD = item.value ? Number(item.value) : 0;
@@ -159,7 +154,7 @@
         let endBalD = 0; 
         let endBalA = 0; 
 
-        // 💡 금일 입력된 완롤 영역의 실질적인 롤(R/L) 누적 변수
+        // 💡 19 이하인 완롤만 누적하기 위한 변수
         let sumTodayRollD = 0;
         let sumTodayRollA = 0;
 
@@ -170,15 +165,19 @@
             let wanKgSum = 0;
             for(let r=2; r<=7; r++) {
                 let cellVal = utils.parseNum(document.querySelector(`.target-calc[data-col="${col}"][data-row="${r}"]`)?.value);
+                
                 if (cellVal >= 20) {
                     wanKgSum += cellVal;
                 } else {
                     wanKgSum += (cellVal * factor);
-                    // 💡 20 미만일 때 완롤 R/L 개수로 인정하여 합산 유도
-                    if (col === 'B') {
-                        sumTodayRollD += cellVal;
-                    } else {
-                        sumTodayRollA += cellVal;
+                    
+                    // 💡 19 이하인 완롤(R/L)만 개수로 필터링 합산 (D그룹: B열 / A그룹: C~G열)
+                    if (cellVal > 0 && cellVal <= 19) {
+                        if (col === 'B') {
+                            sumTodayRollD += cellVal;
+                        } else {
+                            sumTodayRollA += cellVal;
+                        }
                     }
                 }
             }
@@ -239,10 +238,14 @@
         if(elGeupD) elGeupD.value = geupD > 0 ? geupD.toLocaleString() + " kg" : "0 kg";
 
         // ==========================================
-        // 💡 [신규] 급지 출고 실시간 연산 로직 (화면 출력 전용)
+        // 💡 [수정] 급지 출고 실시간 연산 (Math.abs로 음수 기호 제거)
+        // 공식: 전일 잔량 - (오늘 19이하 사용합계 + 오늘 잔량)
         // ==========================================
-        const chulgoA = (state.prevWanA + sumTodayRollA) - wanA;
-        const chulgoD = (state.prevWanD + sumTodayRollD) - wanD;
+        const rawChulgoA = state.prevWanA - (sumTodayRollA + wanA);
+        const rawChulgoD = state.prevWanD - (sumTodayRollD + wanD);
+
+        const chulgoA = Math.abs(rawChulgoA);
+        const chulgoD = Math.abs(rawChulgoD);
 
         const elChulgoA = document.getElementById('sideChulgoA');
         const elChulgoD = document.getElementById('sideChulgoD');
