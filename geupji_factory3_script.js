@@ -371,7 +371,14 @@
                 }
             });
 
-            elements.dateText.addEventListener('click', () => state.fp.open());
+            // 💡 날짜 클릭 시 캘린더 토글(열림/닫힘) 기능 적용
+            elements.dateText.addEventListener('click', () => {
+                if (state.fp.isOpen) {
+                    state.fp.close();
+                } else {
+                    state.fp.open();
+                }
+            });
             
             elements.prevBtn.addEventListener('click', () => {
                 const prev = utils.addDays(state.currentDate, -1);
