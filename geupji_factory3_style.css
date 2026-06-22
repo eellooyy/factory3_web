@@ -1,9 +1,9 @@
 /* geupji_factory3_style.css */
 
-/* 기본 문서 초기화 및 배경설정 추가 */
+/* 기본 문서 초기화 */
 body {
     margin: 0;
-    padding: 20px;
+    padding: 0; /* padding을 scroll-container로 이동하여 모바일 스크롤 바가 잘리지 않게 함 */
     background-color: #f5f5f7;
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
     box-sizing: border-box;
@@ -12,7 +12,17 @@ body {
     box-sizing: inherit;
 }
 
-/* PC에서 너무 넓게 퍼지지 않도록 max-width 지정 및 중앙 정렬 추가 */
+/* ==========================================
+   💡 모바일 가로 스크롤을 위한 핵심 설정 
+   ========================================== */
+.gf3-scroll-container {
+    width: 100%;
+    overflow-x: auto; /* 가로 스크롤 허용 */
+    -webkit-overflow-scrolling: touch; /* iOS에서 부드러운 스크롤 지원 */
+    padding: 20px; /* 기존 body에 있던 여백 설정 */
+}
+
+/* PC 버전의 레이아웃이 좁은 화면에서 깨지지 않도록 최소 너비 강제 적용 */
 .gf3-wrapper { 
     display: flex; 
     flex-direction: column; 
@@ -20,8 +30,10 @@ body {
     padding: 10px 0; 
     width: 100%; 
     max-width: 1200px; 
+    min-width: 1020px; /* 표 + 사이드패널 + 간격 = 약 1020px 보장 */
     margin: 0 auto; 
 }
+/* ========================================== */
 
 .gf3-header { display: flex; justify-content: space-between; align-items: center; background: #fff; padding: 12px 20px; border-radius: 14px; box-shadow: 0 2px 8px rgba(0,0,0,0.03); }
 .gf3-main-title { font-size: 20px; font-weight: 700; color: #1d1d1f; letter-spacing: -0.5px; }
@@ -45,7 +57,7 @@ body {
 
 .gf3-layout { display: flex; align-items: flex-start; gap: 16px; width: 100%; }
 
-/* 메인 테이블 박스: 모바일 스크롤 관련 코드 제거됨 */
+/* 메인 테이블 박스 */
 .gf3-main-table-box { 
     flex: 1 1 0; 
     min-width: 0; 
@@ -56,7 +68,7 @@ body {
     border: 1px solid #e5e5ea; 
 }
 
-/* 테이블 기본 속성 (모바일용 강제 min-width 제거) */
+/* 테이블 기본 속성 */
 .gf3-table { width: 100%; border-collapse: collapse; table-layout: fixed; }
 .gf3-th, .gf3-td { border: 1px solid #d2d2d7; height: 38px; vertical-align: middle; padding: 0; }
 .gf3-th { background: #f5f5f7; font-size: 13px; font-weight: 600; color: #1d1d1f; text-align: center; }
@@ -69,7 +81,7 @@ body {
 .border-top-thick th, .border-top-thick td { border-top: 2px solid #8e8e93 !important; }
 .border-bottom-thick th, .border-bottom-thick td { border-bottom: 2px solid #8e8e93 !important; }
 
-/* 특집 영역 병합 및 선 숨김 (중요: 강제 배경색 제거) */
+/* 특집 영역 병합 및 선 숨김 */
 .special-cell { border-top: none !important; border-bottom: none !important; border-left: none !important; background: #ffffff; }
 .special-cell.bottom-border { border-bottom: 1px solid #d2d2d7 !important; }
 .special-label { text-align: right; padding-right: 8px; font-size: 13px; font-weight: 600; color: #1d1d1f; background: transparent; border-right: none !important; }
@@ -84,7 +96,7 @@ body {
 .gf3-td.readonly { background: #fbfbfd; }
 .gf3-td.editable { background: #ffffff; transition: background-color 0.3s; }
 
-/* 수정 모드일 때 배경색 강조 (특집 영역 special-cell도 이 색상으로 덮어씌움) */
+/* 수정 모드일 때 배경색 강조 */
 .gf3-wrapper.edit-mode .gf3-td.editable { background-color: #fff9e6 !important; }
 .gf3-wrapper.edit-mode .gf3-td.editable .gf3-input:focus { background-color: #fff2cc !important; }
 
