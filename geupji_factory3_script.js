@@ -300,7 +300,7 @@
     }
 
     function toggleEditMode() {
-        if (!state.isAdmin) return; // 💡 권한 없으면 차단
+        if (!state.isAdmin) return; // 권한 없으면 차단
         state.isEditMode = !state.isEditMode;
         
         if (state.isEditMode) {
@@ -328,7 +328,6 @@
                 state.isAdmin = true;  // 수정 및 저장 가능
             } else if (pwInput === "mk1111") {
                 state.isAdmin = false; // 읽기 전용 모드
-                // alert("조회 모드로 접속되었습니다. (수정 불가)"); // 필요시 주석 해제하여 사용
             } else {
                 alert("비밀번호가 올바르지 않습니다.");
                 location.href = "about:blank"; 
@@ -348,7 +347,6 @@
             elements.editBtn = document.getElementById('gf3EditBtn');
             elements.saveBtn = document.getElementById('gf3SaveBtn');
             
-            // 💡 권한에 따라 수정 버튼 활성화
             if(state.isAdmin) {
                 elements.editBtn.disabled = false;
             }
@@ -357,23 +355,33 @@
             state.currentDate = utils.addDays(today, -1);
             elements.dateText.innerText = utils.formatKoDate(state.currentDate);
 
-            // 💡 캘린더 초기화 옵션 (가운데 정렬)
+            // 💡 캘린더 안정화 플래그
+            let justClosed = false;
+
+            // 💡 캘린더 초기화
             state.fp = flatpickr("#gf3Flatpickr", {
                 locale: "ko", 
                 dateFormat: "Y-m-d", 
                 defaultDate: state.currentDate,
-                positionElement: elements.dateText, 
+                positionElement: elements.dateText, // 위치 기준을 dateText로 유지
                 position: "auto center", 
-                clickOpens: false, // 기본 클릭 시 무조건 열리는 동작 방지 (Index 페이지와 동일)
+                clickOpens: false, // 기본 클릭 방지
                 onChange: (dates, str) => {
                     state.currentDate = str;
                     elements.dateText.innerText = utils.formatKoDate(str);
                     loadData(str);
+                },
+                onClose: () => {
+                    // 닫힐 때 즉시 열리는 현상 방지를 위해 짧은 시간 동안 플래그 활성화
+                    justClosed = true;
+                    setTimeout(() => { justClosed = false; }, 200);
                 }
             });
 
-            // 💡 날짜 클릭 시 캘린더 토글(열림/닫힘) 기능 적용
-            elements.dateText.addEventListener('click', () => {
+            // 💡 날짜 텍스트 클릭 시 이벤트 버블링 차단 및 안전한 토글 처리
+            elements.dateText.addEventListener('click', (e) => {
+                e.stopPropagation(); // ⭐️ 핵심 해결책: Flatpickr의 외부 클릭 감지와 충돌 방지
+                if (justClosed) return; // 방금 닫혔다면 다시 열지 않음
                 if (state.fp) {
                     state.fp.toggle();
                 }
@@ -451,7 +459,6 @@
                 
                 rawPayloadData.push({ item_type: 'stat_total_usage', col_id: 'H', value: extractVal(document.getElementById('statTotalUsage')), memo: "" });
 
-                // 💡 0이거나 빈칸인 데이터 걸러내기 (단, 메모가 있는 항목은 남김)
                 const finalInsertData = rawPayloadData
                     .map(item => ({
                         date: state.currentDate,
@@ -463,7 +470,6 @@
                     .filter(item => item.value !== 0 || item.memo.trim() !== "");
 
                 try {
-                    // 1. 기존 날짜 데이터 일괄 삭제 (과거 데이터 수정 대응)
                     const { error: deleteError } = await supabase
                         .from('factory3_geupji_real')
                         .delete()
@@ -474,7 +480,6 @@
                         return;
                     }
 
-                    // 2. 유효한(0이 아닌) 데이터가 있을 경우에만 새로 일괄 삽입
                     if (finalInsertData.length > 0) {
                         const { error: insertError } = await supabase
                             .from('factory3_geupji_real')
@@ -488,7 +493,6 @@
                             loadData(state.currentDate); 
                         }
                     } else {
-                        // 모든 칸을 다 지우고 저장했을 때의 처리
                         alert('저장 완료되었습니다. (모든 값이 지워져 해당 날짜의 데이터가 초기화되었습니다.)');
                         toggleEditMode();
                         loadData(state.currentDate);
