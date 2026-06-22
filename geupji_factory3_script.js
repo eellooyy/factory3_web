@@ -357,31 +357,24 @@
             state.currentDate = utils.addDays(today, -1);
             elements.dateText.innerText = utils.formatKoDate(state.currentDate);
 
-            // 💡 캘린더 초기화 옵션
-            // positionElement를 사용하면 Flatpickr가 해당 요소에 자체 클릭 리스너를 붙여
-            // 토글이 불가능해지므로, appendTo + static 방식으로 위치를 잡습니다.
-            let fpIsOpen = false;
-            const calWrap = document.getElementById('gf3CalendarWrap');
+            // 💡 캘린더 초기화 옵션 (가운데 정렬)
             state.fp = flatpickr("#gf3Flatpickr", {
                 locale: "ko", 
                 dateFormat: "Y-m-d", 
                 defaultDate: state.currentDate,
-                appendTo: calWrap,
-                static: true,
+                positionElement: elements.dateText, 
+                position: "auto center", 
                 onChange: (dates, str) => {
                     state.currentDate = str;
                     elements.dateText.innerText = utils.formatKoDate(str);
-                    fpIsOpen = false;
                     loadData(str);
-                },
-                onOpen: () => { fpIsOpen = true; },
-                onClose: () => { fpIsOpen = false; }
+                }
             });
 
-            // 💡 날짜 클릭 시 캘린더 토글(열림/닫힘)
-            // fpIsOpen 변수로 상태를 직접 추적하여 Flatpickr 내부 동작과 충돌 없이 토글합니다.
-            elements.dateText.addEventListener('click', () => {
-                if (fpIsOpen) {
+            // 💡 날짜 클릭 시 캘린더 토글(열림/닫힘) 기능 적용 및 충돌 방지
+            elements.dateText.addEventListener('click', (e) => {
+                e.stopPropagation(); // 이벤트 버블링을 막아 Flatpickr 기본 동작과 충돌하는 것을 방지합니다.
+                if (state.fp.isOpen) {
                     state.fp.close();
                 } else {
                     state.fp.open();

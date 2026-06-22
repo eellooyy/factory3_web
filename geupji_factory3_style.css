@@ -109,25 +109,3 @@ body {
 .mini-table { min-width: 0 !important; width: 100%; }
 .mini-table th { font-size: 12px; height: 30px; }
 .mini-table td { height: 34px; }
-/* ==========================================
-   💡 캘린더 토글 - static 모드 위치 설정
-   ========================================== */
-.gf3-cal-wrap { position: relative; }
-
-/* static 모드에서 Flatpickr가 .flatpickr-calendar를 calWrap 안에 렌더링함 */
-/* 기본적으로 숨기고, .open 클래스가 붙을 때만 표시 */
-#gf3CalendarWrap .flatpickr-calendar {
-    position: absolute;
-    top: calc(100% + 6px);
-    left: 50%;
-    transform: translateX(-50%);
-    z-index: 9999;
-    display: none;
-    visibility: hidden;
-    opacity: 0;
-}
-#gf3CalendarWrap .flatpickr-calendar.open {
-    display: block;
-    visibility: visible;
-    opacity: 1;
-}
