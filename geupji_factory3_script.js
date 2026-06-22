@@ -320,18 +320,29 @@
     const GeupjiFactory3Module = {
         init: function() {
             // ==========================================
-            // 🔒 비밀번호 체크 및 권한 할당
+            // 🔒 비밀번호 체크 및 권한 할당 (세션 유지 적용)
             // ==========================================
-            const pwInput = prompt("접속 비밀번호를 입력하세요:");
-            
-            if (pwInput === "mk1324") {
-                state.isAdmin = true;  // 수정 및 저장 가능
-            } else if (pwInput === "mk1111") {
-                state.isAdmin = false; // 읽기 전용 모드
+            const savedRole = sessionStorage.getItem('gf3_role');
+
+            if (savedRole === 'admin') {
+                state.isAdmin = true;  // 세션이 관리자면 자동 로그인
+            } else if (savedRole === 'readonly') {
+                state.isAdmin = false; // 세션이 읽기전용이면 자동 로그인
             } else {
-                alert("비밀번호가 올바르지 않습니다.");
-                location.href = "about:blank"; 
-                return; 
+                // 세션 기록이 없을 때만 최초 1회 비밀번호 요청
+                const pwInput = prompt("접속 비밀번호를 입력하세요:");
+                
+                if (pwInput === "mk1324") {
+                    state.isAdmin = true;  // 수정 및 저장 가능
+                    sessionStorage.setItem('gf3_role', 'admin'); // 세션 저장
+                } else if (pwInput === "mk1111") {
+                    state.isAdmin = false; // 읽기 전용 모드
+                    sessionStorage.setItem('gf3_role', 'readonly'); // 세션 저장
+                } else {
+                    alert("비밀번호가 올바르지 않습니다.");
+                    location.href = "about:blank"; 
+                    return; 
+                }
             }
 
             // ==========================================
@@ -368,8 +379,8 @@
                 clickOpens: false, // 기본 클릭 방지
                 
                 onReady: function(selectedDates, dateStr, instance) { 
-                 instance.calendarContainer.style.marginTop = "10px"; 
-                 },
+                    instance.calendarContainer.style.marginTop = "10px"; 
+                },
                 
                 onChange: (dates, str) => {
                     state.currentDate = str;
