@@ -113,3 +113,8 @@ body {
         flex: 1; 
     }
 }
+
+.flatpickr-calendar {
+    margin-top: 5px;   /* 위아래 간격 조절 */
+    margin-left: -200px; /* 좌우 간격 조절 (음수면 왼쪽으로, 양수면 오른쪽으로 이동) */
+}
