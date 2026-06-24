@@ -35,7 +35,7 @@ body {
 .gf3-cal-wrap { position: relative; margin: 0 12px; }
 .gf3-date-text { font-size: 18px; font-weight: 700; color: #1d1d1f; min-width: 140px; text-align: center; display: inline-block; cursor: pointer; }
 
-.gf3-action-btn { border: none; padding: 6px 16px; border-radius: 8px; font-size: 13px; font-weight: 600; cursor: pointer; transition: all 0.2s; }
+.gf3-action-btn { display: flex; align-items: center; border: none; padding: 6px 16px; border-radius: 8px; font-size: 13px; font-weight: 600; cursor: pointer; transition: all 0.2s; }
 .today-btn { background: #e8f4fd; color: #007AFF; }
 .today-btn:hover { background: #d0e7fa; }
 .edit-btn { background: #f2f2f7; color: #1d1d1f; }
@@ -43,6 +43,11 @@ body {
 .save-btn { background: #007AFF; color: #fff; }
 .save-btn:not(:disabled):hover { opacity: 0.85; }
 .edit-btn:disabled, .save-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+
+/* 💡 엑셀 출력 버튼 스타일 지정 (엑셀 고유의 초록색 적용) */
+.excel-btn { background: #217346; color: #fff; }
+.excel-btn:hover { background: #1e6b40; opacity: 0.9; }
+.excel-btn:disabled { opacity: 0.6; cursor: not-allowed; }
 
 /* 메인 레이아웃 */
 .gf3-layout { display: flex; align-items: flex-start; gap: 16px; width: 100%; }
@@ -99,22 +104,9 @@ body {
 
 /* 반응형 레이아웃 설정 (1050px 이하) */
 @media (max-width: 1050px) {
-    .gf3-layout { 
-        flex-direction: column; 
-    }
-    
-    .gf3-side-panel { 
-        width: 100%; 
-        flex-direction: row; 
-        gap: 10px; 
-    }
-    
-    .gf3-box { 
-        flex: 1; 
-    }
+    .gf3-layout { flex-direction: column; }
+    .gf3-side-panel { width: 100%; flex-direction: row; gap: 10px; }
+    .gf3-box { flex: 1; }
 }
 
-.flatpickr-calendar {
-    margin-top: 5px;   /* 위아래 간격 조절 */
-    margin-left: -120px; /* 좌우 간격 조절 (음수면 왼쪽으로, 양수면 오른쪽으로 이동) */
-}
+.flatpickr-calendar { margin-top: 5px; margin-left: -120px; }
