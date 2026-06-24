@@ -605,6 +605,42 @@
                     clearVerticalBorder(XLSX.utils.encode_cell({ c: 8, r }), 'left');
                 }
 
+                // Fine-grained H/I border removals requested by the user.
+                const clearBottomBorder = (cellRef) => clearVerticalBorder(cellRef, 'bottom');
+                const clearRightBorder = (cellRef) => clearVerticalBorder(cellRef, 'right');
+
+                // H5, I5
+                clearBottomBorder(XLSX.utils.encode_cell({ c: 7, r: 4 }));
+                clearBottomBorder(XLSX.utils.encode_cell({ c: 8, r: 4 }));
+
+                // H6, I6
+                clearRightBorder(XLSX.utils.encode_cell({ c: 7, r: 5 }));
+                clearBottomBorder(XLSX.utils.encode_cell({ c: 8, r: 5 }));
+
+                // H7, I7
+                clearBottomBorder(XLSX.utils.encode_cell({ c: 7, r: 6 }));
+                clearRightBorder(XLSX.utils.encode_cell({ c: 7, r: 6 }));
+                clearBottomBorder(XLSX.utils.encode_cell({ c: 8, r: 6 }));
+
+                // H8, I8
+                clearBottomBorder(XLSX.utils.encode_cell({ c: 7, r: 7 }));
+                clearRightBorder(XLSX.utils.encode_cell({ c: 7, r: 7 }));
+                clearBottomBorder(XLSX.utils.encode_cell({ c: 8, r: 7 }));
+
+                // H9, I9
+                clearBottomBorder(XLSX.utils.encode_cell({ c: 7, r: 8 }));
+                clearBottomBorder(XLSX.utils.encode_cell({ c: 8, r: 8 }));
+
+                // H11, I11
+                clearBottomBorder(XLSX.utils.encode_cell({ c: 7, r: 10 }));
+                clearRightBorder(XLSX.utils.encode_cell({ c: 7, r: 10 }));
+                clearBottomBorder(XLSX.utils.encode_cell({ c: 8, r: 10 }));
+
+                // H12, I12
+                clearBottomBorder(XLSX.utils.encode_cell({ c: 7, r: 11 }));
+                clearRightBorder(XLSX.utils.encode_cell({ c: 7, r: 11 }));
+                clearBottomBorder(XLSX.utils.encode_cell({ c: 8, r: 11 }));
+
                 ws['!pageSetup'] = {
                     orientation: 'landscape', // 가로 방향 출력
                     fitToWidth: 1,           // 한 페이지 너비에 맞춤
