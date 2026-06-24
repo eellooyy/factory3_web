@@ -152,6 +152,7 @@
                         else sumTodayRollA += cellVal;
                     }
                 }
+
             }
             
             const beforeSum = startBal + wanKgSum;
@@ -505,6 +506,74 @@
                 }
 
                 // 가로 출력에 알맞게 자동 맞춤 인쇄 설정
+                const applyExportBorder = (cellRef, borderPatch) => {
+                    const cell = ws[cellRef];
+                    if (!cell || !cell.s) return;
+                    cell.s.border = Object.assign({}, cell.s.border || {}, borderPatch);
+                };
+
+                const exportThinBorder = { style: 'thin', color: { rgb: "8e8e93" } };
+                const exportThickBorder = { style: 'medium', color: { rgb: "000000" } };
+
+                const setAllThin = (cellRef) => {
+                    applyExportBorder(cellRef, { top: exportThinBorder, bottom: exportThinBorder, left: exportThinBorder, right: exportThinBorder });
+                };
+
+                for (let r = 2; r <= 12; r++) {
+                    for (let c = 0; c <= 8; c++) {
+                        setAllThin(XLSX.utils.encode_cell({ c, r }));
+                    }
+                }
+
+                for (let c = 0; c <= 8; c++) {
+                    applyExportBorder(XLSX.utils.encode_cell({ c, r: 2 }), { top: exportThickBorder });
+                    applyExportBorder(XLSX.utils.encode_cell({ c, r: 12 }), { bottom: exportThickBorder });
+                }
+                for (let r = 2; r <= 12; r++) {
+                    applyExportBorder(XLSX.utils.encode_cell({ c: 0, r }), { left: exportThickBorder });
+                    applyExportBorder(XLSX.utils.encode_cell({ c: 8, r }), { right: exportThickBorder });
+                }
+
+                for (let c = 0; c <= 8; c++) {
+                    applyExportBorder(XLSX.utils.encode_cell({ c, r: 9 }), { bottom: exportThickBorder });
+                }
+
+                for (let r = 3; r <= 12; r++) {
+                    applyExportBorder(XLSX.utils.encode_cell({ c: 7, r }), { left: exportThinBorder });
+                    applyExportBorder(XLSX.utils.encode_cell({ c: 8, r }), { right: exportThinBorder });
+                }
+                [3, 4, 5, 6, 7, 10, 11].forEach((r) => {
+                    applyExportBorder(XLSX.utils.encode_cell({ c: 7, r }), { top: exportThinBorder, bottom: exportThinBorder });
+                    applyExportBorder(XLSX.utils.encode_cell({ c: 8, r }), { top: exportThinBorder, bottom: exportThinBorder });
+                });
+                [8, 9].forEach((r) => {
+                    applyExportBorder(XLSX.utils.encode_cell({ c: 7, r }), { top: {}, bottom: {} });
+                    applyExportBorder(XLSX.utils.encode_cell({ c: 8, r }), { top: {}, bottom: {} });
+                });
+                applyExportBorder(XLSX.utils.encode_cell({ c: 7, r: 12 }), { bottom: exportThickBorder });
+                applyExportBorder(XLSX.utils.encode_cell({ c: 8, r: 12 }), { bottom: exportThickBorder });
+
+                const miniRanges = [
+                    { top: 2, bottom: 4 },
+                    { top: 6, bottom: 8 },
+                    { top: 10, bottom: 12 }
+                ];
+                for (const range of miniRanges) {
+                    for (let r = range.top; r <= range.bottom; r++) {
+                        for (let c = 10; c <= 11; c++) {
+                            setAllThin(XLSX.utils.encode_cell({ c, r }));
+                        }
+                    }
+                    for (let c = 10; c <= 11; c++) {
+                        applyExportBorder(XLSX.utils.encode_cell({ c, r: range.top }), { top: exportThickBorder });
+                        applyExportBorder(XLSX.utils.encode_cell({ c, r: range.bottom }), { bottom: exportThickBorder });
+                    }
+                    for (let r = range.top; r <= range.bottom; r++) {
+                        applyExportBorder(XLSX.utils.encode_cell({ c: 10, r }), { left: exportThickBorder });
+                        applyExportBorder(XLSX.utils.encode_cell({ c: 11, r }), { right: exportThickBorder });
+                    }
+                }
+
                 ws['!pageSetup'] = {
                     orientation: 'landscape', // 가로 방향 출력
                     fitToWidth: 1,           // 한 페이지 너비에 맞춤
