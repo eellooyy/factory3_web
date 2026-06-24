@@ -374,10 +374,10 @@
             } else {
                 const pwInput = prompt("접속 비밀번호를 입력하세요:");
                 
-                if (pwInput === "mk1324") {
+                if (pwInput === "edit0000") {
                     state.isAdmin = true;  
                     sessionStorage.setItem('gf3_role', 'admin'); 
-                } else if (pwInput === "mk1111") {
+                } else if (pwInput === "mk1324") {
                     state.isAdmin = false; 
                     sessionStorage.setItem('gf3_role', 'readonly'); 
                 } else {
