@@ -44,7 +44,7 @@ body {
 .save-btn:not(:disabled):hover { opacity: 0.85; }
 .edit-btn:disabled, .save-btn:disabled { opacity: 0.4; cursor: not-allowed; }
 
-/* 💡 엑셀 출력 버튼 스타일 지정 (엑셀 고유의 초록색 적용) */
+/* 엑셀 출력 버튼 스타일 지정 */
 .excel-btn { background: #217346; color: #fff; }
 .excel-btn:hover { background: #1e6b40; opacity: 0.9; }
 .excel-btn:disabled { opacity: 0.6; cursor: not-allowed; }
