@@ -540,58 +540,59 @@
                 // =====================================================================
                 // 💡 사용자가 명시적으로 요청한 '선 없음' 완벽 적용 (인접 셀 선까지 확실히 지우기)
                 // =====================================================================
-                const setNoBorder = (c, r, side) => {
+                const removeBorder = (c, r, side) => {
                     const cellRef = XLSX.utils.encode_cell({ c, r });
+                    // 1. 현재 셀의 해당 방향 테두리 삭제
                     if (ws[cellRef] && ws[cellRef].s && ws[cellRef].s.border) {
                         delete ws[cellRef].s.border[side];
                     }
-                    // '아래선 없음'일 경우 아래칸의 윗선도 지워야 화면에서 사라짐
-                    if (side === 'bottom') {
-                        const adjRef = XLSX.utils.encode_cell({ c, r: r + 1 });
-                        if (ws[adjRef] && ws[adjRef].s && ws[adjRef].s.border) delete ws[adjRef].s.border.top;
-                    } 
-                    // '우측선 없음'일 경우 우측칸의 좌측선도 지워야 화면에서 사라짐
-                    else if (side === 'right') {
-                        const adjRef = XLSX.utils.encode_cell({ c: c + 1, r });
-                        if (ws[adjRef] && ws[adjRef].s && ws[adjRef].s.border) delete ws[adjRef].s.border.left;
+                    
+                    // 2. 인접 셀의 반대쪽 테두리도 강제 삭제
+                    const adjC = (side === 'right') ? c + 1 : c;
+                    const adjR = (side === 'bottom') ? r + 1 : r;
+                    const adjRef = XLSX.utils.encode_cell({ c: adjC, r: adjR });
+                    
+                    if (ws[adjRef] && ws[adjRef].s && ws[adjRef].s.border) {
+                        const opposite = (side === 'bottom') ? 'top' : 'left';
+                        delete ws[adjRef].s.border[opposite];
                     }
                 };
 
                 // H열(C:7), I열(C:8) / 엑셀 행번호 = r+1
 
                 // 1. H5, I5 아래선 없음 (r: 4)
-                setNoBorder(7, 4, 'bottom');
-                setNoBorder(8, 4, 'bottom');
+                removeBorder(7, 4, 'bottom');
+                removeBorder(8, 4, 'bottom');
 
-                // 2. H6 우측선 없음, I6 아래선 없음 (r: 5)
-                setNoBorder(7, 5, 'right');
-                setNoBorder(8, 5, 'bottom');
+                // 2. H6(r:5) 우측선 없음, H6 아래선(H7 윗선) 없음, I6 아래선 없음
+                removeBorder(7, 5, 'right');
+                removeBorder(7, 5, 'bottom'); // 👈 추가된 H6 아래선(H7 윗선) 제거
+                removeBorder(8, 5, 'bottom');
 
-                // 3. H7 아래선 및 우측선 없음, I7 아래선 없음 (r: 6)
-                setNoBorder(7, 6, 'bottom');
-                setNoBorder(7, 6, 'right');
-                setNoBorder(8, 6, 'bottom');
+                // 3. H7(r:6) 아래선 및 우측선 없음, I7 아래선 없음
+                removeBorder(7, 6, 'bottom');
+                removeBorder(7, 6, 'right');
+                removeBorder(8, 6, 'bottom');
 
-                // 4. H8 아래선 및 우측선 없음, I8 아래선 없음 (r: 7)
-                setNoBorder(7, 7, 'bottom');
-                setNoBorder(7, 7, 'right');
-                setNoBorder(8, 7, 'bottom');
+                // 4. H8(r:7) 아래선 및 우측선 없음, I8 아래선 없음
+                removeBorder(7, 7, 'bottom');
+                removeBorder(7, 7, 'right');
+                removeBorder(8, 7, 'bottom');
 
                 // 5. H9, I9 아래선 없음 (r: 8)
-                setNoBorder(7, 8, 'bottom');
-                setNoBorder(8, 8, 'bottom');
+                removeBorder(7, 8, 'bottom');
+                removeBorder(8, 8, 'bottom');
 
                 // 6. H11 아래선 및 우측선 없음, I11 아래선 없음 (r: 10)
-                setNoBorder(7, 10, 'bottom');
-                setNoBorder(7, 10, 'right');
-                setNoBorder(8, 10, 'bottom');
+                removeBorder(7, 10, 'bottom');
+                removeBorder(7, 10, 'right');
+                removeBorder(8, 10, 'bottom');
 
                 // 7. H12 아래선 및 우측선 없음, I12 아래선 없음 (r: 11)
-                setNoBorder(7, 11, 'bottom');
-                setNoBorder(7, 11, 'right');
-                setNoBorder(8, 11, 'bottom');
+                removeBorder(7, 11, 'bottom');
+                removeBorder(7, 11, 'right');
+                removeBorder(8, 11, 'bottom');
                 // =====================================================================
-
 
                 ws['!pageSetup'] = {
                     orientation: 'landscape', 
