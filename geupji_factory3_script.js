@@ -2,7 +2,6 @@
 (function() {
     'use strict';
 
-    // Supabase DB 접속 정보 수립
     const supabaseUrl = 'https://npiflqoscsvnnauvqhrr.supabase.co';
     const supabaseKey = 'sb_publishable_ir-mHSsX6SSIQwHerkLbfA_2qCOP3KW'; 
     const supabase = window.supabase.createClient(supabaseUrl, supabaseKey);
@@ -45,7 +44,6 @@
         return true;
     }
 
-    // Supabase로부터 일자별 기록 로딩 및 매핑
     async function loadData(dateStr) {
         if(state.isEditMode) toggleEditMode(); 
         
@@ -105,7 +103,6 @@
                 });
             }
             
-            // 전일 데이터 이월 처리 연산구역
             const cols = ['B', 'C', 'D', 'E', 'F', 'G'];
             const missingStartBalCols = cols.filter(col => !loadedStartBalCols.has(col));
             const prevDate = utils.addDays(dateStr, -1);
@@ -135,7 +132,6 @@
         }
     }
 
-    // 자동 연산 수식 로직
     function calculateAutoFields() {
         let usageD = 0; let usageA = 0; let endBalD = 0; let endBalA = 0; 
         let sumTodayRollD = 0; let sumTodayRollA = 0;
@@ -156,6 +152,7 @@
                         else sumTodayRollA += cellVal;
                     }
                 }
+
             }
             
             const beforeSum = startBal + wanKgSum;
@@ -296,18 +293,20 @@
         
         if (state.isEditMode) {
             elements.wrapper.classList.add('edit-mode');
-            elements.editBtn.innerHTML = '<span class="material-symbols-outlined">visibility</span>보기';
+            elements.editBtn.textContent = '보기';
             elements.saveBtn.disabled = false;
-            elements.wrapper.querySelectorAll('.gf3-td.editable .gf3-input, .editable .gf3-input, .editable-wrap .gf3-input').forEach(input => input.readOnly = false);
+            elements.wrapper.querySelectorAll('.gf3-td.editable .gf3-input').forEach(input => input.readOnly = false);
         } else {
             elements.wrapper.classList.remove('edit-mode');
-            elements.editBtn.innerHTML = '<span class="material-symbols-outlined">edit</span>수정';
+            elements.editBtn.textContent = '수정';
             elements.saveBtn.disabled = true;
-            elements.wrapper.querySelectorAll('.gf3-td.editable .gf3-input, .editable .gf3-input, .editable-wrap .gf3-input').forEach(input => input.readOnly = true);
+            elements.wrapper.querySelectorAll('.gf3-td.editable .gf3-input').forEach(input => input.readOnly = true);
         }
     }
 
-    // SheetJS 모듈 기반 이중 격자 보더라인 제거 양식 내보내기 
+    // ==========================================
+    // 💡 엑셀 출력 기능 구현
+    // ==========================================
     function exportToExcel() {
         if (!window.XLSX) {
             alert("엑셀 모듈을 불러오는 데 실패했습니다. 잠시 후 다시 시도해주세요.");
@@ -322,6 +321,7 @@
             try {
                 const val = (selector) => { const el = document.querySelector(selector); return el ? el.value : ""; };
 
+                // 날짜 생성
                 const dateObj = new Date(state.currentDate);
                 const dayNames = ['일요일','월요일','화요일','수요일','목요일','금요일','토요일'];
                 const formattedExcelDate = `${dateObj.getFullYear()}년 ${dateObj.getMonth()+1}월 ${dateObj.getDate()}일 ${dayNames[dateObj.getDay()]}`;
@@ -350,10 +350,12 @@
                     { s: {r: 2, c: 7}, e: {r: 2, c: 8} },
                     { s: {r: 3, c: 7}, e: {r: 3, c: 8} },
                     { s: {r: 4, c: 0}, e: {r: 9, c: 0} },
+                    
                     { s: {r: 4, c: 7}, e: {r: 4, c: 8} },
                     { s: {r: 8, c: 7}, e: {r: 8, c: 8} },
                     { s: {r: 9, c: 7}, e: {r: 9, c: 8} },
                     { s: {r: 12, c: 7}, e: {r: 12, c: 8} },
+                    
                     { s: {r: 2, c: 10}, e: {r: 2, c: 11} },
                     { s: {r: 6, c: 10}, e: {r: 6, c: 11} },
                     { s: {r: 10, c: 10}, e: {r: 10, c: 11} }
@@ -412,9 +414,12 @@
                                 if (R === 5) style.border.bottom = {};
                                 if (R === 6) { style.border.top = {}; style.border.bottom = {}; }
                                 if (R === 7) style.border.top = {};
+
                                 if (R === 10) style.border.bottom = {};
                                 if (R === 11) style.border.top = {};
+
                                 if (C === 7 && R >= 5 && R <= 11) style.alignment.horizontal = "right";
+
                                 if (C === 7 && [4, 8, 9, 12].includes(R)) style.border.right = {};
                                 if (C === 8 && [4, 8, 9, 12].includes(R)) style.border.left = {};
                             }
@@ -441,6 +446,7 @@
                                 if (C === 11) style.border.right = thickBorder;
                             }
                         }
+
                         cell.s = style;
                     }
                 }
@@ -472,9 +478,11 @@
                     applyExportBorder(XLSX.utils.encode_cell({ c: 0, r }), { left: exportThickBorder });
                     applyExportBorder(XLSX.utils.encode_cell({ c: 8, r }), { right: exportThickBorder });
                 }
+
                 for (let c = 0; c <= 8; c++) {
                     applyExportBorder(XLSX.utils.encode_cell({ c, r: 9 }), { bottom: exportThickBorder });
                 }
+
                 for (let r = 3; r <= 12; r++) {
                     applyExportBorder(XLSX.utils.encode_cell({ c: 7, r }), { left: exportThinBorder });
                     applyExportBorder(XLSX.utils.encode_cell({ c: 8, r }), { right: exportThinBorder });
@@ -529,33 +537,74 @@
                     applyExportBorder(XLSX.utils.encode_cell({ c: 8, r }), { right: exportThickBorder });
                 }
 
+                // =====================================================================
+                // 💡 사용자가 명시적으로 요청한 '선 없음' 완벽 적용 (인접 셀 선까지 확실히 지우기)
+                // =====================================================================
                 const setNoBorder = (c, r, side) => {
                     const cellRef = XLSX.utils.encode_cell({ c, r });
                     if (ws[cellRef] && ws[cellRef].s && ws[cellRef].s.border) {
                         delete ws[cellRef].s.border[side];
                     }
+                    // '아래선 없음'일 경우 아래칸의 윗선도 지워야 화면에서 사라짐
                     if (side === 'bottom') {
                         const adjRef = XLSX.utils.encode_cell({ c, r: r + 1 });
                         if (ws[adjRef] && ws[adjRef].s && ws[adjRef].s.border) delete ws[adjRef].s.border.top;
                     } 
+                    // '우측선 없음'일 경우 우측칸의 좌측선도 지워야 화면에서 사라짐
                     else if (side === 'right') {
                         const adjRef = XLSX.utils.encode_cell({ c: c + 1, r });
                         if (ws[adjRef] && ws[adjRef].s && ws[adjRef].s.border) delete ws[adjRef].s.border.left;
                     }
                 };
 
-                setNoBorder(7, 4, 'bottom'); setNoBorder(8, 4, 'bottom');
-                setNoBorder(7, 5, 'right'); setNoBorder(8, 5, 'bottom');
-                setNoBorder(7, 6, 'bottom'); setNoBorder(7, 6, 'right'); setNoBorder(8, 6, 'bottom');
-                setNoBorder(7, 7, 'bottom'); setNoBorder(7, 7, 'right'); setNoBorder(8, 7, 'bottom');
-                setNoBorder(7, 8, 'bottom'); setNoBorder(8, 8, 'bottom');
-                setNoBorder(7, 10, 'bottom'); setNoBorder(7, 10, 'right'); setNoBorder(8, 10, 'bottom');
-                setNoBorder(7, 11, 'bottom'); setNoBorder(7, 11, 'right'); setNoBorder(8, 11, 'bottom');
+                // H열(C:7), I열(C:8) / 엑셀 행번호 = r+1
 
-                ws['!pageSetup'] = { orientation: 'landscape', fitToWidth: 1, fitToHeight: 1, paperSize: 9, horizontalCentered: true };
+                // 1. H5, I5 아래선 없음 (r: 4)
+                setNoBorder(7, 4, 'bottom');
+                setNoBorder(8, 4, 'bottom');
+
+                // 2. H6 우측선 없음, I6 아래선 없음 (r: 5)
+                setNoBorder(7, 5, 'right');
+                setNoBorder(8, 5, 'bottom');
+
+                // 3. H7 아래선 및 우측선 없음, I7 아래선 없음 (r: 6)
+                setNoBorder(7, 6, 'bottom');
+                setNoBorder(7, 6, 'right');
+                setNoBorder(8, 6, 'bottom');
+
+                // 4. H8 아래선 및 우측선 없음, I8 아래선 없음 (r: 7)
+                setNoBorder(7, 7, 'bottom');
+                setNoBorder(7, 7, 'right');
+                setNoBorder(8, 7, 'bottom');
+
+                // 5. H9, I9 아래선 없음 (r: 8)
+                setNoBorder(7, 8, 'bottom');
+                setNoBorder(8, 8, 'bottom');
+
+                // 6. H11 아래선 및 우측선 없음, I11 아래선 없음 (r: 10)
+                setNoBorder(7, 10, 'bottom');
+                setNoBorder(7, 10, 'right');
+                setNoBorder(8, 10, 'bottom');
+
+                // 7. H12 아래선 및 우측선 없음, I12 아래선 없음 (r: 11)
+                setNoBorder(7, 11, 'bottom');
+                setNoBorder(7, 11, 'right');
+                setNoBorder(8, 11, 'bottom');
+                // =====================================================================
+
+
+                ws['!pageSetup'] = {
+                    orientation: 'landscape', 
+                    fitToWidth: 1,           
+                    fitToHeight: 1,
+                    paperSize: 9,            
+                    horizontalCentered: true 
+                };
+
                 ws['!margins'] = { left: 0.5, right: 0.5, top: 0.5, bottom: 0.5, header: 0.3, footer: 0.3 };
 
                 XLSX.utils.book_append_sheet(wb, ws, "일지");
+
                 const fileName = `3공장_급지일지_${state.currentDate}.xlsx`;
                 XLSX.writeFile(wb, fileName);
                 
@@ -568,7 +617,6 @@
         }, 100); 
     }
 
-    // 초기화 및 모듈화 가동 구역
     const GeupjiFactory3Module = {
         init: function() {
             const savedRole = sessionStorage.getItem('gf3_role');
@@ -584,7 +632,7 @@
                 } else if (pwInput === "mk1324") {
                     state.isAdmin = false; sessionStorage.setItem('gf3_role', 'readonly'); 
                 } else {
-                    alert("비밀번호가 올바르지 않습니다."); location.href = "index.html"; return; 
+                    alert("비밀번호가 올바르지 않습니다."); location.href = "about:blank"; return; 
                 }
             }
 
