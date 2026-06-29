@@ -446,66 +446,6 @@
         });
     }
 
-    function bindControls() {
-        const todayBtn = document.getElementById('f3ioTodayBtn');
-        if (todayBtn) {
-            todayBtn.addEventListener('click', () => {
-                const now = new Date();
-                state.year = now.getFullYear();
-                state.month = now.getMonth() + 1;
-                oldestYear = state.year;
-                oldestMonth = state.month;
-                
-                if (state.fp) state.fp.setDate(now, false);
-                updateDateText();
-                clearHighlights();
-                loadData();
-            });
-        }
-
-        const fpInput = document.getElementById('f3ioFlatpickrInput');
-        const calIcon = document.getElementById('f3ioDateText');
-        const calContainer = document.getElementById('f3io-calendar-container');
-
-        let justClosed = false;
-        if (fpInput && typeof flatpickr !== 'undefined') {
-            state.fp = flatpickr(fpInput, {
-                locale: 'ko',
-                appendTo: calContainer,
-                defaultDate: new Date(),
-                onChange: (selectedDates) => {
-                    if (!selectedDates.length) return;
-                    const d = selectedDates[0];
-                    state.year  = d.getFullYear();
-                    state.month = d.getMonth() + 1;
-                    oldestYear = state.year;
-                    oldestMonth = state.month;
-                    updateDateText();
-                    clearHighlights();
-                    loadData();
-                },
-                onClose: () => {
-                    justClosed = true;
-                    setTimeout(() => { justClosed = false; }, 200);
-                }
-            });
-        }
-
-        if (calIcon) {
-            calIcon.addEventListener('click', (e) => {
-                e.stopPropagation();
-                if (justClosed) return;
-                if (state.fp) {
-                    if (state.fp.isOpen) {
-                        state.fp.close();
-                    } else {
-                        state.fp.open();
-                    }
-                }
-            });
-        }
-    }
-
     /* ─────────────────────────────────────────
        모듈 퍼블릭 인터페이스
     ───────────────────────────────────────── */
@@ -517,19 +457,31 @@
             oldestYear = state.year;
             oldestMonth = state.month;
 
-            updateDateText(yesterdayStr());
             bindScrollSync();
             bindBodyClicks();
             bindKeyboardNav(); 
-            bindControls();
+
+            // Initialize global Factory3Header
+            window.Factory3Header.init({
+                idPrefix: 'Io',
+                onDateChange: (dateStr) => {
+                    const d = new Date(dateStr);
+                    state.year = d.getFullYear();
+                    state.month = d.getMonth() + 1;
+                    oldestYear = state.year;
+                    oldestMonth = state.month;
+                    
+                    clearHighlights();
+                    // Load data if needed based on the new date
+                    loadData(); 
+                }
+            });
+
             loadData();
         },
 
         destroy: function () {
-            if (state.fp) {
-                state.fp.destroy();
-                state.fp = null;
-            }
+            // Nothing to destroy locally for flatpickr since Factory3Header handles it
         }
     };
 
