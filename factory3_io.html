@@ -9,6 +9,7 @@
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0,0" />
     
     <link rel="stylesheet" href="css/factory3.css">
+    <link rel="stylesheet" href="css/factory3_io_style.css">
 
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
@@ -17,10 +18,9 @@
     
     <script src="js/common_ui.js" defer></script>
 </head>
-<body>
+<body style="background: #f4f4f8;">
 
-<div class="gf3-wrapper" data-page-module="Factory3IoModule">
-    
+<div class="gf3-wrapper" style="padding-bottom: 0;">
     <div class="gf3-header">
         <div class="gf3-title-wrap">
             <span class="material-symbols-outlined gf3-hamburger">menu</span>
@@ -32,33 +32,92 @@
                 <a href="factory3_contrast.html">3공장 실재고 및 ERP대조</a>
             </div>
         </div>
-        
-        <div class="gf3-controls">
-            <div class="gf3-nav-group">
-                <button id="gf3IoPrevBtn" class="gf3-icon-btn" title="이전 날짜"><span class="material-symbols-outlined">chevron_left</span></button>
-                <div class="gf3-cal-wrap" id="gf3IoCalendarWrap">
-                    <span id="gf3IoDateText" class="gf3-date-text cursor-pointer"></span>
-                    <input type="text" id="gf3IoFlatpickr" style="display: none;">
-                </div>
-                <button id="gf3IoNextBtn" class="gf3-icon-btn" title="다음 날짜"><span class="material-symbols-outlined">chevron_right</span></button>
+    </div>
+</div>
+
+<div class="f3io-wrapper" data-page-module="Factory3IoModule">
+
+    <div class="f3io-header">
+        <span class="f3io-main-title"> 3공장 입출고 내역</span>
+        <div class="f3io-date-controls">
+            <div class="f3io-calendar-wrap" id="f3ioCalendarWrap">
+                <span class="f3io-date-text cursor-pointer" id="f3ioDateText" style="cursor: pointer;"></span>
+                <input type="text" id="f3ioFlatpickrInput" style="display:none;">
+                <div id="f3io-calendar-container" style="position:absolute; top:100%; right:250px; left:auto; z-index:9999; margin-top:0px;"></div>
             </div>
-            
-            <button id="gf3IoTodayBtn" class="gf3-action-btn today-btn">오늘</button>
-            <button id="gf3IoEditBtn" class="gf3-action-btn edit-btn" disabled>수정</button>
-            <button id="gf3IoSaveBtn" class="gf3-action-btn save-btn" disabled>저장</button>
-            <button id="gf3IoExcelBtn" class="gf3-action-btn excel-btn">
-                <span class="material-symbols-outlined" style="font-size: 16px; margin-right: 4px;">table_view</span>엑셀 저장
-            </button>
+            <button class="f3io-today-btn" id="f3ioTodayBtn">오늘</button>
         </div>
     </div>
 
-    <div class="gf3-layout">
-        <div class="gf3-main-table-box" style="padding: 100px 20px; text-align: center; color: #8e8e93; font-size: 16px; font-weight: 500;">
-            이곳에 새로운 입출고 대장 레이아웃이 들어갈 예정입니다. <br><br>
-            준비되시면 레이아웃 구성안을 말씀해 주세요!
+    <div class="f3io-panels-outer">
+        <div class="f3io-panel f3io-panel-left">
+            <div class="f3io-scroll-area" id="f3ioScrollPanel1">
+                <div id="f3ioCursor1" class="f3io-cursor"></div>
+                <table class="f3io-table">
+                    <thead>
+                        <tr class="f3io-thead-lv1">
+                            <th class="f3io-date-th" rowspan="2">날짜</th>
+                            <th colspan="2" class="f3io-group-th" data-group="in">입고</th>
+                            <th colspan="2" class="f3io-group-th f3io-sep" data-group="out">출고</th>
+                            <th colspan="2" class="f3io-group-th f3io-sep" data-group="stock">재고</th>
+                        </tr>
+                        <tr class="f3io-thead-lv2">
+                            <th class="f3io-leaf-th" data-col="1" data-parent-group="in">A</th>
+                            <th class="f3io-leaf-th" data-col="2" data-parent-group="in">D</th>
+                            <th class="f3io-leaf-th f3io-sep" data-col="3" data-parent-group="out">A</th>
+                            <th class="f3io-leaf-th" data-col="4" data-parent-group="out">D</th>
+                            <th class="f3io-leaf-th f3io-sep" data-col="5" data-parent-group="stock">A</th>
+                            <th class="f3io-leaf-th" data-col="6" data-parent-group="stock">D</th>
+                        </tr>
+                    </thead>
+                    <tbody id="f3ioBody1"></tbody>
+                </table>
+            </div>
+        </div>
+
+        <div class="f3io-panel f3io-panel-mid">
+            <div class="f3io-scroll-area" id="f3ioScrollPanel2">
+                <div id="f3ioCursor2" class="f3io-cursor"></div>
+                <table class="f3io-table">
+                    <thead>
+                        <tr class="f3io-thead-lv1">
+                            <th class="f3io-date-th f3io-responsive-date" rowspan="2">날짜</th>
+                            <th colspan="7" class="f3io-top-group-th">매체별 사용량</th>
+                        </tr>
+                        <tr class="f3io-thead-lv2">
+                            <th class="f3io-leaf-th" data-col="1">본지</th>
+                            <th class="f3io-leaf-th" data-col="2">별쇄</th>
+                            <th class="f3io-leaf-th" data-col="3">경인일보</th>
+                            <th class="f3io-leaf-th f3io-multiline-th" data-col="4">기독교<br>타임즈</th>
+                            <th class="f3io-leaf-th" data-col="5">대학신문</th>
+                            <th class="f3io-leaf-th" data-col="6">평화신문</th>
+                            <th class="f3io-leaf-th f3io-sum-col" data-col="7">합계</th>
+                        </tr>
+                    </thead>
+                    <tbody id="f3ioBody2"></tbody>
+                </table>
+            </div>
+        </div>
+
+        <div class="f3io-panel f3io-panel-right">
+            <div class="f3io-scroll-area" id="f3ioScrollPanel3">
+                <div id="f3ioCursor3" class="f3io-cursor"></div>
+                <table class="f3io-table">
+                    <thead>
+                        <tr class="f3io-thead-lv1">
+                            <th class="f3io-date-th f3io-responsive-date" rowspan="2">날짜</th>
+                            <th colspan="2" class="f3io-top-group-th">용지별 사용량</th>
+                        </tr>
+                        <tr class="f3io-thead-lv2">
+                            <th class="f3io-leaf-th" data-col="1">A</th>
+                            <th class="f3io-leaf-th" data-col="2">D</th>
+                        </tr>
+                    </thead>
+                    <tbody id="f3ioBody3"></tbody>
+                </table>
+            </div>
         </div>
     </div>
-
 </div>
 
 <script src="js/factory3_utils.js"></script>
