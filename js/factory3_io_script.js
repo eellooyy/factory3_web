@@ -486,4 +486,8 @@
     };
 
     window.Factory3IoModule = Factory3IoModule;
+
+    document.addEventListener('DOMContentLoaded', function() {
+        Factory3IoModule.init();
+    });
 })();
