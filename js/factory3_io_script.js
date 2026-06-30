@@ -115,13 +115,17 @@
         const panelEl  = document.getElementById(`f3ioScrollPanel${panelIdx}`);
         if (!cursorEl || !panelEl || !td) return;
 
-        const panelRect = panelEl.getBoundingClientRect();
+        const tableEl = panelEl.querySelector('.f3io-table');
+        if (!tableEl) return;
+
+        // 테이블 기준으로 좌표 계산 (스크롤 위치에 영향받지 않는 정확한 상대 좌표 적용)
+        const tableRect = tableEl.getBoundingClientRect();
         const tdRect    = td.getBoundingClientRect();
 
         cursorEl.style.width  = tdRect.width  + 'px';
         cursorEl.style.height = tdRect.height + 'px';
-        cursorEl.style.left   = (tdRect.left  - panelRect.left + panelEl.scrollLeft) + 'px';
-        cursorEl.style.top    = (tdRect.top   - panelRect.top  + panelEl.scrollTop)  + 'px';
+        cursorEl.style.left   = (tdRect.left - tableRect.left) + 'px';
+        cursorEl.style.top    = (tdRect.top - tableRect.top) + 'px';
         cursorEl.classList.add('active');
     }
 
@@ -370,7 +374,6 @@
             const dyStr = pad(d.getDate());
             const wd = WD_KR[d.getDay()];
             
-            /* MM/DD (요일) 포맷팅 확인 적용부 */
             const dateTd = `<td class="f3io-date-td ${wdCls}" data-date="${row.date}">${mStr}/${dyStr} (${wd})</td>`;
             const resDateTd = `<td class="f3io-date-td f3io-responsive-date ${wdCls}" data-date="${row.date}">${mStr}/${dyStr} (${wd})</td>`;
 
@@ -491,7 +494,6 @@
         },
 
         destroy: function () {
-            // Nothing to destroy locally for flatpickr since Factory3Header handles it
         }
     };
 

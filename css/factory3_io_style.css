@@ -148,7 +148,7 @@
     table-layout: fixed;
 }
 .f3io-table th {
-    width: auto; /* 컬럼 공간을 균등 분할하여 우측 빈공간 제거 */
+    width: auto;
 }
 
 .f3io-table thead {
@@ -165,9 +165,11 @@
     font-weight: 800;
     color: #1d1d1f;
     text-align: center;
-    border-bottom: 1px solid #e0e0e0; /* 선 얇게 수정 */
+    border-bottom: 1px solid #e0e0e0;
     background: #fff;
     white-space: nowrap;
+    height: 44px; /* 높이 고정 (정렬 맞춤) */
+    box-sizing: border-box;
 }
 
 .f3io-top-group-th {
@@ -175,8 +177,10 @@
     color: #1d1d1f !important;
     font-size: 13px !important;
     font-weight: 800 !important;
-    border-bottom: 1px solid #e0e0e0 !important; /* 선 얇게 수정 */
+    border-bottom: 1px solid #e0e0e0 !important;
     letter-spacing: -0.2px;
+    height: 44px !important; /* 높이 고정 */
+    box-sizing: border-box;
 }
 
 /* ─ 2레벨 헤더 행 ─ */
@@ -186,9 +190,11 @@
     font-weight: 700;
     color: #636366;
     text-align: center;
-    border-bottom: 1px solid #e0e0e0; /* 선 얇게 수정 */
+    border-bottom: 1px solid #e0e0e0;
     background: #fff;
     white-space: nowrap;
+    height: 44px; /* 높이 고정 */
+    box-sizing: border-box;
 }
 
 /* ─ 다중 줄바꿈용 특수 헤더 클래스 ─ */
@@ -205,9 +211,11 @@
     font-size: 13px;
     font-weight: 600;
     text-align: center;
-    border-bottom: 1px solid #ebebeb; /* 선 얇게 수정 */
+    border-bottom: 1px solid #ebebeb;
     color: #1d1d1f;
     transition: background 0.12s;
+    height: 44px; /* 높이 고정 (3개 패널 행 높이 완벽 동기화) */
+    box-sizing: border-box;
 }
 
 /* ─ 날짜 헤더 & 셀 ─ */
@@ -217,13 +225,14 @@
     background: #fff !important;
     z-index: 11;
     text-align: center;
-    min-width: 90px;
-    width: 90px;
-    border-right: 1px solid #e0e0e0 !important; /* 선 얇게 수정 */
-    border-bottom: 1px solid #e0e0e0 !important; /* 선 얇게 수정 */
+    min-width: 115px; /* 공간 확장 */
+    width: 115px;     /* 공간 확장 */
+    border-right: 1px solid #e0e0e0 !important;
+    border-bottom: 1px solid #e0e0e0 !important;
     font-size: 13px;
     font-weight: 800;
     color: #1d1d1f;
+    box-sizing: border-box;
 }
 
 .f3io-date-th[rowspan] {
@@ -237,11 +246,12 @@
     z-index: 5;
     text-align: center;
     white-space: nowrap;
-    border-right: 1px solid #e0e0e0 !important; /* 선 얇게 수정 */
+    border-right: 1px solid #e0e0e0 !important;
     font-size: 12px;
     font-weight: 700;
-    min-width: 90px;
-    width: 90px;
+    min-width: 115px; /* 공간 확장 */
+    width: 115px;     /* 공간 확장 */
+    box-sizing: border-box;
 }
 
 .f3io-responsive-date {
@@ -258,7 +268,7 @@
 }
 
 .f3io-sep {
-    border-left: 1px solid #e0e0e0 !important; /* 선 얇게 수정 */
+    border-left: 1px solid #e0e0e0 !important;
 }
 
 /* ─ 합계열 기본 강조 ─ */
@@ -310,7 +320,6 @@ td.f3io-sum-col.f3io-sum-mismatch {
    ================================================ */
 @media (max-width: 1100px) {
     .f3io-panels-outer { flex-direction: column; }
-    /* 반응형일 때 모든 패널이 100% 폭을 사용하도록 조정 */
     .f3io-panel-left, .f3io-panel-mid, .f3io-panel-right { flex: none; width: 100%; }
     .f3io-responsive-date { display: table-cell !important; }
 }
