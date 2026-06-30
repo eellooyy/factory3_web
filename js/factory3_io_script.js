@@ -115,8 +115,6 @@
         const panelEl  = document.getElementById(`f3ioScrollPanel${panelIdx}`);
         if (!cursorEl || !panelEl || !td) return;
 
-        // [핵심 수정] DOM 구조상 오프셋을 역추적하여 합산하는 방식으로 변경.
-        // 스크롤이나 브라우저 렌더링에 따른 오차 없이 패널 컨테이너 기준 1px 오차없는 좌표를 산출합니다.
         let top = 0;
         let left = 0;
         let current = td;
@@ -250,7 +248,6 @@
         const activeTd = document.querySelector(`#f3ioBody${panelIdx} tr[data-date="${state.selectedDate}"] td[data-col="${state.selectedCol}"]`);
 
         if (panel && activeTd) {
-            // 위치 추적 로직 통일 적용 (오차 방지)
             let top = 0;
             let current = activeTd;
             while (current && current !== panel && current !== document.body) {
@@ -462,35 +459,40 @@
     }
 
     function scrollToToday() {
-        requestAnimationFrame(() => {
-            const today = todayStr();
-            const panel1 = document.getElementById('f3ioScrollPanel1');
-            if (!panel1) return;
-            
-            let row = panel1.querySelector(`tr[data-date="${today}"]`);
-            if (!row) {
-                row = panel1.querySelector(`tr[data-date="${yesterdayStr()}"]`);
-            }
-            
-            if (row) {
-                // 정확한 offsetTop 계산
-                let top = 0;
-                let current = row;
-                while (current && current !== panel1 && current !== document.body) {
-                    top += current.offsetTop;
-                    current = current.offsetParent;
+        // 브라우저 렌더링(높이 계산 등)이 확실히 반영된 후 위치 계산을 진행하도록 setTimeout으로 지연 처리
+        setTimeout(() => {
+            requestAnimationFrame(() => {
+                const today = todayStr();
+                const panel1 = document.getElementById('f3ioScrollPanel1');
+                if (!panel1) return;
+                
+                let row = panel1.querySelector(`tr[data-date="${today}"]`);
+                if (!row) {
+                    row = panel1.querySelector(`tr[data-date="${yesterdayStr()}"]`);
                 }
                 
-                // [요청 반영] 중앙이 아닌 상단에서 1/3 지점 (약간 상단)에 위치하도록 스크롤 보정
-                const targetScroll = top - (panel1.clientHeight / 3);
-                
-                PANEL_IDS.forEach(id => {
-                    const p = document.getElementById(id);
-                    if (p) p.scrollTo({ top: Math.max(0, targetScroll), behavior: 'auto' });
-                });
-            }
-            updateDateText(today);
-        });
+                if (row) {
+                    // 정확한 offsetTop 계산
+                    let top = 0;
+                    let current = row;
+                    while (current && current !== panel1 && current !== document.body) {
+                        top += current.offsetTop;
+                        current = current.offsetParent;
+                    }
+                    
+                    // 중앙이 아닌 상단에서 1/3 지점 (약간 상단)에 위치하도록 스크롤 보정
+                    const targetScroll = top - (panel1.clientHeight / 3);
+                    
+                    PANEL_IDS.forEach(id => {
+                        const p = document.getElementById(id);
+                        if (p) {
+                            p.scrollTo({ top: Math.max(0, targetScroll), behavior: 'auto' });
+                        }
+                    });
+                }
+                updateDateText(today);
+            });
+        }, 50); // 짧은 딜레이로 렌더링 사이클 확보
     }
 
     /* ─────────────────────────────────────────
