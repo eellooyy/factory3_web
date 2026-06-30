@@ -4,12 +4,13 @@
    전체 래퍼
    ================================================ */
 .f3io-wrapper {
-    max-width: 1700px;
+    width: 100%;
     margin: 0 auto;
     padding: 16px 0;
     display: flex;
     flex-direction: column;
     gap: 14px;
+    box-sizing: border-box;
 }
 
 /* ================================================
@@ -146,6 +147,9 @@
     border-spacing: 0;
     table-layout: fixed;
 }
+.f3io-table th {
+    width: auto; /* 컬럼 공간을 균등 분할하여 우측 빈공간 제거 */
+}
 
 .f3io-table thead {
     position: sticky;
@@ -161,7 +165,7 @@
     font-weight: 800;
     color: #1d1d1f;
     text-align: center;
-    border-bottom: 1.5px solid #d8d8de;
+    border-bottom: 1px solid #e0e0e0; /* 선 얇게 수정 */
     background: #fff;
     white-space: nowrap;
 }
@@ -171,7 +175,7 @@
     color: #1d1d1f !important;
     font-size: 13px !important;
     font-weight: 800 !important;
-    border-bottom: 1.5px solid #d8d8de !important;
+    border-bottom: 1px solid #e0e0e0 !important; /* 선 얇게 수정 */
     letter-spacing: -0.2px;
 }
 
@@ -182,7 +186,7 @@
     font-weight: 700;
     color: #636366;
     text-align: center;
-    border-bottom: 1.5px solid #d8d8de;
+    border-bottom: 1px solid #e0e0e0; /* 선 얇게 수정 */
     background: #fff;
     white-space: nowrap;
 }
@@ -201,7 +205,7 @@
     font-size: 13px;
     font-weight: 600;
     text-align: center;
-    border-bottom: 1px solid #f2f2f7;
+    border-bottom: 1px solid #ebebeb; /* 선 얇게 수정 */
     color: #1d1d1f;
     transition: background 0.12s;
 }
@@ -215,8 +219,8 @@
     text-align: center;
     min-width: 90px;
     width: 90px;
-    border-right: 1.5px solid #d8d8de !important;
-    border-bottom: 1.5px solid #d8d8de !important;
+    border-right: 1px solid #e0e0e0 !important; /* 선 얇게 수정 */
+    border-bottom: 1px solid #e0e0e0 !important; /* 선 얇게 수정 */
     font-size: 13px;
     font-weight: 800;
     color: #1d1d1f;
@@ -233,7 +237,7 @@
     z-index: 5;
     text-align: center;
     white-space: nowrap;
-    border-right: 1.5px solid #d8d8de !important;
+    border-right: 1px solid #e0e0e0 !important; /* 선 얇게 수정 */
     font-size: 12px;
     font-weight: 700;
     min-width: 90px;
@@ -254,7 +258,7 @@
 }
 
 .f3io-sep {
-    border-left: 1.5px solid #dcdce4 !important;
+    border-left: 1px solid #e0e0e0 !important; /* 선 얇게 수정 */
 }
 
 /* ─ 합계열 기본 강조 ─ */
@@ -274,8 +278,8 @@
 
 /* ─ 데이터 불일치 경고 (매체합계 != 용지합계) ─ */
 td.f3io-sum-col.f3io-sum-mismatch {
-    background: rgba(255, 59, 48, 0.12) !important; /* 옅은 붉은색 배경 */
-    color: #ff3b30 !important; /* 글씨 색상도 붉은색으로 강조 */
+    background: rgba(255, 59, 48, 0.12) !important;
+    color: #ff3b30 !important; 
 }
 
 /* 활성화된 헤더 */

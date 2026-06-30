@@ -166,13 +166,11 @@
                 if (targetLv2Th) {
                     targetLv2Th.classList.add('f3io-header-active');
                     
-                    // 그룹 헤더(상위) 독립적 활성화
                     const parentGroup = targetLv2Th.getAttribute('data-parent-group');
                     if (parentGroup) {
                         const targetLv1Th = panel.querySelector(`.f3io-thead-lv1 th[data-group="${parentGroup}"]`);
                         if (targetLv1Th) targetLv1Th.classList.add('f3io-header-active');
                     } else {
-                        // 그룹 구분이 없는 상단 헤더(패널 2, 3)
                         const lv1Ths = panel.querySelectorAll('.f3io-thead-lv1 th');
                         lv1Ths.forEach(th => {
                             if (th.classList.contains('f3io-top-group-th')) {
@@ -209,7 +207,6 @@
                     scrollToActiveCell(panelIdx);
                 }
             } else if (key === 'ArrowLeft' || key === 'ArrowRight') {
-                // 패널 2의 컬럼 개수 7개 유지
                 const colCount = { 1: 6, 2: 7, 3: 2 };
 
                 if (key === 'ArrowLeft') {
@@ -247,7 +244,6 @@
             const pRect = panel.getBoundingClientRect();
             const tdRect = activeTd.getBoundingClientRect();
             
-            // 헤더 고정 높이 여백 보정 (대략 65px)
             if (tdRect.bottom > pRect.bottom) {
                 panel.scrollTop += (tdRect.bottom - pRect.bottom + 10);
             } else if (tdRect.top < pRect.top + 65) {
@@ -357,15 +353,14 @@
             const dyStr = pad(d.getDate());
             const wd = WD_KR[d.getDay()];
             
+            /* MM/DD (요일) 포맷팅 확인 적용부 */
             const dateTd = `<td class="f3io-date-td ${wdCls}" data-date="${row.date}">${mStr}/${dyStr} (${wd})</td>`;
             const resDateTd = `<td class="f3io-date-td f3io-responsive-date ${wdCls}" data-date="${row.date}">${mStr}/${dyStr} (${wd})</td>`;
 
-            // 매체 합계와 용지 합계(A+D) 비교 검증 로직 추가
             const paperTotal = Number(row.item_a || 0) + Number(row.item_d || 0);
             const mediaTotal = Number(row.med_total || 0);
             let mismatchCls = '';
             
-            // 미래 날짜가 아니고, 두 합계가 다를 경우에만 오류 클래스 추가
             if (!isFuture(row.date) && paperTotal !== mediaTotal) {
                 mismatchCls = ' f3io-sum-mismatch';
             }
@@ -461,7 +456,6 @@
             bindBodyClicks();
             bindKeyboardNav(); 
 
-            // Initialize global Factory3Header
             window.Factory3Header.init({
                 idPrefix: 'Io',
                 onDateChange: (dateStr) => {
@@ -472,7 +466,6 @@
                     oldestMonth = state.month;
                     
                     clearHighlights();
-                    // Load data if needed based on the new date
                     loadData(); 
                 }
             });

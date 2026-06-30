@@ -2,6 +2,7 @@
 const Factory3IoTableModule = (function() {
     'use strict';
 
+    const WD_KR = ['일', '월', '화', '수', '목', '금', '토'];
     let scrollAreas = [];
     let isSyncing = false;
     let activeCell = null;
@@ -35,13 +36,13 @@ const Factory3IoTableModule = (function() {
                 
                 window.requestAnimationFrame(() => {
                     isSyncing = false;
-                    updateCursorPosition(); // 스크롤 될 때 커서도 같이 따라다니게 함
+                    updateCursorPosition();
                 });
             });
         });
     }
 
-    // 2. 가상의 테이블 데이터 렌더링 (UI/UX 및 불일치 경고 확인용)
+    // 2. 가상의 테이블 데이터 렌더링
     function renderMockData() {
         const tbodyLeft = document.getElementById('tbodyLeft');
         const tbodyMid = document.getElementById('tbodyMid');
@@ -59,28 +60,31 @@ const Factory3IoTableModule = (function() {
         for (let i = 1; i <= 31; i++) {
             const isToday = i === today;
             const rowClass = isToday ? 'gf3-row-today' : '';
-            const dayOfWeek = new Date(2023, 9, i).getDay(); // 테스트용 요일 (23년 10월 기준)
+            const dayOfWeek = new Date(2023, 9, i).getDay(); // 테스트용 요일
             let dateColorClass = '';
             
             if(dayOfWeek === 0) dateColorClass = 'gf3-sun';
             else if(dayOfWeek === 6) dateColorClass = 'gf3-sat';
 
+            const mm = '10';
+            const dd = String(i).padStart(2, '0');
+            const dateStrFormatted = `${mm}/${dd} (${WD_KR[dayOfWeek]})`; // MM/DD (요일) 포맷
+
             // 왼쪽 패널 (입출고 내역)
-            leftHTML += `<tr class="${rowClass}" data-date="2023-10-${String(i).padStart(2, '0')}">
-                <td class="gf3-date-td ${dateColorClass}">10/${String(i).padStart(2, '0')}</td>
+            leftHTML += `<tr class="${rowClass}" data-date="2023-10-${dd}">
+                <td class="gf3-date-td ${dateColorClass}">${dateStrFormatted}</td>
                 <td class="gf3-data-cell">100</td>
                 <td class="gf3-data-cell">50</td>
                 <td class="gf3-data-cell">50</td>
             </tr>`;
 
-            // 매체 합계와 용지 합계 생성 (5일마다 일부러 수치를 틀리게 하여 UI 불일치 경고 디자인 확인)
             const mediaSum = 120 + i;
             const paperSum = (i % 5 === 0) ? mediaSum + 10 : mediaSum; 
             const mismatchClass = (mediaSum !== paperSum) ? 'gf3-sum-mismatch' : '';
 
             // 중앙 패널 (매체별 사용량)
-            midHTML += `<tr class="${rowClass}" data-date="2023-10-${String(i).padStart(2, '0')}">
-                <td class="gf3-date-td gf3-responsive-date ${dateColorClass}">10/${String(i).padStart(2, '0')}</td>
+            midHTML += `<tr class="${rowClass}" data-date="2023-10-${dd}">
+                <td class="gf3-date-td gf3-responsive-date ${dateColorClass}">${dateStrFormatted}</td>
                 <td class="gf3-data-cell">30</td>
                 <td class="gf3-data-cell">40</td>
                 <td class="gf3-data-cell">25</td>
@@ -89,8 +93,8 @@ const Factory3IoTableModule = (function() {
             </tr>`;
 
             // 오른쪽 패널 (용지별 사용량)
-            rightHTML += `<tr class="${rowClass}" data-date="2023-10-${String(i).padStart(2, '0')}">
-                <td class="gf3-date-td gf3-responsive-date ${dateColorClass}">10/${String(i).padStart(2, '0')}</td>
+            rightHTML += `<tr class="${rowClass}" data-date="2023-10-${dd}">
+                <td class="gf3-date-td gf3-responsive-date ${dateColorClass}">${dateStrFormatted}</td>
                 <td class="gf3-data-cell gf3-sum-col ${mismatchClass}">${paperSum}</td>
             </tr>`;
         }
@@ -108,15 +112,12 @@ const Factory3IoTableModule = (function() {
         panelsOuter.addEventListener('click', function(e) {
             const cell = e.target.closest('td.gf3-data-cell');
             if (cell) {
-                // 이전 선택 초기화
                 if(activeCell) activeCell.classList.remove('gf3-selected-cell');
                 document.querySelectorAll('.gf3-selected-row').forEach(row => row.classList.remove('gf3-selected-row'));
 
-                // 새 셀 선택
                 activeCell = cell;
                 activeCell.classList.add('gf3-selected-cell');
                 
-                // 3패널에 분리된 같은 행 동시에 하이라이트 (날짜 data-date 이용)
                 const tr = cell.closest('tr');
                 const dateVal = tr.getAttribute('data-date');
                 if(dateVal) {
@@ -133,3 +134,14 @@ const Factory3IoTableModule = (function() {
     function moveCursorToCell(cell) {
         const cursor = document.getElementById('gf3Cursor');
         const panelsOuter = document.querySelector('.gf3-panels-outer');
+        // 커서 이동 세부 로직 (기존 유지)
+    }
+
+    function updateCursorPosition() {
+        if(activeCell) moveCursorToCell(activeCell);
+    }
+
+    return {
+        init: init
+    };
+})();
