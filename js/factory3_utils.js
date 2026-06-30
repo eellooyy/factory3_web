@@ -8,7 +8,7 @@ window.Factory3Utils = {
         if (!str) return '';
         const d = new Date(str);
         const days = ['일', '월', '화', '수', '목', '금', '토'];
-        return `${String(d.getMonth() + 1).padStart(2, '0')}/${String(d.getDate()).padStart(2, '0')} (${days[d.getDay()]})`;
+        return `${d.getFullYear()}년 ${String(d.getMonth() + 1).padStart(2, '0')}월 ${String(d.getDate()).padStart(2, '0')}일 (${days[d.getDay()]})`;
     },
     addDays: (dateStr, days) => {
         const d = new Date(dateStr);

@@ -4,9 +4,9 @@
    전체 래퍼
    ================================================ */
 .f3io-wrapper {
-    max-width: 1600px;
+    max-width: 1700px;
     margin: 0 auto;
-    padding: 14px 0;
+    padding: 16px 0;
     display: flex;
     flex-direction: column;
     gap: 14px;
@@ -109,7 +109,7 @@
    ================================================ */
 .f3io-scroll-area {
     position: relative;
-    height: 480px;
+    height: 580px;
     overflow-y: auto;
     overflow-x: hidden;
     scrollbar-width: none;
@@ -118,20 +118,33 @@
 .f3io-scroll-area::-webkit-scrollbar { display: none; }
 
 /* ================================================
-   셀 선택 강조 (팩토리3 스타일에 맞게 수정)
+   글래스 커서
    ================================================ */
 .f3io-cursor {
-    display: none;
+    position: absolute;
+    pointer-events: none;
+    background: rgba(255, 255, 255, 0.35);
+    box-shadow: 0 4px 14px rgba(0,0,0,0.10), inset 0 0 8px rgba(255,255,255,0.5);
+    border-radius: 6px;
+    z-index: 8;
+    opacity: 0;
+    transition:
+        top 0.12s cubic-bezier(0.23, 1, 0.32, 1),
+        left 0.12s cubic-bezier(0.23, 1, 0.32, 1),
+        width 0.10s ease-out,
+        height 0.10s ease-out,
+        opacity 0.10s ease-out;
 }
+.f3io-cursor.active { opacity: 1; }
 
 /* ================================================
    테이블
    ================================================ */
 .f3io-table {
     width: 100%;
-    border-collapse: collapse;
+    border-collapse: separate;
+    border-spacing: 0;
     table-layout: fixed;
-    border: 2px solid #8e8e93;
 }
 
 .f3io-table thead {
@@ -148,19 +161,17 @@
     font-weight: 800;
     color: #1d1d1f;
     text-align: center;
-    border: 1px solid #d2d2d7;
-    border-bottom: 2px solid #8e8e93;
-    background: #f5f5f7;
+    border-bottom: 1.5px solid #d8d8de;
+    background: #fff;
     white-space: nowrap;
 }
 
 .f3io-top-group-th {
-    background: #f5f5f7 !important; 
+    background: #fff !important; 
     color: #1d1d1f !important;
     font-size: 13px !important;
     font-weight: 800 !important;
-    border: 1px solid #d2d2d7 !important;
-    border-bottom: 2px solid #8e8e93 !important;
+    border-bottom: 1.5px solid #d8d8de !important;
     letter-spacing: -0.2px;
 }
 
@@ -171,9 +182,8 @@
     font-weight: 700;
     color: #636366;
     text-align: center;
-    border: 1px solid #d2d2d7;
-    border-bottom: 2px solid #8e8e93;
-    background: #f5f5f7;
+    border-bottom: 1.5px solid #d8d8de;
+    background: #fff;
     white-space: nowrap;
 }
 
@@ -191,7 +201,7 @@
     font-size: 13px;
     font-weight: 600;
     text-align: center;
-    border: 1px solid #d2d2d7;
+    border-bottom: 1px solid #f2f2f7;
     color: #1d1d1f;
     transition: background 0.12s;
 }
@@ -200,14 +210,13 @@
 .f3io-date-th {
     position: sticky;
     left: 0;
-    background: #f5f5f7 !important;
+    background: #fff !important;
     z-index: 11;
     text-align: center;
     min-width: 90px;
     width: 90px;
-    border: 1px solid #d2d2d7 !important;
-    border-right: 2px solid #8e8e93 !important;
-    border-bottom: 2px solid #8e8e93 !important;
+    border-right: 1.5px solid #d8d8de !important;
+    border-bottom: 1.5px solid #d8d8de !important;
     font-size: 13px;
     font-weight: 800;
     color: #1d1d1f;
@@ -220,12 +229,11 @@
 .f3io-date-td {
     position: sticky;
     left: 0;
-    background: #fafafc;
+    background: #fff;
     z-index: 5;
     text-align: center;
     white-space: nowrap;
-    border: 1px solid #d2d2d7 !important;
-    border-right: 2px solid #8e8e93 !important;
+    border-right: 1.5px solid #d8d8de !important;
     font-size: 12px;
     font-weight: 700;
     min-width: 90px;
@@ -242,13 +250,11 @@
     font-weight: 800;
     color: #1d1d1f;
     padding: 10px 4px 6px;
-    background: #f5f5f7;
-    border: 1px solid #d2d2d7;
-    border-bottom: 2px solid #8e8e93;
+    background: #fff;
 }
 
 .f3io-sep {
-    border-left: 2px solid #8e8e93 !important;
+    border-left: 1.5px solid #dcdce4 !important;
 }
 
 /* ─ 합계열 기본 강조 ─ */
@@ -284,8 +290,7 @@ td.f3io-sum-col.f3io-sum-mismatch {
     position: relative;
     z-index: 10;
     font-weight: 900 !important;
-    color: #1d1d1f !important;
-    box-shadow: inset 0 0 0 2px #007aff !important;
+    color: #000 !important;
 }
 
 /* ─ 색상/호버 ─ */
