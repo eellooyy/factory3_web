@@ -225,8 +225,8 @@
     background: #fff !important;
     z-index: 11;
     text-align: center;
-    min-width: 240px; /* 기존 115px -> 130px 확장 */
-    width: 240px;     /* 기존 115px -> 130px 확장 */
+    min-width: 200px; /* 기존 115px -> 130px 확장 */
+    width: 200px;     /* 기존 115px -> 130px 확장 */
     border-right: 1px solid #e0e0e0 !important;
     border-bottom: 1px solid #e0e0e0 !important;
     font-size: 13px;
@@ -249,8 +249,8 @@
     border-right: 1px solid #e0e0e0 !important;
     font-size: 12px;
     font-weight: 700;
-    min-width: 130px; /* 기존 115px -> 130px 확장 */
-    width: 130px;     /* 기존 115px -> 130px 확장 */
+    min-width: 200px; /* 기존 115px -> 130px 확장 */
+    width: 200px;     /* 기존 115px -> 130px 확장 */
     box-sizing: border-box;
 }
 
