@@ -226,8 +226,8 @@
     background: #fff !important;
     z-index: 11;
     text-align: center;
-    min-width: 100px !important;
-    width: 100px !important;
+    min-width: 80px !important;
+    width: 80px !important;
     border-right: 1px solid #e0e0e0 !important;
     border-bottom: 1px solid #e0e0e0 !important;
     font-size: 13px;
@@ -251,8 +251,8 @@
     border-right: 1px solid #e0e0e0 !important;
     font-size: 12px;
     font-weight: 700;
-    min-width: 100px !important;
-    width: 100px !important;
+    min-width: 80px !important;
+    width: 80px !important;
     box-sizing: border-box;
     white-space: nowrap;
 }
