@@ -325,7 +325,7 @@ td.f3io-sum-col.f3io-sum-mismatch {
 }
 
 .f3io-date-th, .f3io-date-td {
-    min-width: 130px !important; /* 필요에 따라 100px~120px로 조절하세요 */
+    min-width: 200px !important; /* 필요에 따라 100px~120px로 조절하세요 */
     white-space: nowrap;         /* 텍스트 줄바꿈 방지 */
     padding-left: 10px !important;
     padding-right: 10px !important;
