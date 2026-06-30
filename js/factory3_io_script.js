@@ -255,16 +255,34 @@
     /* ─────────────────────────────────────────
        데이터 로드 & 렌더링
     ───────────────────────────────────────── */
+    function fetchMockData(year, month) {
+        return new Promise(resolve => {
+            setTimeout(() => {
+                const data = [];
+                const daysInMonth = new Date(year, month, 0).getDate();
+                for (let i = 1; i <= daysInMonth; i++) {
+                    const dateStr = `${year}-${pad(month)}-${pad(i)}`;
+                    const mediaSum = 120 + i;
+                    const paperSum = (i % 5 === 0) ? mediaSum + 10 : mediaSum;
+                    data.push({
+                        date: dateStr,
+                        in_a: 100, in_d: 50, out_a: 50, out_d: 50, stock_a: 50, stock_d: 0,
+                        med_bonji: 30, med_byulsae: 40, med_gyeongin: 25, med_gidok: 25, med_daehak: 0, med_pyonghwa: 0,
+                        med_total: mediaSum,
+                        item_a: paperSum, item_d: 0
+                    });
+                }
+                resolve({ status: 'success', data: data });
+            }, 300);
+        });
+    }
+
     function loadData() {
         if (state.loading) return;
         state.loading = true;
         showLoading();
 
-        fetch(`/api/factory3_io_data?year=${state.year}&month=${state.month}`)
-            .then(r => {
-                if (!r.ok) throw new Error('API error');
-                return r.json();
-            })
+        fetchMockData(state.year, state.month)
             .then(res => {
                 if (res.status === 'success') {
                     renderInitial(res.data);
@@ -291,8 +309,7 @@
         const panel1 = document.getElementById('f3ioScrollPanel1');
         const prevHeight = panel1.scrollHeight;
 
-        fetch(`/api/factory3_io_data?year=${oldestYear}&month=${oldestMonth}`)
-            .then(r => r.json())
+        fetchMockData(oldestYear, oldestMonth)
             .then(res => {
                 if (res.status === 'success') {
                     const htmls = generateRowsHTML(res.data);
