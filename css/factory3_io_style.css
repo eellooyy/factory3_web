@@ -225,8 +225,8 @@
     background: #fff !important;
     z-index: 11;
     text-align: center;
-    min-width: 130px; /* 기존 115px -> 130px 확장 */
-    width: 130px;     /* 기존 115px -> 130px 확장 */
+    min-width: 160px; /* 기존 115px -> 130px 확장 */
+    width: 160px;     /* 기존 115px -> 130px 확장 */
     border-right: 1px solid #e0e0e0 !important;
     border-bottom: 1px solid #e0e0e0 !important;
     font-size: 13px;
@@ -322,11 +322,4 @@ td.f3io-sum-col.f3io-sum-mismatch {
     .f3io-panels-outer { flex-direction: column; }
     .f3io-panel-left, .f3io-panel-mid, .f3io-panel-right { flex: none; width: 100%; }
     .f3io-responsive-date { display: table-cell !important; }
-}
-
-.f3io-date-th, .f3io-date-td {
-    min-width: 200px !important; /* 필요에 따라 100px~120px로 조절하세요 */
-    white-space: nowrap;         /* 텍스트 줄바꿈 방지 */
-    padding-left: 10px !important;
-    padding-right: 10px !important;
 }
