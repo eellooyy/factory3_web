@@ -24,7 +24,7 @@
         selectedCol:   null,
     };
 
-    // 날짜 → { in_a, in_d, out_a, out_d, stock_a, stock_d }
+    // 날짜 → { in_a, in_d, out_a, out_d, stock_a, stock_d, media: {} }
     // 한 번 로드 후 내비게이션 시에도 초기화하지 않음
     let dataCache   = {};
     let baselineRow = null; // { date, stock_a, stock_d }
@@ -61,6 +61,14 @@
     }
     function fmtDate(d) {
         return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
+    }
+
+    /* ─────────────────────────────────────────
+       매체 매핑 헬퍼
+    ───────────────────────────────────────── */
+    function getMediaNameByCol(col) {
+        const names = ['', '본지', '별쇄', '경인일보', '기독교타임즈', '대학신문', '평화신문'];
+        return names[col] || '';
     }
 
     /* ─────────────────────────────────────────
@@ -137,29 +145,35 @@
         }
     }
 
-    // geupji 테이블에서 출고(geup_out) 전체 로드 (baseline ~ 오늘)
+    // geupji 테이블에서 출고 및 매체별 데이터 전체 로드 (baseline ~ 오늘)
     async function loadOutgoing() {
         const start = baselineRow ? baselineRow.date : `${state.year}-01-01`;
         const end   = todayStr();
 
         const { data, error } = await supabase
             .from('factory3_geupji_real')
-            .select('date, col_id, value')
-            .eq('item_type', 'geup_out')
+            .select('date, col_id, value, item_type')
             .gte('date', start)
             .lte('date', end);
 
         if (error) {
-            console.error('[factory3_io] 출고 로드 오류:', error);
-            // 출고 로드 실패는 치명적이지 않으므로 continue
+            console.error('[factory3_io] 데이터 로드 오류:', error);
             return;
         }
 
         if (data) {
             data.forEach(row => {
                 if (!dataCache[row.date]) dataCache[row.date] = {};
-                if (row.col_id === 'A') dataCache[row.date].out_a = row.value || 0;
-                if (row.col_id === 'D') dataCache[row.date].out_d = row.value || 0;
+                
+                if (row.item_type === 'geup_out') {
+                    if (row.col_id === 'A') dataCache[row.date].out_a = row.value || 0;
+                    if (row.col_id === 'D') dataCache[row.date].out_d = row.value || 0;
+                } else {
+                    // geup_out이 아닌 경우 매체별 사용량 데이터로 유연하게 처리
+                    if (!dataCache[row.date].media) dataCache[row.date].media = {};
+                    const mediaKey = row.col_id || row.item_type;
+                    dataCache[row.date].media[mediaKey] = row.value || 0;
+                }
             });
         }
     }
@@ -168,7 +182,6 @@
        입고 저장 (upsert — stock_a/d 보존)
     ───────────────────────────────────────── */
     async function saveIncoming(dateStr, in_a, in_d) {
-        // onConflict: 'date' → 충돌 시 in_a, in_d만 업데이트 (stock_a/d 유지)
         const { error } = await supabase
             .from('factory3_io')
             .upsert({ date: dateStr, in_a, in_d }, { onConflict: 'date' });
@@ -207,9 +220,8 @@
     ───────────────────────────────────────── */
     function onEditModeEnter() {
         if (!state.selectedDate) {
-            // 날짜 미선택 시 즉시 편집 모드 취소
             alert('먼저 입고를 수정할 날짜 행을 클릭해 선택해주세요.');
-            if (headerApi) headerApi.toggleEditMode(); // 편집 모드 되돌리기
+            if (headerApi) headerApi.toggleEditMode();
             return;
         }
 
@@ -266,11 +278,12 @@
        DOM 갱신
     ───────────────────────────────────────── */
     function rerenderAllRows() {
+        // Panel 1: 입출고 및 재고 대장
         document.querySelectorAll('#f3ioBody1 tr[data-date]').forEach(tr => {
             const ds = tr.getAttribute('data-date');
             const d  = dataCache[ds] || {};
             tr.querySelectorAll('td[data-col]').forEach(td => {
-                if (td.querySelector('.f3io-in-input')) return; // 편집 중인 셀 건드리지 않음
+                if (td.querySelector('.f3io-in-input')) return;
                 const col = td.getAttribute('data-col');
                 if      (col === '1') td.innerHTML = fmtNum(d.in_a,    ds);
                 else if (col === '2') td.innerHTML = fmtNum(d.in_d,    ds);
@@ -278,6 +291,37 @@
                 else if (col === '4') td.innerHTML = fmtNum(d.out_d,   ds);
                 else if (col === '5') td.innerHTML = fmtNum(d.stock_a, ds);
                 else if (col === '6') td.innerHTML = fmtNum(d.stock_d, ds);
+            });
+        });
+
+        // Panel 2: 매체별 사용량 및 실시간 합계 계산
+        document.querySelectorAll('#f3ioBody2 tr[data-date]').forEach(tr => {
+            const ds = tr.getAttribute('data-date');
+            const d  = dataCache[ds] || {};
+            const mediaData = d.media || {};
+            let mediaSum = 0;
+            
+            tr.querySelectorAll('td[data-col]').forEach(td => {
+                const col = Number(td.getAttribute('data-col'));
+                if (col >= 1 && col <= 6) {
+                    const name = getMediaNameByCol(col);
+                    const val = mediaData[col] ?? mediaData[name] ?? 0;
+                    td.innerHTML = fmtNum(val, ds);
+                    mediaSum += Number(val);
+                } else if (col === 7) {
+                    td.innerHTML = fmtNum(mediaSum, ds); // 합계 계산 처리
+                }
+            });
+        });
+
+        // Panel 3: 용지별 사용량
+        document.querySelectorAll('#f3ioBody3 tr[data-date]').forEach(tr => {
+            const ds = tr.getAttribute('data-date');
+            const d  = dataCache[ds] || {};
+            tr.querySelectorAll('td[data-col]').forEach(td => {
+                const col = td.getAttribute('data-col');
+                if (col === '1') td.innerHTML = fmtNum(d.out_a || 0, ds);
+                if (col === '2') td.innerHTML = fmtNum(d.out_d || 0, ds);
             });
         });
     }
@@ -425,7 +469,7 @@
     }
 
     /* ─────────────────────────────────────────
-       렌더링
+       렌더링 헬퍼
     ───────────────────────────────────────── */
     function showLoading() {
         [{ id:'f3ioBody1',cols:7 }, { id:'f3ioBody2',cols:8 }, { id:'f3ioBody3',cols:3 }].forEach(({ id, cols }) => {
@@ -442,7 +486,16 @@
 
     function buildRow(ds) {
         const d = dataCache[ds] || {};
-        return { date:ds, in_a:d.in_a||0, in_d:d.in_d||0, out_a:d.out_a||0, out_d:d.out_d||0, stock_a:d.stock_a||0, stock_d:d.stock_d||0 };
+        return { 
+            date:ds, 
+            in_a:d.in_a||0, 
+            in_d:d.in_d||0, 
+            out_a:d.out_a||0, 
+            out_d:d.out_d||0, 
+            stock_a:d.stock_a||0, 
+            stock_d:d.stock_d||0,
+            media:d.media||{}
+        };
     }
 
     function generateRowsHTML(rows) {
@@ -460,6 +513,7 @@
             const dateTd    = `<td class="f3io-date-td ${wdC}" data-date="${row.date}">${m}/${dy} (${wn})</td>`;
             const resDateTd = `<td class="f3io-date-td f3io-responsive-date ${wdC}" data-date="${row.date}">${m}/${dy} (${wn})</td>`;
 
+            // Panel 1 HTML
             html1 += `<tr class="${trC}" data-date="${row.date}">
                 ${dateTd}
                 <td class="f3io-data-cell f3io-editable-cell" data-col="1">${fmtNum(row.in_a,    row.date)}</td>
@@ -470,16 +524,28 @@
                 <td class="f3io-data-cell"                    data-col="6">${fmtNum(row.stock_d, row.date)}</td>
             </tr>`;
 
+            // Panel 2 HTML: 매체별 동적 생성 및 기존 합계열(col=7) 연산 처리
+            let mediaHtml = '';
+            let mediaSum = 0;
+            const mediaData = row.media || {};
+            for (let col = 1; col <= 6; col++) {
+                const name = getMediaNameByCol(col);
+                const val = mediaData[col] ?? mediaData[name] ?? 0;
+                mediaHtml += `<td class="f3io-data-cell" data-col="${col}">${fmtNum(val, row.date)}</td>`;
+                mediaSum += Number(val);
+            }
+
             html2 += `<tr class="${trC}" data-date="${row.date}">
                 ${resDateTd}
-                ${'<td class="f3io-data-cell" data-col="1"><span class="f3io-empty">-</span></td>'.repeat(6)}
-                <td class="f3io-data-cell f3io-sum-col" data-col="7"><span class="f3io-empty">-</span></td>
+                ${mediaHtml}
+                <td class="f3io-data-cell f3io-sum-col" data-col="7">${fmtNum(mediaSum, row.date)}</td>
             </tr>`;
 
+            // Panel 3 HTML
             html3 += `<tr class="${trC}" data-date="${row.date}">
                 ${resDateTd}
-                <td class="f3io-data-cell" data-col="1"><span class="f3io-empty">-</span></td>
-                <td class="f3io-data-cell" data-col="2"><span class="f3io-empty">-</span></td>
+                <td class="f3io-data-cell" data-col="1">${fmtNum(row.out_a, row.date)}</td>
+                <td class="f3io-data-cell" data-col="2">${fmtNum(row.out_d, row.date)}</td>
             </tr>`;
         });
         return { html1, html2, html3 };
@@ -506,7 +572,6 @@
 
         try {
             if (!state.initialLoaded) {
-                // 최초 1회: io 테이블 전체 + 출고 전체 로드
                 await loadIoTable();
                 await loadOutgoing();
                 recalcAllStocks();
@@ -539,7 +604,6 @@
             const panel1     = document.getElementById('f3ioScrollPanel1');
             const prevHeight = panel1 ? panel1.scrollHeight : 0;
 
-            // 캐시에서 바로 렌더링 (추가 fetch 불필요)
             const rows  = getMonthRows(oldestYear, oldestMonth);
             const htmls = generateRowsHTML(rows);
             document.getElementById('f3ioBody1').insertAdjacentHTML('afterbegin', htmls.html1);
@@ -644,7 +708,6 @@
 
             if (!headerApi) return;
 
-            // 편집 버튼 — 헤더가 toggleEditMode 후 우리가 진입/종료 처리
             const editBtn = document.getElementById('gf3IoEditBtn');
             if (editBtn) {
                 editBtn.addEventListener('click', () => {
@@ -658,17 +721,15 @@
                 });
             }
 
-            // 저장 후 DOM 복원 (헤더가 toggleEditMode 호출 → isEditMode=false가 된 후)
             const saveBtn = document.getElementById('gf3IoSaveBtn');
             if (saveBtn) {
                 saveBtn.addEventListener('click', () => {
                     setTimeout(() => {
                         if (!headerApi.isEditMode()) onEditModeExit();
-                    }, 300); // handleSave 비동기 완료 후
+                    }, 300);
                 });
             }
 
-            // prev / next / excel 버튼 비활성화
             ['gf3IoPrevBtn', 'gf3IoNextBtn', 'gf3IoExcelBtn'].forEach(id => {
                 const btn = document.getElementById(id);
                 if (btn) { btn.disabled = true; btn.style.opacity = '0.3'; btn.style.pointerEvents = 'none'; }
