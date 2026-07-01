@@ -71,20 +71,21 @@
     }
 
     /* ─────────────────────────────────────────
-       숫자 포맷
+       숫자 포맷 (입고 vs 출고/재고 분리)
     ───────────────────────────────────────── */
-  function fmtNum(v, ds) {
-    const today = yesterdayStr(); // 어제 날짜까지가 데이터 유효 범위
-    
-    // ds(현재 행 날짜)가 오늘이거나 미래라면 '-' 표시
-    if (new Date(ds) >= new Date(todayStr())) { 
-        return '<span class="f3io-empty">-</span>'; 
+    function fmtNum(v, ds, allowToday = false) {
+        const rowDate = new Date(ds + 'T00:00:00');
+        const todayDate = new Date(todayStr() + 'T00:00:00');
+
+        // 미래 날짜이거나, (오늘인데 입고(allowToday)가 아닌 경우) '-' 표시
+        if (rowDate > todayDate || (rowDate.getTime() === todayDate.getTime() && !allowToday)) {
+            return '<span class="f3io-empty">-</span>';
+        }
+
+        const n = Number(v);
+        if (isNaN(n) || n === 0) return '<span class="f3io-empty">0</span>';
+        return `<span${n < 0 ? ' class="f3io-negative"' : ''}>${n.toLocaleString()}</span>`;
     }
-    
-    const n = Number(v);
-    if (isNaN(n) || n === 0) return '<span class="f3io-empty">0</span>';
-    return `<span${n < 0 ? ' class="f3io-negative"' : ''}>${n.toLocaleString()}</span>`;
-}
 
     function updateDateText(str) {
         const el = document.getElementById('f3ioDateText');
@@ -253,6 +254,7 @@
         if (!dataCache[ds]) dataCache[ds] = {};
         dataCache[ds].in_a = in_a;
         dataCache[ds].in_d = in_d;
+        
         recalcAllStocks();
         rerenderAllRows();
         alert('저장 완료');
@@ -328,16 +330,18 @@
             tr.querySelectorAll('td[data-col]').forEach(td => {
                 if (td.querySelector('.f3io-in-input')) return;
                 const col = td.getAttribute('data-col');
-                if      (col === '1') td.innerHTML = fmtNum(d.in_a,    ds);
-                else if (col === '2') td.innerHTML = fmtNum(d.in_d,    ds);
-                else if (col === '3') td.innerHTML = fmtNum(d.out_a,   ds);
-                else if (col === '4') td.innerHTML = fmtNum(d.out_d,   ds);
-                else if (col === '5') td.innerHTML = fmtNum(d.stock_a, ds);
-                else if (col === '6') td.innerHTML = fmtNum(d.stock_d, ds);
+                
+                // 입고(col 1, 2)는 오늘 날짜 허용 (true), 나머지는 비허용 (false)
+                if      (col === '1') td.innerHTML = fmtNum(d.in_a,    ds, true);
+                else if (col === '2') td.innerHTML = fmtNum(d.in_d,    ds, true);
+                else if (col === '3') td.innerHTML = fmtNum(d.out_a,   ds, false);
+                else if (col === '4') td.innerHTML = fmtNum(d.out_d,   ds, false);
+                else if (col === '5') td.innerHTML = fmtNum(d.stock_a, ds, false);
+                else if (col === '6') td.innerHTML = fmtNum(d.stock_d, ds, false);
             });
         });
 
-        // Panel 2: 매체별 사용량 및 교차 오류 검증
+        // Panel 2: 매체별 사용량 및 교차 오류 검증 (전체 어제까지만 렌더링)
         document.querySelectorAll('#f3ioBody2 tr[data-date]').forEach(tr => {
             const ds = tr.getAttribute('data-date');
             const d  = dataCache[ds] || {};
@@ -351,13 +355,13 @@
                 const col = Number(td.getAttribute('data-col'));
                 if (col >= 1 && col <= 6) {
                     const val = usageMedia[col] || 0;
-                    td.innerHTML = fmtNum(val, ds);
+                    td.innerHTML = fmtNum(val, ds, false);
                     mediaSum += val;
                 } else if (col === 7) {
-                    td.innerHTML = fmtNum(mediaSum, ds);
+                    td.innerHTML = fmtNum(mediaSum, ds, false);
                     
                     // 검증: 매체별 합계와 용지별 합계(A+D)가 불일치할 경우 경고 스타일 적용
-                    if (mediaSum !== paperSum) {
+                    if (mediaSum !== paperSum && new Date(ds + 'T00:00:00') < new Date(todayStr() + 'T00:00:00')) {
                         td.classList.add('f3io-sum-mismatch');
                     } else {
                         td.classList.remove('f3io-sum-mismatch');
@@ -366,7 +370,7 @@
             });
         });
 
-        // Panel 3: 용지별 사용량
+        // Panel 3: 용지별 사용량 (전체 어제까지만 렌더링)
         document.querySelectorAll('#f3ioBody3 tr[data-date]').forEach(tr => {
             const ds = tr.getAttribute('data-date');
             const d  = dataCache[ds] || {};
@@ -374,8 +378,8 @@
             
             tr.querySelectorAll('td[data-col]').forEach(td => {
                 const col = td.getAttribute('data-col');
-                if (col === '1') td.innerHTML = fmtNum(usagePaper.A || 0, ds);
-                if (col === '2') td.innerHTML = fmtNum(usagePaper.D || 0, ds);
+                if (col === '1') td.innerHTML = fmtNum(usagePaper.A || 0, ds, false);
+                if (col === '2') td.innerHTML = fmtNum(usagePaper.D || 0, ds, false);
             });
         });
     }
@@ -569,17 +573,18 @@
             const resDateTd = `<td class="f3io-date-td f3io-responsive-date ${wdC}" data-date="${row.date}">${m}/${dy} (${wn})</td>`;
 
             // Panel 1 HTML
+            // 입고(in_a, in_d)에는 true를 넘겨 오늘 날짜에도 값이 보이도록 설정
             html1 += `<tr class="${trC}" data-date="${row.date}">
                 ${dateTd}
-                <td class="f3io-data-cell f3io-editable-cell" data-col="1">${fmtNum(row.in_a,    row.date)}</td>
-                <td class="f3io-data-cell f3io-editable-cell" data-col="2">${fmtNum(row.in_d,    row.date)}</td>
-                <td class="f3io-data-cell f3io-sep"           data-col="3">${fmtNum(row.out_a,   row.date)}</td>
-                <td class="f3io-data-cell"                    data-col="4">${fmtNum(row.out_d,   row.date)}</td>
-                <td class="f3io-data-cell f3io-sep"           data-col="5">${fmtNum(row.stock_a, row.date)}</td>
-                <td class="f3io-data-cell"                    data-col="6">${fmtNum(row.stock_d, row.date)}</td>
+                <td class="f3io-data-cell f3io-editable-cell" data-col="1">${fmtNum(row.in_a,    row.date, true)}</td>
+                <td class="f3io-data-cell f3io-editable-cell" data-col="2">${fmtNum(row.in_d,    row.date, true)}</td>
+                <td class="f3io-data-cell f3io-sep"           data-col="3">${fmtNum(row.out_a,   row.date, false)}</td>
+                <td class="f3io-data-cell"                    data-col="4">${fmtNum(row.out_d,   row.date, false)}</td>
+                <td class="f3io-data-cell f3io-sep"           data-col="5">${fmtNum(row.stock_a, row.date, false)}</td>
+                <td class="f3io-data-cell"                    data-col="6">${fmtNum(row.stock_d, row.date, false)}</td>
             </tr>`;
 
-            // Panel 2 HTML: 매체별 동적 생성 및 합계 계산
+            // Panel 2 HTML: 매체별 동적 생성 및 합계 계산 (전부 false 처리)
             let mediaHtml = '';
             let mediaSum = 0;
             const usageMedia = row.usage_media;
@@ -588,24 +593,27 @@
 
             for (let col = 1; col <= 6; col++) {
                 const val = usageMedia[col] || 0;
-                mediaHtml += `<td class="f3io-data-cell" data-col="${col}">${fmtNum(val, row.date)}</td>`;
+                mediaHtml += `<td class="f3io-data-cell" data-col="${col}">${fmtNum(val, row.date, false)}</td>`;
                 mediaSum += val;
             }
 
             // 매체별 합계와 용지별 합계 비교 검증 클래스 추가
-            const mismatchClass = (mediaSum !== paperSum) ? ' f3io-sum-mismatch' : '';
+            let mismatchClass = '';
+            if (mediaSum !== paperSum && d < new Date(todayStr() + 'T00:00:00')) {
+                mismatchClass = ' f3io-sum-mismatch';
+            }
 
             html2 += `<tr class="${trC}" data-date="${row.date}">
                 ${resDateTd}
                 ${mediaHtml}
-                <td class="f3io-data-cell f3io-sum-col${mismatchClass}" data-col="7">${fmtNum(mediaSum, row.date)}</td>
+                <td class="f3io-data-cell f3io-sum-col${mismatchClass}" data-col="7">${fmtNum(mediaSum, row.date, false)}</td>
             </tr>`;
 
             // Panel 3 HTML: 용지별 실사용량 매핑 (A, D)
             html3 += `<tr class="${trC}" data-date="${row.date}">
                 ${resDateTd}
-                <td class="f3io-data-cell" data-col="1">${fmtNum(usagePaper.A, row.date)}</td>
-                <td class="f3io-data-cell" data-col="2">${fmtNum(usagePaper.D, row.date)}</td>
+                <td class="f3io-data-cell" data-col="1">${fmtNum(usagePaper.A, row.date, false)}</td>
+                <td class="f3io-data-cell" data-col="2">${fmtNum(usagePaper.D, row.date, false)}</td>
             </tr>`;
         });
         return { html1, html2, html3 };
