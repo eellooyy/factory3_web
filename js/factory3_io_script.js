@@ -24,8 +24,7 @@
         selectedCol:   null,
     };
 
-    // 날짜 → { in_a, in_d, out_a, out_d, stock_a, stock_d, media: {} }
-    // 한 번 로드 후 내비게이션 시에도 초기화하지 않음
+    // 날짜 → { in_a, in_d, out_a, out_d, stock_a, stock_d, usage_media: {}, usage_paper: {} }
     let dataCache   = {};
     let baselineRow = null; // { date, stock_a, stock_d }
 
@@ -64,7 +63,7 @@
     }
 
     /* ─────────────────────────────────────────
-       매체 매핑 헬퍼
+       매체 매핑 헬퍼 (레거시 지원용 유지)
     ───────────────────────────────────────── */
     function getMediaNameByCol(col) {
         const names = ['', '본지', '별쇄', '경인일보', '기독교타임즈', '대학신문', '평화신문'];
@@ -117,7 +116,7 @@
        Supabase 로드 — 초기 1회 전체 로드
     ───────────────────────────────────────── */
 
-    // factory3_io 테이블 전체 로드 (날짜 필터 없음)
+    // factory3_io 테이블 전체 로드
     async function loadIoTable() {
         const { data, error } = await supabase
             .from('factory3_io')
@@ -135,7 +134,6 @@
                 dataCache[row.date].in_a = row.in_a || 0;
                 dataCache[row.date].in_d = row.in_d || 0;
 
-                // stock_a 또는 stock_d가 있는 행 = 기준 재고
                 if ((row.stock_a || 0) !== 0 || (row.stock_d || 0) !== 0) {
                     if (!baselineRow || row.date > baselineRow.date) {
                         baselineRow = { date: row.date, stock_a: row.stock_a || 0, stock_d: row.stock_d || 0 };
@@ -145,7 +143,7 @@
         }
     }
 
-    // geupji 테이블에서 출고 및 매체별 데이터 전체 로드 (baseline ~ 오늘)
+    // Panel 1의 출고 데이터 로드용 (geup_out 유형만 필터링하여 보존)
     async function loadOutgoing() {
         const start = baselineRow ? baselineRow.date : `${state.year}-01-01`;
         const end   = todayStr();
@@ -153,33 +151,72 @@
         const { data, error } = await supabase
             .from('factory3_geupji_real')
             .select('date, col_id, value, item_type')
+            .eq('item_type', 'geup_out')
             .gte('date', start)
             .lte('date', end);
 
         if (error) {
-            console.error('[factory3_io] 데이터 로드 오류:', error);
+            console.error('[factory3_io] 출고 데이터 로드 오류:', error);
             return;
         }
 
         if (data) {
             data.forEach(row => {
                 if (!dataCache[row.date]) dataCache[row.date] = {};
+                if (row.col_id === 'A') dataCache[row.date].out_a = row.value || 0;
+                if (row.col_id === 'D') dataCache[row.date].out_d = row.value || 0;
+            });
+        }
+    }
+
+    // 신규 추가: factory3_usage 테이블 데이터 매핑 및 계산 로직
+    async function loadUsageData() {
+        const start = baselineRow ? baselineRow.date : `${state.year}-01-01`;
+        const end   = todayStr();
+
+        const { data, error } = await supabase
+            .from('factory3_usage')
+            .select('print_date, media_name, item_code, usage_qty')
+            .gte('print_date', start)
+            .lte('print_date', end);
+
+        if (error) {
+            console.error('[factory3_io] factory3_usage 로드 오류:', error);
+            return;
+        }
+
+        if (data) {
+            data.forEach(row => {
+                const date = row.print_date;
+                if (!dataCache[date]) dataCache[date] = {};
                 
-                if (row.item_type === 'geup_out') {
-                    if (row.col_id === 'A') dataCache[row.date].out_a = row.value || 0;
-                    if (row.col_id === 'D') dataCache[row.date].out_d = row.value || 0;
-                } else {
-                    // geup_out이 아닌 경우 매체별 사용량 데이터로 유연하게 처리
-                    if (!dataCache[row.date].media) dataCache[row.date].media = {};
-                    const mediaKey = row.col_id || row.item_type;
-                    dataCache[row.date].media[mediaKey] = row.value || 0;
+                // 구조 초기화
+                if (!dataCache[date].usage_media) {
+                    dataCache[date].usage_media = { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0, 6: 0 };
                 }
+                if (!dataCache[date].usage_paper) {
+                    dataCache[date].usage_paper = { A: 0, D: 0 };
+                }
+
+                const qty = Number(row.usage_qty) || 0;
+
+                // 1. 매체별 사용량 매핑 (하위 레벨 순서 일치)
+                if (row.media_name === '매일경제신문') dataCache[date].usage_media[1] += qty;
+                else if (row.media_name === '매일경제신문(특집)') dataCache[date].usage_media[2] += qty;
+                else if (row.media_name === '경인일보') dataCache[date].usage_media[3] += qty;
+                else if (row.media_name === '기독교타임즈') dataCache[date].usage_media[4] += qty;
+                else if (row.media_name === '한국대학신문') dataCache[date].usage_media[5] += qty;
+                else if (row.media_name === '카톨릭평화신문') dataCache[date].usage_media[6] += qty;
+
+                // 2. 용지별 사용량 매핑 (아이템 코드 일치)
+                if (row.item_code === '11ANP-0000001') dataCache[date].usage_paper.A += qty;
+                else if (row.item_code === '11ANP-0000003') dataCache[date].usage_paper.D += qty;
             });
         }
     }
 
     /* ─────────────────────────────────────────
-       입고 저장 (upsert — stock_a/d 보존)
+       입고 저장 (upsert)
     ───────────────────────────────────────── */
     async function saveIncoming(dateStr, in_a, in_d) {
         const { error } = await supabase
@@ -275,7 +312,7 @@
     }
 
     /* ─────────────────────────────────────────
-       DOM 갱신
+       DOM 갱신 (실시간 리렌더링 및 교차 오류 검증)
     ───────────────────────────────────────── */
     function rerenderAllRows() {
         // Panel 1: 입출고 및 재고 대장
@@ -294,22 +331,31 @@
             });
         });
 
-        // Panel 2: 매체별 사용량 및 실시간 합계 계산
+        // Panel 2: 매체별 사용량 및 교차 오류 검증
         document.querySelectorAll('#f3ioBody2 tr[data-date]').forEach(tr => {
             const ds = tr.getAttribute('data-date');
             const d  = dataCache[ds] || {};
-            const mediaData = d.media || {};
+            const usageMedia = d.usage_media || { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0, 6: 0 };
+            const usagePaper = d.usage_paper || { A: 0, D: 0 };
+            
             let mediaSum = 0;
+            const paperSum = (usagePaper.A || 0) + (usagePaper.D || 0);
             
             tr.querySelectorAll('td[data-col]').forEach(td => {
                 const col = Number(td.getAttribute('data-col'));
                 if (col >= 1 && col <= 6) {
-                    const name = getMediaNameByCol(col);
-                    const val = mediaData[col] ?? mediaData[name] ?? 0;
+                    const val = usageMedia[col] || 0;
                     td.innerHTML = fmtNum(val, ds);
-                    mediaSum += Number(val);
+                    mediaSum += val;
                 } else if (col === 7) {
-                    td.innerHTML = fmtNum(mediaSum, ds); // 합계 계산 처리
+                    td.innerHTML = fmtNum(mediaSum, ds);
+                    
+                    // 검증: 매체별 합계와 용지별 합계(A+D)가 불일치할 경우 경고 스타일 적용
+                    if (mediaSum !== paperSum) {
+                        td.classList.add('f3io-sum-mismatch');
+                    } else {
+                        td.classList.remove('f3io-sum-mismatch');
+                    }
                 }
             });
         });
@@ -318,10 +364,12 @@
         document.querySelectorAll('#f3ioBody3 tr[data-date]').forEach(tr => {
             const ds = tr.getAttribute('data-date');
             const d  = dataCache[ds] || {};
+            const usagePaper = d.usage_paper || { A: 0, D: 0 };
+            
             tr.querySelectorAll('td[data-col]').forEach(td => {
                 const col = td.getAttribute('data-col');
-                if (col === '1') td.innerHTML = fmtNum(d.out_a || 0, ds);
-                if (col === '2') td.innerHTML = fmtNum(d.out_d || 0, ds);
+                if (col === '1') td.innerHTML = fmtNum(usagePaper.A || 0, ds);
+                if (col === '2') td.innerHTML = fmtNum(usagePaper.D || 0, ds);
             });
         });
     }
@@ -494,7 +542,8 @@
             out_d:d.out_d||0, 
             stock_a:d.stock_a||0, 
             stock_d:d.stock_d||0,
-            media:d.media||{}
+            usage_media: d.usage_media || { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0, 6: 0 },
+            usage_paper: d.usage_paper || { A: 0, D: 0 }
         };
     }
 
@@ -524,28 +573,33 @@
                 <td class="f3io-data-cell"                    data-col="6">${fmtNum(row.stock_d, row.date)}</td>
             </tr>`;
 
-            // Panel 2 HTML: 매체별 동적 생성 및 기존 합계열(col=7) 연산 처리
+            // Panel 2 HTML: 매체별 동적 생성 및 합계 계산
             let mediaHtml = '';
             let mediaSum = 0;
-            const mediaData = row.media || {};
+            const usageMedia = row.usage_media;
+            const usagePaper = row.usage_paper;
+            const paperSum = (usagePaper.A || 0) + (usagePaper.D || 0);
+
             for (let col = 1; col <= 6; col++) {
-                const name = getMediaNameByCol(col);
-                const val = mediaData[col] ?? mediaData[name] ?? 0;
+                const val = usageMedia[col] || 0;
                 mediaHtml += `<td class="f3io-data-cell" data-col="${col}">${fmtNum(val, row.date)}</td>`;
-                mediaSum += Number(val);
+                mediaSum += val;
             }
+
+            // 매체별 합계와 용지별 합계 비교 검증 클래스 추가
+            const mismatchClass = (mediaSum !== paperSum) ? ' f3io-sum-mismatch' : '';
 
             html2 += `<tr class="${trC}" data-date="${row.date}">
                 ${resDateTd}
                 ${mediaHtml}
-                <td class="f3io-data-cell f3io-sum-col" data-col="7">${fmtNum(mediaSum, row.date)}</td>
+                <td class="f3io-data-cell f3io-sum-col${mismatchClass}" data-col="7">${fmtNum(mediaSum, row.date)}</td>
             </tr>`;
 
-            // Panel 3 HTML
+            // Panel 3 HTML: 용지별 실사용량 매핑 (A, D)
             html3 += `<tr class="${trC}" data-date="${row.date}">
                 ${resDateTd}
-                <td class="f3io-data-cell" data-col="1">${fmtNum(row.out_a, row.date)}</td>
-                <td class="f3io-data-cell" data-col="2">${fmtNum(row.out_d, row.date)}</td>
+                <td class="f3io-data-cell" data-col="1">${fmtNum(usagePaper.A, row.date)}</td>
+                <td class="f3io-data-cell" data-col="2">${fmtNum(usagePaper.D, row.date)}</td>
             </tr>`;
         });
         return { html1, html2, html3 };
@@ -574,6 +628,7 @@
             if (!state.initialLoaded) {
                 await loadIoTable();
                 await loadOutgoing();
+                await loadUsageData(); // 신규 추가된 테이블 대조 로직
                 recalcAllStocks();
                 state.initialLoaded = true;
             }
@@ -699,7 +754,7 @@
                     state.year  = d.getFullYear();
                     state.month = d.getMonth() + 1;
                     oldestYear  = state.year;
-                    oldestMonth = state.month;
+                    oldestMonth = d.getMonth() + 1;
                     clearHighlights();
                     loadData();
                 },
