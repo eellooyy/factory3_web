@@ -573,8 +573,10 @@
 
         rawPayloadData.push({ item_type: 'side_wan_1', col_id: 'A', value: extractVal(document.getElementById('sideWanA')), memo: "" });
         rawPayloadData.push({ item_type: 'side_wan_1', col_id: 'D', value: extractVal(document.getElementById('sideWanD')), memo: "" });
-        rawPayloadData.push({ item_type: 'side_geup', col_id: 'A', value: extractVal(document.getElementById('sideGeupA')), memo: "" });
-        rawPayloadData.push({ item_type: 'side_geup', col_id: 'D', value: extractVal(document.getElementById('sideGeupD')), memo: "" });
+        rawPayloadData.push({ item_type: 'geup_real', col_id: 'A', value: extractVal(document.getElementById('sideGeupA')), memo: "" });
+        rawPayloadData.push({ item_type: 'geup_real', col_id: 'D', value: extractVal(document.getElementById('sideGeupD')), memo: "" });
+        rawPayloadData.push({ item_type: 'geup_out', col_id: 'A', value: extractVal(document.getElementById('sideChulgoA')), memo: "" });
+        rawPayloadData.push({ item_type: 'geup_out', col_id: 'D', value: extractVal(document.getElementById('sideChulgoD')), memo: "" });
         rawPayloadData.push({ item_type: 'stat_total_usage', col_id: 'H', value: extractVal(document.getElementById('statTotalUsage')), memo: "" });
 
         const finalInsertData = rawPayloadData
