@@ -18,21 +18,20 @@
         year: new Date().getFullYear(),
         month: new Date().getMonth() + 1,
         loading: false,
-        fp: null,
         selectedDate: null,
         selectedPanel: null,
         selectedCol: null,
-        editMode: false,
-        editDate: null,
     };
 
-    // 전체 로드된 데이터 캐시 (날짜 → row)
-    let dataCache = {}; // { 'YYYY-MM-DD': { in_a, in_d, out_a, out_d, stock_a, stock_d, ... } }
-    let initialStock = { date: null, stock_a: 0, stock_d: 0 }; // 최초 기준 재고
-    let oldestYear = state.year;
+    // 날짜 → { in_a, in_d, out_a, out_d, stock_a, stock_d } 캐시
+    let dataCache  = {};
+    // 초기 기준 재고 행 { date, stock_a, stock_d }
+    let baselineRow = null;
+
+    let oldestYear  = state.year;
     let oldestMonth = state.month;
     let isLoadingPrev = false;
-    let headerApi = null;
+    let headerApi   = null;
 
     /* ─────────────────────────────────────────
        날짜 헬퍼
@@ -47,117 +46,98 @@
         return `${t.getFullYear()}-${pad(t.getMonth()+1)}-${pad(t.getDate())}`;
     }
     function pad(n) { return String(n).padStart(2, '0'); }
-
     function fmtKo(dateStr) {
         const d = new Date(dateStr + 'T00:00:00');
         return `${d.getFullYear()}년 ${d.getMonth()+1}월 ${d.getDate()}일 (${WD_KR[d.getDay()]})`;
     }
-
     function isFuture(dateStr) {
-        const today = new Date();
-        today.setHours(0, 0, 0, 0);
-        const target = new Date(dateStr + 'T00:00:00');
-        return target > today;
+        const today = new Date(); today.setHours(0,0,0,0);
+        return new Date(dateStr + 'T00:00:00') > today;
     }
-
-    // YYYY-MM-DD 형식의 날짜 배열 (해당 월의 모든 날짜)
     function getDatesOfMonth(year, month) {
         const days = new Date(year, month, 0).getDate();
-        const dates = [];
-        for (let i = 1; i <= days; i++) {
-            dates.push(`${year}-${pad(month)}-${pad(i)}`);
-        }
-        return dates;
+        return Array.from({ length: days }, (_, i) => `${year}-${pad(month)}-${pad(i+1)}`);
+    }
+    function fmtDate(d) {
+        return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
     }
 
     /* ─────────────────────────────────────────
-       숫자 포맷
+       숫자 포맷 (읽기 전용 셀용)
     ───────────────────────────────────────── */
     function fmtNum(v, dateStr) {
         if (isFuture(dateStr)) return '<span class="f3io-empty">-</span>';
-        if (v === null || v === undefined || v === '') return '<span class="f3io-empty">0</span>';
         const n = Number(v);
-        if (isNaN(n) || n === 0) return '<span class="f3io-empty">0</span>';
+        if (!v && v !== 0 || isNaN(n)) return '<span class="f3io-empty">0</span>';
+        if (n === 0) return '<span class="f3io-empty">0</span>';
         const cls = n < 0 ? ' class="f3io-negative"' : '';
         return `<span${cls}>${n.toLocaleString()}</span>`;
     }
 
     function updateDateText(str) {
         const el = document.getElementById('f3ioDateText');
-        if (!el) return;
-        el.textContent = str ? fmtKo(str) : '';
+        if (el) el.textContent = str ? fmtKo(str) : '';
     }
 
     /* ─────────────────────────────────────────
        재고 누적 계산
-       초기재고 기준일부터 지정 날짜까지 순차 계산
+       baselineRow.date 다음 날부터 targetDate까지 누적
     ───────────────────────────────────────── */
     function calcStock(targetDate) {
-        if (!initialStock.date) return { stock_a: 0, stock_d: 0 };
+        if (!baselineRow) return { stock_a: 0, stock_d: 0 };
 
-        // 기준일부터 targetDate까지 날짜 목록 생성
-        const start = new Date(initialStock.date + 'T00:00:00');
-        const end   = new Date(targetDate + 'T00:00:00');
+        let sa = baselineRow.stock_a;
+        let sd = baselineRow.stock_d;
 
-        let stock_a = initialStock.stock_a;
-        let stock_d = initialStock.stock_d;
-
-        // 기준일 다음 날부터 순차 누적
-        const cur = new Date(start);
+        const cur = new Date(baselineRow.date + 'T00:00:00');
         cur.setDate(cur.getDate() + 1);
+        const end = new Date(targetDate + 'T00:00:00');
 
         while (cur <= end) {
-            const ds = `${cur.getFullYear()}-${pad(cur.getMonth()+1)}-${pad(cur.getDate())}`;
-            const row = dataCache[ds];
-            if (row) {
-                stock_a = stock_a + (row.in_a || 0) - (row.out_a || 0);
-                stock_d = stock_d + (row.in_d || 0) - (row.out_d || 0);
-            }
+            const ds = fmtDate(cur);
+            const row = dataCache[ds] || {};
+            sa += (row.in_a || 0) - (row.out_a || 0);
+            sd += (row.in_d || 0) - (row.out_d || 0);
             cur.setDate(cur.getDate() + 1);
         }
-
-        return { stock_a, stock_d };
+        return { stock_a: sa, stock_d: sd };
     }
 
     /* ─────────────────────────────────────────
-       Supabase 데이터 로드
+       Supabase 로드
     ───────────────────────────────────────── */
 
-    // 초기재고 기준점 로드
-    async function loadInitialStock() {
+    // factory3_io 테이블에서 전체 데이터 로드 (기준 재고 + 입고)
+    async function loadIoTable() {
         const { data, error } = await supabase
-            .from('paper_initial_stock')
-            .select('*')
-            .order('date', { ascending: false })
-            .limit(1);
+            .from('factory3_io')
+            .select('date, stock_a, stock_d, in_a, in_d')
+            .order('date', { ascending: true });
 
-        if (!error && data && data.length > 0) {
-            initialStock = {
-                date: data[0].date,
-                stock_a: data[0].stock_a || 0,
-                stock_d: data[0].stock_d || 0,
-            };
-        }
-    }
+        if (error) { console.error('factory3_io 로드 오류:', error); return; }
 
-    // 특정 기간의 입고 데이터 로드 → dataCache에 병합
-    async function loadIncoming(startDate, endDate) {
-        const { data, error } = await supabase
-            .from('paper_incoming')
-            .select('date, in_a, in_d')
-            .gte('date', startDate)
-            .lte('date', endDate);
-
-        if (!error && data) {
+        if (data) {
             data.forEach(row => {
                 if (!dataCache[row.date]) dataCache[row.date] = {};
                 dataCache[row.date].in_a = row.in_a || 0;
                 dataCache[row.date].in_d = row.in_d || 0;
+
+                // stock_a 또는 stock_d가 설정된 행 = 기준 재고 행
+                if ((row.stock_a || 0) !== 0 || (row.stock_d || 0) !== 0) {
+                    // 가장 최근 기준행을 baseline으로
+                    if (!baselineRow || row.date > baselineRow.date) {
+                        baselineRow = {
+                            date: row.date,
+                            stock_a: row.stock_a || 0,
+                            stock_d: row.stock_d || 0,
+                        };
+                    }
+                }
             });
         }
     }
 
-    // 특정 기간의 출고 데이터 로드 (geupji 테이블에서 geup_out) → dataCache에 병합
+    // geupji 테이블에서 출고(geup_out) 로드
     async function loadOutgoing(startDate, endDate) {
         const { data, error } = await supabase
             .from('factory3_geupji_real')
@@ -166,7 +146,9 @@
             .gte('date', startDate)
             .lte('date', endDate);
 
-        if (!error && data) {
+        if (error) { console.error('출고 로드 오류:', error); return; }
+
+        if (data) {
             data.forEach(row => {
                 if (!dataCache[row.date]) dataCache[row.date] = {};
                 if (row.col_id === 'A') dataCache[row.date].out_a = row.value || 0;
@@ -175,18 +157,16 @@
         }
     }
 
-    // 월 단위로 전체 로드 (입고 + 출고 + 재고 계산)
+    // 특정 월 데이터 로드 → 재고 계산 → row 배열 반환
     async function loadMonth(year, month) {
         const dates = getDatesOfMonth(year, month);
         const startDate = dates[0];
-        const endDate = dates[dates.length - 1];
+        const endDate   = dates[dates.length - 1];
 
-        await Promise.all([
-            loadIncoming(startDate, endDate),
-            loadOutgoing(startDate, endDate),
-        ]);
+        // 출고만 추가 로드 (io 테이블은 최초 1회 전체 로드)
+        await loadOutgoing(startDate, endDate);
 
-        // 재고 계산하여 캐시에 저장
+        // 재고 계산 후 캐시에 저장
         dates.forEach(ds => {
             const stock = calcStock(ds);
             if (!dataCache[ds]) dataCache[ds] = {};
@@ -197,128 +177,152 @@
         return dates.map(ds => buildRow(ds));
     }
 
-    // dataCache에서 화면 row 객체 생성
     function buildRow(dateStr) {
         const d = dataCache[dateStr] || {};
         return {
-            date: dateStr,
-            in_a: d.in_a || 0,
-            in_d: d.in_d || 0,
-            out_a: d.out_a || 0,
-            out_d: d.out_d || 0,
+            date:    dateStr,
+            in_a:    d.in_a    || 0,
+            in_d:    d.in_d    || 0,
+            out_a:   d.out_a   || 0,
+            out_d:   d.out_d   || 0,
             stock_a: d.stock_a || 0,
             stock_d: d.stock_d || 0,
         };
     }
 
     /* ─────────────────────────────────────────
-       입고 저장 / 수정
+       입고 저장 (factory3_io 테이블 upsert)
     ───────────────────────────────────────── */
     async function saveIncoming(dateStr, in_a, in_d) {
         const { error } = await supabase
-            .from('paper_incoming')
+            .from('factory3_io')
             .upsert({ date: dateStr, in_a, in_d }, { onConflict: 'date' });
 
-        if (error) {
-            alert('저장 실패: ' + error.message);
-            return false;
-        }
+        if (error) { alert('저장 실패: ' + error.message); return false; }
         return true;
     }
 
     /* ─────────────────────────────────────────
-       편집 모드 UI
+       저장 핸들러 (헤더 onSave 콜백)
+       편집 모드 종료 시 headerApi가 toggleEditMode를 호출한 뒤 onSave 실행
     ───────────────────────────────────────── */
-    function enterEditMode(dateStr) {
-        if (state.editMode) return;
-        state.editMode = true;
-        state.editDate = dateStr;
+    async function handleSave() {
+        if (!state.selectedDate) return;
+        const dateStr = state.selectedDate;
 
-        const row = document.querySelector(`#f3ioBody1 tr[data-date="${dateStr}"]`);
-        if (!row) return;
+        // 입고 A, D input 값 수집
+        const row1 = document.querySelector(`#f3ioBody1 tr[data-date="${dateStr}"]`);
+        if (!row1) return;
 
-        const d = dataCache[dateStr] || {};
-        const in_a = d.in_a || 0;
-        const in_d = d.in_d || 0;
+        const inputA = row1.querySelector('td[data-col="1"] .f3io-in-input');
+        const inputD = row1.querySelector('td[data-col="2"] .f3io-in-input');
 
-        // 입고 A (col=1), 입고 D (col=2) 셀만 input 활성화
-        const tdA = row.querySelector('td[data-col="1"]');
-        const tdD = row.querySelector('td[data-col="2"]');
+        const in_a = inputA ? (parseInt(inputA.value, 10) || 0) : 0;
+        const in_d = inputD ? (parseInt(inputD.value, 10) || 0) : 0;
 
-        if (tdA) {
-            tdA.innerHTML = `<input class="f3io-edit-input" id="editInputA" type="number" value="${in_a}" min="0">`;
-            const input = tdA.querySelector('input');
-            if (input) { input.focus(); input.select(); }
-        }
-        if (tdD) {
-            tdD.innerHTML = `<input class="f3io-edit-input" id="editInputD" type="number" value="${in_d}" min="0">`;
-        }
+        const ok = await saveIncoming(dateStr, in_a, in_d);
+        if (!ok) return;
 
-        // 저장/취소 버튼 상태 변경
-        const saveBtn = document.getElementById('gf3IoSaveBtn');
-        const editBtn = document.getElementById('gf3IoEditBtn');
-        if (saveBtn) saveBtn.disabled = false;
-        if (editBtn) editBtn.disabled = true;
+        // 캐시 업데이트 → 재고 재계산 → DOM 갱신
+        if (!dataCache[dateStr]) dataCache[dateStr] = {};
+        dataCache[dateStr].in_a = in_a;
+        dataCache[dateStr].in_d = in_d;
+        recalcAllStocks();
+        rerenderAllRows();
+        alert('저장 완료');
     }
 
-    function exitEditMode(save) {
-        if (!state.editMode) return;
-
-        if (save && state.editDate) {
-            const inputA = document.getElementById('editInputA');
-            const inputD = document.getElementById('editInputD');
-            const in_a = inputA ? (parseInt(inputA.value, 10) || 0) : 0;
-            const in_d = inputD ? (parseInt(inputD.value, 10) || 0) : 0;
-
-            saveIncoming(state.editDate, in_a, in_d).then(ok => {
-                if (ok) {
-                    // 캐시 업데이트 후 재고 재계산 & 재렌더링
-                    if (!dataCache[state.editDate]) dataCache[state.editDate] = {};
-                    dataCache[state.editDate].in_a = in_a;
-                    dataCache[state.editDate].in_d = in_d;
-                    recalcAndRerender();
-                    alert('저장 완료');
-                }
-            });
-        }
-
-        state.editMode = false;
-        state.editDate = null;
-
-        const saveBtn = document.getElementById('gf3IoSaveBtn');
-        const editBtn = document.getElementById('gf3IoEditBtn');
-        if (saveBtn) saveBtn.disabled = true;
-        if (editBtn) editBtn.disabled = false;
-
-        // 현재 달 재렌더링 (편집 취소 시에도 원래 값으로 복원)
-        if (!save) recalcAndRerender();
-    }
-
-    // 캐시 기반으로 재고 재계산 후 DOM 전체 갱신
-    function recalcAndRerender() {
-        // 초기재고 기준일 이후 모든 캐시된 날짜의 재고 재계산
+    /* ─────────────────────────────────────────
+       재고 재계산 & DOM 갱신
+    ───────────────────────────────────────── */
+    function recalcAllStocks() {
         const allDates = Object.keys(dataCache).sort();
         allDates.forEach(ds => {
             const stock = calcStock(ds);
             dataCache[ds].stock_a = stock.stock_a;
             dataCache[ds].stock_d = stock.stock_d;
         });
+    }
 
-        // 현재 DOM에 있는 모든 row 갱신
+    function rerenderAllRows() {
         document.querySelectorAll('#f3ioBody1 tr[data-date]').forEach(tr => {
             const ds = tr.getAttribute('data-date');
-            const d = dataCache[ds] || {};
+            const d  = dataCache[ds] || {};
             const cells = tr.querySelectorAll('td[data-col]');
             cells.forEach(td => {
                 const col = td.getAttribute('data-col');
-                if (col === '1') td.innerHTML = fmtNum(d.in_a, ds);
-                else if (col === '2') td.innerHTML = fmtNum(d.in_d, ds);
-                else if (col === '3') td.innerHTML = fmtNum(d.out_a, ds);
-                else if (col === '4') td.innerHTML = fmtNum(d.out_d, ds);
+                // 편집 중인 input은 건드리지 않음
+                if (td.querySelector('.f3io-in-input')) return;
+                if      (col === '1') td.innerHTML = fmtNum(d.in_a,    ds);
+                else if (col === '2') td.innerHTML = fmtNum(d.in_d,    ds);
+                else if (col === '3') td.innerHTML = fmtNum(d.out_a,   ds);
+                else if (col === '4') td.innerHTML = fmtNum(d.out_d,   ds);
                 else if (col === '5') td.innerHTML = fmtNum(d.stock_a, ds);
                 else if (col === '6') td.innerHTML = fmtNum(d.stock_d, ds);
             });
         });
+    }
+
+    /* ─────────────────────────────────────────
+       편집 모드 (헤더 toggleEditMode 연동)
+       — 헤더가 .gf3-td.editable .gf3-input 의 readonly를 토글함
+       — 따라서 입고 A, D 셀에 gf3-td editable 구조 + gf3-input 클래스를 사용
+       — 단, 렌더링은 span으로 하다가 편집 모드 진입 시 input으로 교체
+    ───────────────────────────────────────── */
+
+    // 편집 모드 진입 시 선택된 날짜의 in_a, in_d 셀을 input으로 교체
+    function onEditModeEnter() {
+        if (!state.selectedDate) return;
+        const ds  = state.selectedDate;
+        const d   = dataCache[ds] || {};
+        const row = document.querySelector(`#f3ioBody1 tr[data-date="${ds}"]`);
+        if (!row) return;
+
+        const tdA = row.querySelector('td[data-col="1"]');
+        const tdD = row.querySelector('td[data-col="2"]');
+
+        if (tdA) {
+            tdA.innerHTML = '';
+            const inp = document.createElement('input');
+            inp.type      = 'number';
+            inp.min       = '0';
+            inp.value     = d.in_a || 0;
+            inp.className = 'f3io-in-input';
+            tdA.appendChild(inp);
+            inp.focus();
+            inp.select();
+
+            inp.addEventListener('keydown', e => {
+                if (e.key === 'Tab' || e.key === 'Enter') {
+                    e.preventDefault();
+                    const inpD = row.querySelector('td[data-col="2"] .f3io-in-input');
+                    if (inpD) { inpD.focus(); inpD.select(); }
+                }
+            });
+        }
+        if (tdD) {
+            tdD.innerHTML = '';
+            const inp = document.createElement('input');
+            inp.type      = 'number';
+            inp.min       = '0';
+            inp.value     = d.in_d || 0;
+            inp.className = 'f3io-in-input';
+            tdD.appendChild(inp);
+
+            inp.addEventListener('keydown', e => {
+                if (e.key === 'Enter') {
+                    e.preventDefault();
+                    // 저장 버튼 클릭과 동일한 효과
+                    const saveBtn = document.getElementById('gf3IoSaveBtn');
+                    if (saveBtn && !saveBtn.disabled) saveBtn.click();
+                }
+            });
+        }
+    }
+
+    // 편집 모드 종료 시 input → span 복원 (저장 여부와 무관하게 DOM 복원)
+    function onEditModeExit() {
+        rerenderAllRows();
     }
 
     /* ─────────────────────────────────────────
@@ -335,24 +339,18 @@
                 if (_syncLock) return;
                 _syncLock = true;
                 const srcTop = el.scrollTop;
-
                 PANEL_IDS.filter(x => x !== id).forEach(tid => {
-                    const t = document.getElementById(tid);
-                    if (t) t.scrollTop = srcTop;
+                    const t = document.getElementById(tid); if (t) t.scrollTop = srcTop;
                 });
-
                 hideCursors();
                 _syncLock = false;
-
-                if (srcTop <= 10 && !isLoadingPrev && !state.loading) {
-                    loadPrevMonth();
-                }
+                if (srcTop <= 10 && !isLoadingPrev && !state.loading) loadPrevMonth();
             });
         });
     }
 
     /* ─────────────────────────────────────────
-       글래스 커서, 하이라이트 & 키보드 이동
+       하이라이트 & 커서
     ───────────────────────────────────────── */
     function hideCursors() {
         [1, 2, 3].forEach(i => {
@@ -365,14 +363,12 @@
         const cursorEl = document.getElementById(`f3ioCursor${panelIdx}`);
         const panelEl  = document.getElementById(`f3ioScrollPanel${panelIdx}`);
         if (!cursorEl || !panelEl || !td) return;
-
         let top = 0, left = 0, current = td;
         while (current && current !== panelEl && current !== document.body) {
             top  += current.offsetTop;
             left += current.offsetLeft;
             current = current.offsetParent;
         }
-
         cursorEl.style.width  = td.offsetWidth  + 'px';
         cursorEl.style.height = td.offsetHeight + 'px';
         cursorEl.style.left   = left + 'px';
@@ -388,11 +384,13 @@
     }
 
     function applyHighlight(panelIdx, dateStr, colDataCol) {
+        // 편집 중엔 하이라이트 변경 불가
+        if (headerApi && headerApi.isEditMode()) return;
+
         clearHighlights();
         state.selectedDate  = dateStr;
         state.selectedPanel = panelIdx;
         state.selectedCol   = colDataCol;
-
         updateDateText(dateStr);
 
         PANEL_IDS.forEach((id, i) => {
@@ -403,73 +401,71 @@
         });
 
         const clickedBody = document.getElementById(`f3ioBody${panelIdx}`);
-        if (clickedBody) {
+        if (clickedBody && colDataCol !== null) {
             const row = clickedBody.querySelector(`tr[data-date="${dateStr}"]`);
-            if (row && colDataCol !== null) {
+            if (row) {
                 const targetTd = row.querySelector(`td[data-col="${colDataCol}"]`);
-                if (targetTd) {
-                    targetTd.classList.add('f3io-selected-cell');
-                    showCursor(panelIdx, targetTd);
-                }
+                if (targetTd) { targetTd.classList.add('f3io-selected-cell'); showCursor(panelIdx, targetTd); }
             }
         }
 
         if (colDataCol !== null) {
             const panel = document.getElementById(`f3ioScrollPanel${panelIdx}`);
             if (panel) {
-                const targetLv2Th = panel.querySelector(`.f3io-thead-lv2 th[data-col="${colDataCol}"]`);
-                if (targetLv2Th) {
-                    targetLv2Th.classList.add('f3io-header-active');
-                    const parentGroup = targetLv2Th.getAttribute('data-parent-group');
-                    if (parentGroup) {
-                        const targetLv1Th = panel.querySelector(`.f3io-thead-lv1 th[data-group="${parentGroup}"]`);
-                        if (targetLv1Th) targetLv1Th.classList.add('f3io-header-active');
+                const lv2Th = panel.querySelector(`.f3io-thead-lv2 th[data-col="${colDataCol}"]`);
+                if (lv2Th) {
+                    lv2Th.classList.add('f3io-header-active');
+                    const pg = lv2Th.getAttribute('data-parent-group');
+                    if (pg) {
+                        const lv1Th = panel.querySelector(`.f3io-thead-lv1 th[data-group="${pg}"]`);
+                        if (lv1Th) lv1Th.classList.add('f3io-header-active');
                     } else {
-                        panel.querySelectorAll('.f3io-thead-lv1 th').forEach(th => {
-                            if (th.classList.contains('f3io-top-group-th')) th.classList.add('f3io-header-active');
-                        });
+                        panel.querySelectorAll('.f3io-thead-lv1 th.f3io-top-group-th').forEach(th => th.classList.add('f3io-header-active'));
                     }
                 }
             }
         }
 
-        // 수정 버튼 활성화 (패널1 = 입고/출고/재고 패널)
+        // 수정 버튼 — 패널1(입고열)이고 미래가 아닐 때만 활성
         const editBtn = document.getElementById('gf3IoEditBtn');
-        if (editBtn) editBtn.disabled = (panelIdx !== 1 || isFuture(dateStr));
+        if (editBtn && headerApi && headerApi.state.isAdmin) {
+            editBtn.disabled = (panelIdx !== 1 || isFuture(dateStr));
+        }
     }
 
+    /* ─────────────────────────────────────────
+       키보드 네비게이션
+    ───────────────────────────────────────── */
     function bindKeyboardNav() {
         document.addEventListener('keydown', e => {
+            if (headerApi && headerApi.isEditMode()) return;
             if (!state.selectedDate || !state.selectedPanel || !state.selectedCol) return;
-            const key = e.key;
-            if (!['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(key)) return;
+            if (!['ArrowUp','ArrowDown','ArrowLeft','ArrowRight'].includes(e.key)) return;
             e.preventDefault();
 
             let panelIdx = Number(state.selectedPanel);
             let colNum   = Number(state.selectedCol);
-            let dateStr  = state.selectedDate;
-
-            const body = document.getElementById(`f3ioBody${panelIdx}`);
+            const body   = document.getElementById(`f3ioBody${panelIdx}`);
             if (!body) return;
-            const currentRow = body.querySelector(`tr[data-date="${dateStr}"]`);
+            const currentRow = body.querySelector(`tr[data-date="${state.selectedDate}"]`);
             if (!currentRow) return;
 
-            if (key === 'ArrowUp' || key === 'ArrowDown') {
-                const targetRow = key === 'ArrowUp' ? currentRow.previousElementSibling : currentRow.nextElementSibling;
-                if (targetRow && targetRow.getAttribute('data-date')) {
-                    applyHighlight(panelIdx, targetRow.getAttribute('data-date'), String(colNum));
+            if (e.key === 'ArrowUp' || e.key === 'ArrowDown') {
+                const target = e.key === 'ArrowUp' ? currentRow.previousElementSibling : currentRow.nextElementSibling;
+                if (target && target.getAttribute('data-date')) {
+                    applyHighlight(panelIdx, target.getAttribute('data-date'), String(colNum));
                     scrollToActiveCell(panelIdx);
                 }
             } else {
                 const colCount = { 1: 6, 2: 7, 3: 2 };
-                if (key === 'ArrowLeft') {
+                if (e.key === 'ArrowLeft') {
                     colNum--;
                     if (colNum < 1) { if (panelIdx > 1) { panelIdx--; colNum = colCount[panelIdx]; } else colNum = 1; }
                 } else {
                     colNum++;
                     if (colNum > colCount[panelIdx]) { if (panelIdx < 3) { panelIdx++; colNum = 1; } else colNum = colCount[panelIdx]; }
                 }
-                applyHighlight(panelIdx, dateStr, String(colNum));
+                applyHighlight(panelIdx, state.selectedDate, String(colNum));
                 scrollToActiveCell(panelIdx);
             }
         });
@@ -479,25 +475,32 @@
         const panel    = document.getElementById(`f3ioScrollPanel${panelIdx}`);
         const activeTd = document.querySelector(`#f3ioBody${panelIdx} tr[data-date="${state.selectedDate}"] td[data-col="${state.selectedCol}"]`);
         if (!panel || !activeTd) return;
-
-        let top = 0, current = activeTd;
-        while (current && current !== panel && current !== document.body) {
-            top += current.offsetTop;
-            current = current.offsetParent;
-        }
-
+        let top = 0, cur = activeTd;
+        while (cur && cur !== panel && cur !== document.body) { top += cur.offsetTop; cur = cur.offsetParent; }
         const targetBottom = top + activeTd.offsetHeight;
-        const scrollTop    = panel.scrollTop;
-        const panelHeight  = panel.clientHeight;
         const headerHeight = 88;
-
-        if (targetBottom > scrollTop + panelHeight) panel.scrollTop = targetBottom - panelHeight + 10;
-        else if (top < scrollTop + headerHeight)    panel.scrollTop = top - headerHeight - 10;
+        if (targetBottom > panel.scrollTop + panel.clientHeight) panel.scrollTop = targetBottom - panel.clientHeight + 10;
+        else if (top < panel.scrollTop + headerHeight)           panel.scrollTop = top - headerHeight - 10;
     }
 
     /* ─────────────────────────────────────────
        렌더링
     ───────────────────────────────────────── */
+    function showLoading() {
+        [{ id:'f3ioBody1',cols:7 }, { id:'f3ioBody2',cols:8 }, { id:'f3ioBody3',cols:3 }]
+            .forEach(({ id, cols }) => {
+                const el = document.getElementById(id);
+                if (el) el.innerHTML = `<tr><td colspan="${cols}" style="padding:28px;text-align:center;color:#aeaeb2;font-size:13px;">불러오는 중...</td></tr>`;
+            });
+    }
+    function showError(msg) {
+        [{ id:'f3ioBody1',cols:7 }, { id:'f3ioBody2',cols:8 }, { id:'f3ioBody3',cols:3 }]
+            .forEach(({ id, cols }) => {
+                const el = document.getElementById(id);
+                if (el) el.innerHTML = `<tr><td colspan="${cols}" style="padding:28px;text-align:center;color:#ff3b30;font-size:13px;">${msg}</td></tr>`;
+            });
+    }
+
     function generateRowsHTML(rows) {
         let html1 = '', html2 = '', html3 = '';
 
@@ -505,11 +508,7 @@
             const d     = new Date(row.date + 'T00:00:00');
             const isT   = row.date === yesterdayStr();
             const trCls = isT ? 'f3io-row-today' : '';
-
-            let wdCls = '';
-            if (d.getDay() === 6) wdCls = 'f3io-sat';
-            else if (d.getDay() === 0) wdCls = 'f3io-sun';
-
+            let wdCls   = d.getDay() === 6 ? 'f3io-sat' : d.getDay() === 0 ? 'f3io-sun' : '';
             const mStr  = pad(d.getMonth() + 1);
             const dyStr = pad(d.getDate());
             const wd    = WD_KR[d.getDay()];
@@ -517,17 +516,17 @@
             const dateTd    = `<td class="f3io-date-td ${wdCls}" data-date="${row.date}">${mStr}/${dyStr} (${wd})</td>`;
             const resDateTd = `<td class="f3io-date-td f3io-responsive-date ${wdCls}" data-date="${row.date}">${mStr}/${dyStr} (${wd})</td>`;
 
+            // 패널1: 입고(A,D) 편집 가능 셀, 출고·재고는 읽기 전용
             html1 += `<tr class="${trCls}" data-date="${row.date}">
                 ${dateTd}
-                <td class="f3io-data-cell" data-col="1">${fmtNum(row.in_a, row.date)}</td>
-                <td class="f3io-data-cell" data-col="2">${fmtNum(row.in_d, row.date)}</td>
+                <td class="f3io-data-cell f3io-editable-cell" data-col="1">${fmtNum(row.in_a, row.date)}</td>
+                <td class="f3io-data-cell f3io-editable-cell" data-col="2">${fmtNum(row.in_d, row.date)}</td>
                 <td class="f3io-data-cell f3io-sep" data-col="3">${fmtNum(row.out_a, row.date)}</td>
                 <td class="f3io-data-cell" data-col="4">${fmtNum(row.out_d, row.date)}</td>
                 <td class="f3io-data-cell f3io-sep" data-col="5">${fmtNum(row.stock_a, row.date)}</td>
                 <td class="f3io-data-cell" data-col="6">${fmtNum(row.stock_d, row.date)}</td>
             </tr>`;
 
-            // 패널 2, 3은 현재 geupji 데이터 미연동 → 빈 행 유지
             html2 += `<tr class="${trCls}" data-date="${row.date}">
                 ${resDateTd}
                 <td class="f3io-data-cell" data-col="1">${fmtNum(null, row.date)}</td>
@@ -550,54 +549,27 @@
     }
 
     function renderInitial(rows) {
-        const body1 = document.getElementById('f3ioBody1');
-        const body2 = document.getElementById('f3ioBody2');
-        const body3 = document.getElementById('f3ioBody3');
-        if (!body1 || !body2 || !body3) return;
-
+        const b1 = document.getElementById('f3ioBody1');
+        const b2 = document.getElementById('f3ioBody2');
+        const b3 = document.getElementById('f3ioBody3');
+        if (!b1 || !b2 || !b3) return;
         const htmls = generateRowsHTML(rows);
-        body1.innerHTML = htmls.html1;
-        body2.innerHTML = htmls.html2;
-        body3.innerHTML = htmls.html3;
+        b1.innerHTML = htmls.html1;
+        b2.innerHTML = htmls.html2;
+        b3.innerHTML = htmls.html3;
     }
 
     /* ─────────────────────────────────────────
        데이터 로드
     ───────────────────────────────────────── */
-    function showLoading() {
-        const specs = [
-            { id: 'f3ioBody1', cols: 7 },
-            { id: 'f3ioBody2', cols: 8 },
-            { id: 'f3ioBody3', cols: 3 },
-        ];
-        specs.forEach(({ id, cols }) => {
-            const el = document.getElementById(id);
-            if (el) el.innerHTML = `<tr><td colspan="${cols}" style="padding:28px;text-align:center;color:#aeaeb2;font-size:13px;">불러오는 중...</td></tr>`;
-        });
-    }
-
-    function showError(msg) {
-        const specs = [
-            { id: 'f3ioBody1', cols: 7 },
-            { id: 'f3ioBody2', cols: 8 },
-            { id: 'f3ioBody3', cols: 3 },
-        ];
-        specs.forEach(({ id, cols }) => {
-            const el = document.getElementById(id);
-            if (el) el.innerHTML = `<tr><td colspan="${cols}" style="padding:28px;text-align:center;color:#ff3b30;font-size:13px;">${msg}</td></tr>`;
-        });
-    }
-
     async function loadData() {
         if (state.loading) return;
         state.loading = true;
         showLoading();
 
         try {
-            // 초기재고 기준점이 아직 없으면 로드
-            if (!initialStock.date) {
-                await loadInitialStock();
-            }
+            // io 테이블 전체 1회 로드 (baseline 포함)
+            if (!baselineRow) await loadIoTable();
 
             const rows = await loadMonth(state.year, state.month);
             renderInitial(rows);
@@ -614,11 +586,10 @@
         return new Promise(resolve => {
             if (isLoadingPrev) return resolve();
             isLoadingPrev = true;
-
             oldestMonth--;
             if (oldestMonth < 1) { oldestMonth = 12; oldestYear--; }
 
-            const panel1 = document.getElementById('f3ioScrollPanel1');
+            const panel1    = document.getElementById('f3ioScrollPanel1');
             const prevHeight = panel1 ? panel1.scrollHeight : 0;
 
             loadMonth(oldestYear, oldestMonth)
@@ -630,12 +601,8 @@
 
                     requestAnimationFrame(() => {
                         if (panel1 && !isAutoFill) {
-                            const newHeight = panel1.scrollHeight;
-                            const diff = newHeight - prevHeight;
-                            PANEL_IDS.forEach(id => {
-                                const p = document.getElementById(id);
-                                if (p) p.scrollTop += diff;
-                            });
+                            const diff = panel1.scrollHeight - prevHeight;
+                            PANEL_IDS.forEach(id => { const p = document.getElementById(id); if (p) p.scrollTop += diff; });
                         }
                         resolve();
                     });
@@ -649,7 +616,7 @@
        클릭 이벤트
     ───────────────────────────────────────── */
     function bindBodyClicks() {
-        [[1, 'f3ioBody1'], [2, 'f3ioBody2'], [3, 'f3ioBody3']].forEach(([panelIdx, bodyId]) => {
+        [[1,'f3ioBody1'], [2,'f3ioBody2'], [3,'f3ioBody3']].forEach(([panelIdx, bodyId]) => {
             const body = document.getElementById(bodyId);
             if (!body) return;
             body.addEventListener('click', e => {
@@ -676,39 +643,26 @@
                 if (!row) row = panel1.querySelector(`tr[data-date="${yesterdayStr()}"]`);
 
                 if (row) {
-                    let top = 0, current = row;
-                    while (current && current !== panel1 && current !== document.body) {
-                        top += current.offsetTop;
-                        current = current.offsetParent;
-                    }
+                    let top = 0, cur = row;
+                    while (cur && cur !== panel1 && cur !== document.body) { top += cur.offsetTop; cur = cur.offsetParent; }
 
-                    const offset = panel1.clientHeight / 3;
+                    const offset       = panel1.clientHeight / 3;
                     const targetScroll = top - offset;
 
                     if (targetScroll < 0 && !isLoadingPrev) {
                         loadPrevMonth(true).then(() => {
                             requestAnimationFrame(() => {
-                                let newRow = panel1.querySelector(`tr[data-date="${today}"]`);
-                                if (!newRow) newRow = panel1.querySelector(`tr[data-date="${yesterdayStr()}"]`);
-                                if (newRow) {
-                                    let newTop = 0, curr = newRow;
-                                    while (curr && curr !== panel1 && curr !== document.body) {
-                                        newTop += curr.offsetTop;
-                                        curr = curr.offsetParent;
-                                    }
-                                    const finalScroll = newTop - offset;
-                                    PANEL_IDS.forEach(id => {
-                                        const p = document.getElementById(id);
-                                        if (p) p.scrollTo({ top: Math.max(0, finalScroll), behavior: 'auto' });
-                                    });
+                                let nr = panel1.querySelector(`tr[data-date="${today}"]`);
+                                if (!nr) nr = panel1.querySelector(`tr[data-date="${yesterdayStr()}"]`);
+                                if (nr) {
+                                    let nt = 0, nc = nr;
+                                    while (nc && nc !== panel1 && nc !== document.body) { nt += nc.offsetTop; nc = nc.offsetParent; }
+                                    PANEL_IDS.forEach(id => { const p = document.getElementById(id); if (p) p.scrollTo({ top: Math.max(0, nt - offset), behavior:'auto' }); });
                                 }
                             });
                         });
                     } else {
-                        PANEL_IDS.forEach(id => {
-                            const p = document.getElementById(id);
-                            if (p) p.scrollTo({ top: Math.max(0, targetScroll), behavior: 'auto' });
-                        });
+                        PANEL_IDS.forEach(id => { const p = document.getElementById(id); if (p) p.scrollTo({ top: Math.max(0, targetScroll), behavior:'auto' }); });
                     }
                 }
                 updateDateText(today);
@@ -734,7 +688,6 @@
             headerApi = window.Factory3Header.init({
                 idPrefix: 'Io',
                 onDateChange: (dateStr) => {
-                    if (state.editMode) exitEditMode(false);
                     const d = new Date(dateStr);
                     state.year  = d.getFullYear();
                     state.month = d.getMonth() + 1;
@@ -742,20 +695,60 @@
                     oldestMonth = state.month;
                     clearHighlights();
                     dataCache = {};
+                    baselineRow = null;
                     loadData();
                 },
-                onSave: () => exitEditMode(true),
+                onSave: handleSave,
             });
 
-            // 수정 버튼 클릭 → 선택된 날짜 편집 모드 진입
+            if (!headerApi) return;
+
+            // 헤더의 toggleEditMode가 편집 모드 진입/종료를 처리함
+            // 편집 버튼 클릭 → 헤더가 toggleEditMode 호출 → 우리는 MutationObserver로 감지
+            // 대신 editBtn에 추가 리스너로 진입/종료 시점 처리
             const editBtn = document.getElementById('gf3IoEditBtn');
             if (editBtn) {
                 editBtn.addEventListener('click', () => {
-                    if (state.selectedDate && state.selectedPanel === 1) {
-                        enterEditMode(state.selectedDate);
-                    }
+                    // 클릭 시점: isEditMode는 아직 토글 전 (헤더가 호출 후 토글)
+                    // → 다음 tick에 확인
+                    setTimeout(() => {
+                        if (headerApi.isEditMode()) {
+                            onEditModeEnter();
+                        } else {
+                            onEditModeExit();
+                        }
+                    }, 0);
                 });
             }
+
+            // 저장 후 편집 모드 종료 감지 (handleSave 후 헤더가 toggleEditMode 호출하지 않음)
+            // → handleSave에서 직접 exit 처리 (헤더 toggleEditMode 수동 호출)
+            const saveBtn = document.getElementById('gf3IoSaveBtn');
+            if (saveBtn) {
+                // 헤더 기본 saveBtn 리스너 이후 추가 처리
+                saveBtn.addEventListener('click', () => {
+                    setTimeout(() => {
+                        if (!headerApi.isEditMode()) {
+                            // 헤더가 이미 toggleEditMode 호출해서 종료됨
+                            onEditModeExit();
+                        }
+                    }, 100);
+                });
+            }
+
+            // prev/next/excel 버튼 비활성화 (factory3_io 페이지에서 불필요)
+            ['gf3IoPrevBtn', 'gf3IoNextBtn', 'gf3IoExcelBtn'].forEach(id => {
+                const btn = document.getElementById(id);
+                if (btn) {
+                    btn.disabled = true;
+                    btn.style.opacity = '0.3';
+                    btn.style.pointerEvents = 'none';
+                }
+            });
+
+            // 초기 수정 버튼 비활성화 (행 선택 후 활성화)
+            const eb = document.getElementById('gf3IoEditBtn');
+            if (eb) eb.disabled = true;
 
             loadData();
         },
