@@ -73,12 +73,18 @@
     /* ─────────────────────────────────────────
        숫자 포맷
     ───────────────────────────────────────── */
-    function fmtNum(v, ds) {
-        if (isFuture(ds)) return '<span class="f3io-empty">-</span>';
-        const n = Number(v);
-        if (isNaN(n) || n === 0) return '<span class="f3io-empty">0</span>';
-        return `<span${n < 0 ? ' class="f3io-negative"' : ''}>${n.toLocaleString()}</span>`;
+  function fmtNum(v, ds) {
+    const today = yesterdayStr(); // 어제 날짜까지가 데이터 유효 범위
+    
+    // ds(현재 행 날짜)가 오늘이거나 미래라면 '-' 표시
+    if (new Date(ds) >= new Date(todayStr())) { 
+        return '<span class="f3io-empty">-</span>'; 
     }
+    
+    const n = Number(v);
+    if (isNaN(n) || n === 0) return '<span class="f3io-empty">0</span>';
+    return `<span${n < 0 ? ' class="f3io-negative"' : ''}>${n.toLocaleString()}</span>`;
+}
 
     function updateDateText(str) {
         const el = document.getElementById('f3ioDateText');
