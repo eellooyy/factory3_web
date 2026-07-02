@@ -9,17 +9,6 @@
     const yesterdayObj = new Date();
     yesterdayObj.setDate(todayObj.getDate() - 1);
 
-    const state = {
-        year: yesterdayObj.getFullYear(),
-        month: yesterdayObj.getMonth() + 1,
-        selectedDate: null,
-        selectedPanel: null,
-        selectedCol: null,
-    };
-
-    let dataCache = {};
-    const PIDS = ['f3ctScrollPanel1', 'f3ctScrollPanel2', 'f3ctScrollPanel3', 'f3ctScrollPanel4', 'f3ctScrollPanel5', 'f3ctScrollPanel6'];
-
     function pad(n) { return String(n).padStart(2, '0'); }
     
     function todayStr() {
@@ -29,9 +18,26 @@
     function yesterdayStr() {
         return `${yesterdayObj.getFullYear()}-${pad(yesterdayObj.getMonth()+1)}-${pad(yesterdayObj.getDate())}`;
     }
-    
-    function getDatesOfMonth(y, m) {
-        return Array.from({ length: new Date(y, m, 0).getDate() }, (_, i) => `${y}-${pad(m)}-${pad(i+1)}`);
+
+    const state = {
+        selectedDate: yesterdayStr(),
+        selectedPanel: null,
+        selectedCol: null,
+    };
+
+    let dataCache = {};
+    const PIDS = ['f3ctScrollPanel1', 'f3ctScrollPanel2', 'f3ctScrollPanel3', 'f3ctScrollPanel4', 'f3ctScrollPanel5', 'f3ctScrollPanel6'];
+
+    // 기준일(targetDate) 앞뒤로 15일(총 31일)의 배열 생성
+    function getDatesRange(targetDateStr) {
+        const dates = [];
+        const baseDate = new Date(targetDateStr + 'T00:00:00');
+        for (let i = -15; i <= 15; i++) {
+            const d = new Date(baseDate);
+            d.setDate(baseDate.getDate() + i);
+            dates.push(`${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`);
+        }
+        return dates;
     }
 
     // 어제 날짜를 초과하는 "미래" 데이터는 빈 공간 처리
@@ -79,8 +85,9 @@
     }
 
     function renderAllRows() {
-        // 현재 캘린더에서 선택된 달(month) 기준으로 화면 재생성
-        const dates = getDatesOfMonth(state.year, state.month);
+        // 선택된 날짜(없을 시 어제)를 기준으로 앞뒤 15일치(총 31일) 렌더링
+        const targetStr = state.selectedDate || yesterdayStr();
+        const dates = getDatesRange(targetStr);
         const rows = dates.map(ds => buildRow(ds));
 
         let h1='', h2='', h3='', h4='', h5='', h6='';
@@ -153,7 +160,7 @@
     function clearHighlights() {
         document.querySelectorAll('.f3ct-selected-row').forEach(e => e.classList.remove('f3ct-selected-row'));
         document.querySelectorAll('.f3ct-selected-cell').forEach(e => e.classList.remove('f3ct-selected-cell'));
-        document.querySelectorAll('.f3ct-header-active').forEach(e => e.classList.remove('f3ct-header-active')); // 헤더 색상 해제
+        document.querySelectorAll('.f3ct-header-active').forEach(e => e.classList.remove('f3ct-header-active')); 
         [1,2,3,4,5,6].forEach(i => { const c = document.getElementById(`f3ctCursor${i}`); if (c) c.classList.remove('active'); });
     }
 
@@ -172,7 +179,6 @@
             const cur = document.getElementById(`f3ctCursor${panelIdx}`);
             const pan = document.getElementById(`f3ctScrollPanel${panelIdx}`);
             
-            // 커서 애니메이션 이동
             if(cur && pan) {
                 let top=0, left=0, el=td;
                 while(el && el!==pan && el!==document.body) { top+=el.offsetTop; left+=el.offsetLeft; el=el.offsetParent; }
@@ -181,7 +187,6 @@
                 cur.classList.add('active');
             }
 
-            // 헤더 하이라이팅 연동 로직
             if (pan) {
                 const lv2 = pan.querySelector(`.f3ct-thead-lv2 th[data-col="${col}"]`);
                 if (lv2) {
@@ -206,7 +211,6 @@
         });
     }
 
-    // 3번 요구사항: 키보드 상하좌우 방향키를 통한 글래스 커서 완벽 제어
     function bindKeyboardNav() {
         document.addEventListener('keydown', e => {
             if (!state.selectedDate || !state.selectedPanel || !state.selectedCol) return;
@@ -227,7 +231,6 @@
                     scrollToActiveCell(panelIdx);
                 }
             } else {
-                // 각 패널별 최대 컬럼 개수 정의 (패널1~5: 3개, 패널6: 1개)
                 const colCount = { 1:3, 2:3, 3:3, 4:3, 5:3, 6:1 };
                 
                 if (e.key === 'ArrowLeft') {
@@ -249,7 +252,6 @@
         });
     }
 
-    // 방향키 이동 시 화면 스크롤 자동 따라가기
     function scrollToActiveCell(idx) {
         const pan = document.getElementById(`f3ctScrollPanel${idx}`);
         const td  = document.querySelector(`#f3ctBody${idx} tr[data-date="${state.selectedDate}"] td[data-col="${state.selectedCol}"]`);
@@ -271,7 +273,8 @@
                     top += el.offsetTop; 
                     el = el.offsetParent; 
                 }
-                const targetScrollTop = top - (pan.clientHeight / 4); 
+                // 목표 날짜가 화면 중앙에서 약간 윗쪽(전체 높이의 약 3.5등분 위쪽)에 오도록 스크롤 위치 조정
+                const targetScrollTop = top - (pan.clientHeight / 3.5); 
                 PIDS.forEach(id => { 
                     const p = document.getElementById(id); 
                     if (p) p.scrollTop = targetScrollTop; 
@@ -284,25 +287,24 @@
         init: function () {
             bindScrollSync(); 
             bindClicks();
-            bindKeyboardNav(); // 키보드 네비게이션 트리거 연결
+            bindKeyboardNav();
 
-            // 헤더 및 캘린더 초기화 연계 (과거 한 달 날짜 이동 시 DB 조회 후 리로드 동작)
+            // 공통 헤더 날짜 변경 시에도 동일하게 앞뒤 15일치 로딩
             if (window.Factory3Header) {
                 window.Factory3Header.init({
                     idPrefix: 'Contrast',
                     onDateChange: (ds) => {
-                        const d = new Date(ds);
-                        state.year = d.getFullYear();
-                        state.month = d.getMonth() + 1;
+                        state.selectedDate = ds;
                         clearHighlights();
-                        renderAllRows(); // 해당 월 데이터로 재생성
+                        renderAllRows(); 
                         scrollToDate(ds); 
                     }, 
                     onSave: () => {} 
                 });
             }
 
-            // 페이지 최초 진입 시 어제 날짜 포커싱 및 렌더링
+            // 페이지 최초 진입 시 어제 날짜 포커싱 및 앞뒤 15일 데이터 렌더링
+            state.selectedDate = yesterdayStr();
             renderAllRows();
             scrollToDate(yesterdayStr());
         }
