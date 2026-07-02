@@ -44,8 +44,8 @@
             </div>
             
             <button id="gf3ContrastTodayBtn" class="gf3-action-btn today-btn">오늘</button>
-            <button id="gf3ContrastEditBtn" class="gf3-action-btn edit-btn" disabled>수정</button>
-            <button id="gf3ContrastSaveBtn" class="gf3-action-btn save-btn" disabled>저장</button>
+            <button id="gf3ContrastEditBtn" class="gf3-action-btn edit-btn style-disabled" disabled>수정</button>
+            <button id="gf3ContrastSaveBtn" class="gf3-action-btn save-btn style-disabled" disabled>저장</button>
             <button id="gf3ContrastExcelBtn" class="gf3-action-btn excel-btn">
                 <span class="material-symbols-outlined" style="font-size: 16px; margin-right: 4px;">table_view</span>엑셀 저장
             </button>
@@ -56,7 +56,7 @@
 <div class="gf3-wrapper f3ct-wrapper" data-page-module="Factory3ContrastModule" style="padding-top: 14px;">
     <div class="f3ct-panels-outer">
         
-        <div class="f3ct-panel f3ct-panel-left">
+        <div class="f3ct-panel f3ct-panel-1">
             <div class="f3ct-scroll-area" id="f3ctScrollPanel1">
                 <div id="f3ctCursor1" class="f3ct-cursor"></div>
                 <table class="f3ct-table">
@@ -64,15 +64,11 @@
                         <tr class="f3ct-thead-lv1">
                             <th class="f3ct-date-th" rowspan="2">날짜</th>
                             <th colspan="3" class="f3ct-group-th">지고 재고</th>
-                            <th colspan="3" class="f3ct-group-th f3ct-sep">급지 재고</th>
                         </tr>
                         <tr class="f3ct-thead-lv2">
                             <th class="f3ct-leaf-th" data-col="1">A</th>
                             <th class="f3ct-leaf-th" data-col="2">D</th>
                             <th class="f3ct-leaf-th f3ct-sum-th" data-col="3">합계</th>
-                            <th class="f3ct-leaf-th f3ct-sep" data-col="4">A</th>
-                            <th class="f3ct-leaf-th" data-col="5">D</th>
-                            <th class="f3ct-leaf-th f3ct-sum-th" data-col="6">합계</th>
                         </tr>
                     </thead>
                     <tbody id="f3ctBody1"></tbody>
@@ -80,23 +76,19 @@
             </div>
         </div>
 
-        <div class="f3ct-panel f3ct-panel-mid">
+        <div class="f3ct-panel f3ct-panel-2">
             <div class="f3ct-scroll-area" id="f3ctScrollPanel2">
                 <div id="f3ctCursor2" class="f3ct-cursor"></div>
                 <table class="f3ct-table">
                     <thead>
                         <tr class="f3ct-thead-lv1">
-                            <th class="f3ct-date-th f3ct-responsive-date" rowspan="2">날짜</th>
-                            <th colspan="3" class="f3ct-group-th">실재고</th>
-                            <th colspan="3" class="f3ct-group-th f3ct-sep">ERP 재고(수동)</th>
+                            <th class="f3ct-date-th" rowspan="2">날짜</th>
+                            <th colspan="3" class="f3ct-group-th">급지 재고</th>
                         </tr>
                         <tr class="f3ct-thead-lv2">
                             <th class="f3ct-leaf-th" data-col="1">A</th>
                             <th class="f3ct-leaf-th" data-col="2">D</th>
                             <th class="f3ct-leaf-th f3ct-sum-th" data-col="3">합계</th>
-                            <th class="f3ct-leaf-th f3ct-sep" data-col="4">A</th>
-                            <th class="f3ct-leaf-th" data-col="5">D</th>
-                            <th class="f3ct-leaf-th f3ct-sum-th" data-col="6">합계</th>
                         </tr>
                     </thead>
                     <tbody id="f3ctBody2"></tbody>
@@ -104,24 +96,80 @@
             </div>
         </div>
 
-        <div class="f3ct-panel f3ct-panel-right">
+        <div class="f3ct-panel f3ct-panel-3">
             <div class="f3ct-scroll-area" id="f3ctScrollPanel3">
                 <div id="f3ctCursor3" class="f3ct-cursor"></div>
                 <table class="f3ct-table">
                     <thead>
                         <tr class="f3ct-thead-lv1">
-                            <th class="f3ct-date-th f3ct-responsive-date" rowspan="2">날짜</th>
-                            <th colspan="3" class="f3ct-group-th">실재고 - ERP 재고</th>
-                            <th colspan="1" class="f3ct-group-th f3ct-sep">증감</th>
+                            <th class="f3ct-date-th" rowspan="2">날짜</th>
+                            <th colspan="3" class="f3ct-group-th">실재고</th>
                         </tr>
                         <tr class="f3ct-thead-lv2">
                             <th class="f3ct-leaf-th" data-col="1">A</th>
                             <th class="f3ct-leaf-th" data-col="2">D</th>
                             <th class="f3ct-leaf-th f3ct-sum-th" data-col="3">합계</th>
-                            <th class="f3ct-leaf-th f3ct-sep f3ct-sum-th" data-col="4">A+D 합계</th>
                         </tr>
                     </thead>
                     <tbody id="f3ctBody3"></tbody>
+                </table>
+            </div>
+        </div>
+
+        <div class="f3ct-panel f3ct-panel-4">
+            <div class="f3ct-scroll-area" id="f3ctScrollPanel4">
+                <div id="f3ctCursor4" class="f3ct-cursor"></div>
+                <table class="f3ct-table">
+                    <thead>
+                        <tr class="f3ct-thead-lv1">
+                            <th class="f3ct-date-th" rowspan="2">날짜</th>
+                            <th colspan="3" class="f3ct-group-th">ERP 재고(수동)</th>
+                        </tr>
+                        <tr class="f3ct-thead-lv2">
+                            <th class="f3ct-leaf-th" data-col="1">A</th>
+                            <th class="f3ct-leaf-th" data-col="2">D</th>
+                            <th class="f3ct-leaf-th f3ct-sum-th" data-col="3">합계</th>
+                        </tr>
+                    </thead>
+                    <tbody id="f3ctBody4"></tbody>
+                </table>
+            </div>
+        </div>
+
+        <div class="f3ct-panel f3ct-panel-5">
+            <div class="f3ct-scroll-area" id="f3ctScrollPanel5">
+                <div id="f3ctCursor5" class="f3ct-cursor"></div>
+                <table class="f3ct-table">
+                    <thead>
+                        <tr class="f3ct-thead-lv1">
+                            <th class="f3ct-date-th" rowspan="2">날짜</th>
+                            <th colspan="3" class="f3ct-group-th">실재고 - ERP 재고</th>
+                        </tr>
+                        <tr class="f3ct-thead-lv2">
+                            <th class="f3ct-leaf-th" data-col="1">A</th>
+                            <th class="f3ct-leaf-th" data-col="2">D</th>
+                            <th class="f3ct-leaf-th f3ct-sum-th" data-col="3">합계</th>
+                        </tr>
+                    </thead>
+                    <tbody id="f3ctBody5"></tbody>
+                </table>
+            </div>
+        </div>
+
+        <div class="f3ct-panel f3ct-panel-6">
+            <div class="f3ct-scroll-area" id="f3ctScrollPanel6">
+                <div id="f3ctCursor6" class="f3ct-cursor"></div>
+                <table class="f3ct-table">
+                    <thead>
+                        <tr class="f3ct-thead-lv1">
+                            <th class="f3ct-date-th" rowspan="2">날짜</th>
+                            <th colspan="1" class="f3ct-group-th">증감</th>
+                        </tr>
+                        <tr class="f3ct-thead-lv2">
+                            <th class="f3ct-leaf-th f3ct-sum-th" data-col="1">A+D 합계</th>
+                        </tr>
+                    </thead>
+                    <tbody id="f3ctBody6"></tbody>
                 </table>
             </div>
         </div>
@@ -131,6 +179,6 @@
 
 <script src="js/factory3_utils.js"></script>
 <script src="js/factory3_header.js"></script>
-<script src="js/factory3_contrast_script.js?v=1.0"></script>
+<script src="js/factory3_contrast_script.js?v=1.1"></script>
 </body>
 </html>

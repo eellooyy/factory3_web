@@ -2,9 +2,9 @@
 (function () {
     'use strict';
 
-    // 향후 Supabase 연결 시 활성화
-    // const supabaseUrl = 'YOUR_URL';
-    // const supabaseKey = 'YOUR_KEY';
+    // 향후 마지막 연동 타이밍에 채워넣을 Supabase 초기 설정 가이드부
+    // const supabaseUrl = 'YOUR_SUPABASE_URL';
+    // const supabaseKey = 'YOUR_SUPABASE_KEY';
     // const supabase = window.supabase.createClient(supabaseUrl, supabaseKey);
 
     const WD_KR = ['일', '월', '화', '수', '목', '금', '토'];
@@ -19,12 +19,18 @@
     };
 
     let dataCache = {};
-    let oldestYear = state.year;
-    let oldestMonth = state.month;
-    let isLoadingPrev = false;
     let headerApi = null;
 
-    // --- 유틸 함수 ---
+    // 패널 식별 아이디 바인딩 (6개 패널 추적 배열식 구조화)
+    const PIDS = [
+        'f3ctScrollPanel1', 
+        'f3ctScrollPanel2', 
+        'f3ctScrollPanel3', 
+        'f3ctScrollPanel4', 
+        'f3ctScrollPanel5', 
+        'f3ctScrollPanel6'
+    ];
+
     function pad(n) { return String(n).padStart(2, '0'); }
     function todayStr() {
         const t = new Date();
@@ -34,7 +40,6 @@
         const t = new Date(); t.setDate(t.getDate() - 1);
         return `${t.getFullYear()}-${pad(t.getMonth()+1)}-${pad(t.getDate())}`;
     }
-    function fmtDate(d) { return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`; }
     function fmtKo(ds) {
         const d = new Date(ds + 'T00:00:00');
         return `${d.getFullYear()}년 ${d.getMonth()+1}월 ${d.getDate()}일 (${WD_KR[d.getDay()]})`;
@@ -43,12 +48,11 @@
         return Array.from({ length: new Date(y, m, 0).getDate() }, (_, i) => `${y}-${pad(m)}-${pad(i+1)}`);
     }
 
-    // 숫자 렌더링 (음수일 경우 캡처본처럼 빨간색 처리 적용)
-    function fmtNum(v, ds, allowToday = false) {
+    function fmtNum(v, ds) {
         const rowDate = new Date(ds + 'T00:00:00');
         const todayDate = new Date(todayStr() + 'T00:00:00');
 
-        if (rowDate > todayDate || (rowDate.getTime() === todayDate.getTime() && !allowToday)) {
+        if (rowDate > todayDate) {
             return '<span class="f3ct-empty">-</span>';
         }
 
@@ -62,25 +66,25 @@
         if (el) el.textContent = str ? fmtKo(str) : '';
     }
 
-    // --- 데이터 시뮬레이션 및 수식 계산 ---
+    // 데이터 연산 및 로드 스키마 시뮬레이션
     function buildRow(ds) {
         if (!dataCache[ds]) {
-            // 초기 더미 데이터 생성 (추후 DB 연동 시 로드 로직으로 교체)
             const isPast = new Date(ds + 'T00:00:00') <= new Date();
+            // DB 로드 연결 포인트용 캐싱 더미셋
             dataCache[ds] = {
-                jigo_a: isPast ? 0 : 0, jigo_d: isPast ? 0 : 0,
-                geupji_a: isPast ? 0 : 0, geupji_d: isPast ? 0 : 0,
-                erp_a: isPast ? Math.floor(Math.random() * -50000) : 0,
-                erp_d: isPast ? Math.floor(Math.random() * 5000) : 0
+                jigo_a: isPast ? Math.floor(Math.random() * 400000) + 100000 : 0,
+                jigo_d: isPast ? Math.floor(Math.random() * 80000) + 20000 : 0,
+                geupji_a: isPast ? Math.floor(Math.random() * 50000) : 0,
+                geupji_d: isPast ? Math.floor(Math.random() * 15000) : 0,
+                erp_a: isPast ? Math.floor(Math.random() * 420000) + 90000 : 0,
+                erp_d: isPast ? Math.floor(Math.random() * 85000) + 15000 : 0
             };
         }
         const d = dataCache[ds];
         
-        // 1. 실재고 (Real) = 지고 + 급지
         const real_a = (d.jigo_a || 0) + (d.geupji_a || 0);
         const real_d = (d.jigo_d || 0) + (d.geupji_d || 0);
         
-        // 2. 실재고 - ERP 재고
         const diff_a = real_a - (d.erp_a || 0);
         const diff_d = real_d - (d.erp_d || 0);
 
@@ -91,14 +95,17 @@
             real_a, real_d, real_sum: real_a + real_d,
             erp_a: d.erp_a, erp_d: d.erp_d, erp_sum: d.erp_a + d.erp_d,
             diff_a, diff_d, diff_sum: diff_a + diff_d,
-            // 증감: 차이 합계로 임시 맵핑 (또는 필요에 따라 전일 대비 등으로 수정 가능)
             jeunggam: diff_a + diff_d 
         };
     }
 
-    // --- HTML 렌더링 ---
-    function generateRowsHTML(rows) {
-        let h1='', h2='', h3='';
+    // 3번 요구사항 반영: 6개의 독립 패널 구조에 맞춘 HTML 분할 주입 로직 기용
+    function renderAllRows() {
+        const dates = getDatesOfMonth(state.year, state.month);
+        const rows = dates.map(ds => buildRow(ds));
+
+        let h1='', h2='', h3='', h4='', h5='', h6='';
+
         rows.forEach(row => {
             const d = new Date(row.date + 'T00:00:00');
             const trC = row.date === yesterdayStr() ? 'f3ct-row-today' : '';
@@ -107,124 +114,64 @@
             const m = pad(d.getMonth()+1), dy = pad(d.getDate()), wn = WD_KR[wd];
 
             const dateTd = `<td class="f3ct-date-td ${wdC}" data-date="${row.date}">${m}/${dy} (${wn})</td>`;
-            const resDateTd = `<td class="f3ct-date-td f3ct-responsive-date ${wdC}" data-date="${row.date}">${m}/${dy} (${wn})</td>`;
 
-            // Panel 1: 날짜, 지고, 급지
+            // 패널 1: 지고재고
             h1 += `<tr class="${trC}" data-date="${row.date}">
                 ${dateTd}
                 <td class="f3ct-data-cell" data-col="1">${fmtNum(row.jigo_a, row.date)}</td>
                 <td class="f3ct-data-cell" data-col="2">${fmtNum(row.jigo_d, row.date)}</td>
                 <td class="f3ct-data-cell f3ct-sum-col" data-col="3">${fmtNum(row.jigo_sum, row.date)}</td>
-                <td class="f3ct-data-cell f3ct-sep" data-col="4">${fmtNum(row.geupji_a, row.date)}</td>
-                <td class="f3ct-data-cell" data-col="5">${fmtNum(row.geupji_d, row.date)}</td>
-                <td class="f3ct-data-cell f3ct-sum-col" data-col="6">${fmtNum(row.geupji_sum, row.date)}</td>
             </tr>`;
 
-            // Panel 2: 실재고, ERP (편집 가능)
+            // 패널 2: 급지재고
             h2 += `<tr class="${trC}" data-date="${row.date}">
-                ${resDateTd}
+                ${dateTd}
+                <td class="f3ct-data-cell" data-col="1">${fmtNum(row.geupji_a, row.date)}</td>
+                <td class="f3ct-data-cell" data-col="2">${fmtNum(row.geupji_d, row.date)}</td>
+                <td class="f3ct-data-cell f3ct-sum-col" data-col="3">${fmtNum(row.geupji_sum, row.date)}</td>
+            </tr>`;
+
+            // 패널 3: 실재고
+            h3 += `<tr class="${trC}" data-date="${row.date}">
+                ${dateTd}
                 <td class="f3ct-data-cell" data-col="1">${fmtNum(row.real_a, row.date)}</td>
                 <td class="f3ct-data-cell" data-col="2">${fmtNum(row.real_d, row.date)}</td>
                 <td class="f3ct-data-cell f3ct-sum-col" data-col="3">${fmtNum(row.real_sum, row.date)}</td>
-                <td class="f3ct-data-cell f3ct-sep f3ct-editable-cell" data-col="4">${fmtNum(row.erp_a, row.date, true)}</td>
-                <td class="f3ct-data-cell f3ct-editable-cell" data-col="5">${fmtNum(row.erp_d, row.date, true)}</td>
-                <td class="f3ct-data-cell f3ct-sum-col" data-col="6">${fmtNum(row.erp_sum, row.date, true)}</td>
             </tr>`;
 
-            // Panel 3: 실재고-ERP, 증감
-            h3 += `<tr class="${trC}" data-date="${row.date}">
-                ${resDateTd}
+            // 패널 4: ERP 재고
+            h4 += `<tr class="${trC}" data-date="${row.date}">
+                ${dateTd}
+                <td class="f3ct-data-cell" data-col="1">${fmtNum(row.erp_a, row.date)}</td>
+                <td class="f3ct-data-cell" data-col="2">${fmtNum(row.erp_d, row.date)}</td>
+                <td class="f3ct-data-cell f3ct-sum-col" data-col="3">${fmtNum(row.erp_sum, row.date)}</td>
+            </tr>`;
+
+            // 패널 5: 실재고 - ERP 재고
+            h5 += `<tr class="${trC}" data-date="${row.date}">
+                ${dateTd}
                 <td class="f3ct-data-cell" data-col="1">${fmtNum(row.diff_a, row.date)}</td>
                 <td class="f3ct-data-cell" data-col="2">${fmtNum(row.diff_d, row.date)}</td>
                 <td class="f3ct-data-cell f3ct-sum-col" data-col="3">${fmtNum(row.diff_sum, row.date)}</td>
-                <td class="f3ct-data-cell f3ct-sep f3ct-sum-col" data-col="4">${fmtNum(row.jeunggam, row.date)}</td>
+            </tr>`;
+
+            // 패널 6: 증감
+            h6 += `<tr class="${trC}" data-date="${row.date}">
+                ${dateTd}
+                <td class="f3ct-data-cell f3ct-sum-col" data-col="1">${fmtNum(row.jeunggam, row.date)}</td>
             </tr>`;
         });
-        return { h1, h2, h3 };
+
+        document.getElementById('f3ctBody1').innerHTML = h1;
+        document.getElementById('f3ctBody2').innerHTML = h2;
+        document.getElementById('f3ctBody3').innerHTML = h3;
+        document.getElementById('f3ctBody4').innerHTML = h4;
+        document.getElementById('f3ctBody5').innerHTML = h5;
+        document.getElementById('f3ctBody6').innerHTML = h6;
     }
 
-    function renderAllRows() {
-        const dates = getDatesOfMonth(state.year, state.month);
-        const rows = dates.map(ds => buildRow(ds));
-        const html = generateRowsHTML(rows);
-        document.getElementById('f3ctBody1').innerHTML = html.h1;
-        document.getElementById('f3ctBody2').innerHTML = html.h2;
-        document.getElementById('f3ctBody3').innerHTML = html.h3;
-    }
-
-    // --- 편집 모드 핸들링 (ERP 데이터 수정) ---
-    function onEditModeEnter() {
-        if (!state.selectedDate) {
-            alert('ERP 재고를 수정할 날짜 행을 선택해주세요.');
-            if (headerApi) headerApi.toggleEditMode();
-            return;
-        }
-        const ds = state.selectedDate;
-        const d = dataCache[ds] || {};
-        const row2 = document.querySelector(`#f3ctBody2 tr[data-date="${ds}"]`);
-        if (!row2) return;
-
-        const tdErpA = row2.querySelector('td[data-col="4"]');
-        const tdErpD = row2.querySelector('td[data-col="5"]');
-
-        function makeInput(val) {
-            const inp = document.createElement('input');
-            inp.type = 'number';
-            inp.value = val;
-            inp.className = 'f3ct-in-input';
-            return inp;
-        }
-
-        if (tdErpA) {
-            tdErpA.innerHTML = '';
-            const inpA = makeInput(d.erp_a || 0);
-            tdErpA.appendChild(inpA);
-            inpA.focus(); inpA.select();
-            inpA.addEventListener('keydown', e => {
-                if (e.key === 'Tab' || e.key === 'Enter') {
-                    e.preventDefault();
-                    const inpD = row2.querySelector('td[data-col="5"] .f3ct-in-input');
-                    if (inpD) { inpD.focus(); inpD.select(); }
-                }
-            });
-        }
-        if (tdErpD) {
-            tdErpD.innerHTML = '';
-            const inpD = makeInput(d.erp_d || 0);
-            tdErpD.appendChild(inpD);
-            inpD.addEventListener('keydown', e => {
-                if (e.key === 'Enter') {
-                    e.preventDefault();
-                    document.getElementById('gf3ContrastSaveBtn').click();
-                }
-            });
-        }
-    }
-
-    function onEditModeExit() { renderAllRows(); }
-
-    async function handleSave() {
-        if (!state.selectedDate) return;
-        const ds = state.selectedDate;
-        const row = document.querySelector(`#f3ctBody2 tr[data-date="${ds}"]`);
-        const inpA = row ? row.querySelector('td[data-col="4"] .f3ct-in-input') : null;
-        const inpD = row ? row.querySelector('td[data-col="5"] .f3ct-in-input') : null;
-
-        const erp_a = inpA ? (parseInt(inpA.value, 10) || 0) : dataCache[ds].erp_a;
-        const erp_d = inpD ? (parseInt(inpD.value, 10) || 0) : dataCache[ds].erp_d;
-
-        // DB 연동 시 이 영역에 UPDATE 호출 작성
-        dataCache[ds].erp_a = erp_a;
-        dataCache[ds].erp_d = erp_d;
-
-        renderAllRows();
-        alert('저장되었습니다.');
-    }
-
-    // --- 스크롤 동기화 & 커서 (공통 모듈 차용) ---
+    // 6개 다중 패널 수직 스크롤 상호 연동 동기화 제어 함수
     let _syncLock = false;
-    const PIDS = ['f3ctScrollPanel1', 'f3ctScrollPanel2', 'f3ctScrollPanel3'];
-
     function bindScrollSync() {
         PIDS.forEach(id => {
             const el = document.getElementById(id);
@@ -245,16 +192,15 @@
     function clearHighlights() {
         document.querySelectorAll('.f3ct-selected-row').forEach(e => e.classList.remove('f3ct-selected-row'));
         document.querySelectorAll('.f3ct-selected-cell').forEach(e => e.classList.remove('f3ct-selected-cell'));
-        [1,2,3].forEach(i => { const c = document.getElementById(`f3ctCursor${i}`); if (c) c.classList.remove('active'); });
+        [1,2,3,4,5,6].forEach(i => { const c = document.getElementById(`f3ctCursor${i}`); if (c) c.classList.remove('active'); });
     }
 
     function applyHighlight(panelIdx, ds, col) {
-        if (headerApi && headerApi.isEditMode()) return;
         clearHighlights();
         state.selectedDate = ds; state.selectedPanel = panelIdx; state.selectedCol = col;
         updateDateText(ds);
 
-        [1,2,3].forEach(i => {
+        [1,2,3,4,5,6].forEach(i => {
             const tr = document.querySelector(`#f3ctBody${i} tr[data-date="${ds}"]`);
             if (tr) tr.classList.add('f3ct-selected-row');
         });
@@ -275,7 +221,7 @@
     }
 
     function bindClicks() {
-        [1,2,3].forEach(i => {
+        [1,2,3,4,5,6].forEach(i => {
             const b = document.getElementById(`f3ctBody${i}`);
             if(!b) return;
             b.addEventListener('click', e => {
@@ -287,39 +233,48 @@
         });
     }
 
+    // 5번 요구사항 반영: 오늘 혹은 전일 데이터 행을 패널 내 상단에서 25~30% 지점(중간 기준 위쪽)에 자동 안착시키는 연산 스크롤 기법
     function scrollToToday() {
         setTimeout(() => requestAnimationFrame(() => {
-            const row = document.querySelector(`#f3ctBody1 tr[data-date="${yesterdayStr()}"]`) || document.querySelector(`#f3ctBody1 tr[data-date="${todayStr()}"]`);
+            const targetDate = yesterdayStr();
+            const row = document.querySelector(`#f3ctBody1 tr[data-date="${targetDate}"]`);
             if (row) {
                 const pan = document.getElementById('f3ctScrollPanel1');
-                let top=0, el=row;
-                while(el && el!==pan && el!==document.body) { top+=el.offsetTop; el=el.offsetParent; }
-                PIDS.forEach(id => { const p = document.getElementById(id); if (p) p.scrollTop = top - pan.clientHeight/3; });
+                let top = 0;
+                let el = row;
+                while (el && el !== pan && el !== document.body) { 
+                    top += el.offsetTop; 
+                    el = el.offsetParent; 
+                }
+                
+                // 포커싱 행이 중앙보다 약간 위쪽에 거치되도록 컨테이너 크기의 4.5분의 1 가량 차감 조정
+                const targetScrollTop = top - (pan.clientHeight / 4.5);
+                
+                PIDS.forEach(id => { 
+                    const p = document.getElementById(id); 
+                    if (p) p.scrollTop = targetScrollTop; 
+                });
             }
-            updateDateText(yesterdayStr());
-        }), 100);
+            updateDateText(targetDate);
+        }), 120);
     }
 
     const Module = {
         init: function () {
-            bindScrollSync(); bindClicks();
+            bindScrollSync(); 
+            bindClicks();
 
+            // 공통 헤더 초기화 연계 (수정 및 저장 콜백 제거 상태로 선언)
             headerApi = window.Factory3Header.init({
                 idPrefix: 'Contrast',
                 onDateChange: (ds) => {
-                    if (headerApi && headerApi.isEditMode()) onEditModeExit();
                     const d = new Date(ds);
-                    state.year = d.getFullYear(); state.month = d.getMonth() + 1;
-                    clearHighlights(); renderAllRows();
+                    state.year = d.getFullYear(); 
+                    state.month = d.getMonth() + 1;
+                    clearHighlights(); 
+                    renderAllRows();
                 },
-                onSave: handleSave
-            });
-
-            document.getElementById('gf3ContrastEditBtn')?.addEventListener('click', () => {
-                setTimeout(() => { headerApi.isEditMode() ? onEditModeEnter() : onEditModeExit(); }, 50);
-            });
-            document.getElementById('gf3ContrastSaveBtn')?.addEventListener('click', () => {
-                setTimeout(() => { if (!headerApi.isEditMode()) onEditModeExit(); }, 200);
+                onSave: () => {} // 순수 보기 전용이므로 저장 콜백 빈 상태 선언
             });
 
             renderAllRows();

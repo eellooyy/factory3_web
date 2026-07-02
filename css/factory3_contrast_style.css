@@ -1,44 +1,56 @@
 /* static/css/factory3_contrast_style.css */
 
+/* 4번 요구사항 반영: 추후 수정 및 커스텀 관리가 용이하도록 6개 패널 너비 설정 요소 컴포넌트화 */
+:root {
+    --p1-width: 17.5%;  /* 지고 재고 패널 폭 */
+    --p2-width: 17.5%;  /* 급지 재고 패널 폭 */
+    --p3-width: 17.5%;  /* 실재고 패널 폭 */
+    --p4-width: 17.5%;  /* ERP 재고 패널 폭 */
+    --p5-width: 17.5%;  /* 실재고-ERP 패널 폭 */
+    --p6-width: 12.5%;  /* 증감 패널 폭 */
+}
+
 .f3ct-wrapper {
     width: 100%;
     margin: 0 auto;
     padding: 16px 0;
-    display: flex;
-    flex-direction: column;
-    gap: 14px;
     box-sizing: border-box;
 }
 
-/* 3패널 컨테이너 (비율 3.5 : 3.5 : 2.5) */
+/* 6단 전체 아우터 컨테이너 */
 .f3ct-panels-outer {
     display: flex;
-    gap: 16px; 
+    gap: 10px; 
     align-items: stretch;
     background: transparent;
-    border-radius: 0;
-    box-shadow: none;
-    overflow: visible;
+    overflow-x: auto; /* 전체 화면 폭 좁을 시 가로 스크롤 허용 */
+    padding-bottom: 10px;
 }
 
+/* 개별 패널 기본 속성 */
 .f3ct-panel {
     display: flex;
     flex-direction: column;
     overflow: hidden;
-    min-width: 0;
+    min-width: 220px; /* 최소 가로폭 보장 */
     background: #ffffff;
     border: 1px solid #e5e5ea; 
     border-radius: 12px;       
-    box-shadow: 0 2px 12px rgba(0,0,0,0.03);
+    box-shadow: 0 2px 10px rgba(0,0,0,0.02);
 }
 
-.f3ct-panel-left  { flex: 3.5; }
-.f3ct-panel-mid   { flex: 3.5; }
-.f3ct-panel-right { flex: 2.5; }
+/* 컴포넌트화 변수 바인딩 적용 */
+.f3ct-panel-1 { flex: 0 0 var(--p1-width); width: var(--p1-width); }
+.f3ct-panel-2 { flex: 0 0 var(--p2-width); width: var(--p2-width); }
+.f3ct-panel-3 { flex: 0 0 var(--p3-width); width: var(--p3-width); }
+.f3ct-panel-4 { flex: 0 0 var(--p4-width); width: var(--p4-width); }
+.f3ct-panel-5 { flex: 0 0 var(--p5-width); width: var(--p5-width); }
+.f3ct-panel-6 { flex: 0 0 var(--p6-width); width: var(--p6-width); min-width: 130px; }
 
+/* 내부 스크롤 보드 */
 .f3ct-scroll-area {
     position: relative;
-    height: 580px;
+    height: 620px;
     overflow-y: auto;
     overflow-x: hidden;
     scrollbar-width: none;
@@ -46,98 +58,94 @@
 }
 .f3ct-scroll-area::-webkit-scrollbar { display: none; }
 
-/* 글래스 커서 */
+/* 글래스 포커스 커서 효과 */
 .f3ct-cursor {
     position: absolute;
     pointer-events: none;
-    background: rgba(255, 255, 255, 0.35);
-    box-shadow: 0 4px 14px rgba(0,0,0,0.10), inset 0 0 8px rgba(255,255,255,0.5);
+    background: rgba(255, 255, 255, 0.3);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.08), inset 0 0 4px rgba(255,255,255,0.4);
     border-radius: 6px;
-    z-index: 8;
+    z-index: 5;
     opacity: 0;
-    transition: all 0.12s cubic-bezier(0.23, 1, 0.32, 1);
+    transition: all 0.1s cubic-bezier(0.25, 1, 0.5, 1);
 }
 .f3ct-cursor.active { opacity: 1; }
 
-/* 테이블 공통 */
+/* 테이블 정의 */
 .f3ct-table {
     table-layout: fixed;
     width: 100%;
     border-collapse: separate;
     border-spacing: 0;
 }
-.f3ct-table thead { position: sticky; top: 0; z-index: 10; background: #fff; }
-.f3ct-table th, .f3ct-table td { box-sizing: border-box; }
 
-/* 헤더 스타일 */
+/* 2번 요구사항 반영: '날짜'가 포함된 헤더 영역 스크롤 시 상단 완벽 고정 (Sticky 강제 적용) */
+.f3ct-table thead {
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    background: #ffffff;
+}
+
 .f3ct-thead-lv1 th {
-    padding: 10px 4px 6px;
+    padding: 10px 2px 4px;
     font-size: 13px; font-weight: 800; color: #1d1d1f; text-align: center;
-    border-bottom: 1px solid #e0e0e0; height: 44px; white-space: nowrap; background: #fff;
+    border-bottom: 1px solid #e5e5ea; height: 38px; white-space: nowrap; background: #ffffff;
 }
 .f3ct-thead-lv2 th {
-    padding: 7px 2px 8px;
-    font-size: 12px; font-weight: 700; color: #636366; text-align: center;
-    border-bottom: 1px solid #e0e0e0; height: 44px; white-space: nowrap; background: #fff;
+    padding: 6px 2px 8px;
+    font-size: 11px; font-weight: 700; color: #636366; text-align: center;
+    border-bottom: 1px solid #e5e5ea; height: 36px; white-space: nowrap; background: #ffffff;
 }
+
+/* 날짜 열 왼쪽 고정 및 테두리 정렬 기법 고정 */
 .f3ct-date-th, .f3ct-date-td {
-    position: sticky; left: 0; background: #fff !important; z-index: 11;
-    text-align: center; width: 85px; min-width: 85px; max-width: 85px;
-    border-right: 1px solid #e0e0e0 !important; white-space: nowrap;
+    position: sticky; 
+    left: 0; 
+    background: #ffffff !important; 
+    z-index: 101; /* 일반 셀보다 무조건 높게 배치 */
+    text-align: center; 
+    width: 76px; min-width: 76px; max-width: 76px;
+    border-right: 1px solid #e5e5ea !important; 
+    white-space: nowrap;
 }
-.f3ct-date-th { border-bottom: 1px solid #e0e0e0 !important; font-size: 13px; font-weight: 800; }
-.f3ct-date-td { font-size: 12px; font-weight: 700; border-bottom: 1px solid #ebebeb; }
+.f3ct-date-th { border-bottom: 1px solid #e5e5ea !important; font-size: 12px; font-weight: 800; }
+.f3ct-date-td { font-size: 11.5px; font-weight: 700; border-bottom: 1px solid #f2f2f7; }
 
-/* 구분선 */
-.f3ct-sep { border-left: 1px solid #e0e0e0 !important; }
-
-/* 캡처 화면 반영: 합계 텍스트 파란색 */
-.f3ct-sum-th { color: #007aff !important; }
-.f3ct-sum-col { font-weight: 800 !important; color: #007aff !important; background: rgba(0, 122, 255, 0.03) !important; }
-
-/* 데이터 셀 */
+/* 데이터 수치 디자인 */
 .f3ct-data-cell {
-    padding: 9px 3px; font-size: 13px; font-weight: 600;
-    text-align: center; border-bottom: 1px solid #ebebeb; color: #1d1d1f;
-    height: 44px; cursor: pointer; transition: background 0.12s;
+    padding: 9px 2px; font-size: 12.5px; font-weight: 600;
+    text-align: center; border-bottom: 1px solid #f2f2f7; color: #1d1d1f;
+    height: 42px; cursor: pointer; transition: background 0.1s;
 }
 
-/* 숫자 표시 및 음수 처리 */
-.f3ct-empty { color: #d1d1d6; font-weight: 400; }
-.f3ct-negative { color: #ff3b30; font-weight: 700; } /* 캡처처럼 음수는 빨간색 표시 */
+/* 지표 강조 인자 */
+.f3ct-sum-th { color: #007aff !important; }
+.f3ct-sum-col { font-weight: 800 !important; color: #007aff !important; background: rgba(0, 122, 255, 0.02) !important; }
 
-/* 반응형 날짜 (패널 2, 3용) */
-.f3ct-responsive-date { display: none; }
+/* 널값 및 음수 붉은색 시각 효과 처리 */
+.f3ct-empty { color: #c7c7cc; font-weight: 400; }
+.f3ct-negative { color: #ff3b30; font-weight: 700; }
 
-/* 행 상태 색상 */
-.f3ct-row-today td { background: #e8f4fd !important; }
-.f3ct-row-today .f3ct-date-td { background: #bbdefb !important; }
-.f3ct-selected-row td { background: #f4f4f8 !important; }
-.f3ct-selected-row .f3ct-date-td { background: #ebebf0 !important; }
-.f3ct-row-today.f3ct-selected-row td { background: #daedf9 !important; }
-.f3ct-row-today.f3ct-selected-row .f3ct-date-td { background: #bbd8f0 !important; }
+/* 로우 활성화 상태 표현 */
+.f3ct-row-today td { background: #f2f9ff !important; }
+.f3ct-row-today .f3ct-date-td { background: #e1f0ff !important; }
+.f3ct-selected-row td { background: #f5f5f7 !important; }
+.f3ct-selected-row .f3ct-date-td { background: #e5e5ea !important; }
+.f3ct-row-today.f3ct-selected-row td { background: #eaf5ff !important; }
+.f3ct-row-today.f3ct-selected-row .f3ct-date-td { background: #d0e7ff !important; }
 
 .f3ct-sat { color: #007aff !important; }
 .f3ct-sun { color: #ff3b30 !important; }
 
-/* 선택된 셀(커서) */
-.f3ct-selected-cell { font-weight: 900 !important; color: #000 !important; position: relative; z-index: 10; }
-.f3ct-table tbody tr:not(.f3ct-selected-row):hover td { background: #f7f7fa; }
+.f3ct-selected-cell { font-weight: 900 !important; color: #000000 !important; position: relative; z-index: 10; }
+.f3ct-table tbody tr:hover td { background: #fafafa; }
 
-/* 편집 모드 */
-.f3ct-editable-cell { transition: background 0.15s; }
-.gf3-wrapper.edit-mode .f3ct-editable-cell { background: #fdf5f5; } /* 편집 영역 약간 강조 */
-.f3ct-in-input {
-    display: block; width: 100%; height: 100%; border: none;
-    border-bottom: 2px solid #ff3b30; border-radius: 0; background: #fff0f0;
-    text-align: center; font-size: 13px; font-weight: 700; color: #000;
-    outline: none; padding: 4px 2px; box-sizing: border-box; appearance: textfield;
-}
-.f3ct-in-input::-webkit-outer-spin-button, .f3ct-in-input::-webkit-inner-spin-button { margin: 0; appearance: none; }
-.f3ct-in-input:focus { background: #ffe0e0; border-bottom-color: #d70000; }
-
-@media (max-width: 1200px) {
-    .f3ct-panels-outer { flex-direction: column; }
-    .f3ct-panel-left, .f3ct-panel-mid, .f3ct-panel-right { flex: none; width: 100%; }
-    .f3ct-responsive-date { display: table-cell !important; }
+/* 1번 요구사항 반영: 수정/저장 버튼 흐릿하게 표기 강제 클래스 */
+.gf3-action-btn.style-disabled {
+    opacity: 0.28 !important;
+    cursor: not-allowed !important;
+    background: #8e8e93 !important;
+    color: #ffffff !important;
+    box-shadow: none !important;
 }
