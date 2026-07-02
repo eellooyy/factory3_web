@@ -46,7 +46,7 @@
 
 .f3ct-scroll-area {
     position: relative;
-    height: 540px;
+    height: 580px;
     overflow-y: auto;
     overflow-x: hidden;
     scrollbar-width: none;
