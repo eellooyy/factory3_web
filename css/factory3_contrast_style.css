@@ -15,7 +15,7 @@
     background: transparent;
     overflow-x: auto; 
     padding-bottom: 10px;
-    width: 100%; /* 전체 폭 사용 */
+    width: 100%;
 }
 
 .f3ct-panel {
@@ -28,7 +28,6 @@
     box-shadow: 0 2px 10px rgba(0,0,0,0.03);
 }
 
-/* flex-grow를 사용하여 공통 헤더 넓이에 맞춰 빈 공간 없이 꽉 채우도록 비율 조정 */
 .f3ct-panel-1 { flex: 1.6; min-width: 260px; }
 .f3ct-panel-2 { flex: 1; min-width: 180px; }
 .f3ct-panel-3 { flex: 1; min-width: 180px; }
@@ -46,7 +45,6 @@
 }
 .f3ct-scroll-area::-webkit-scrollbar { display: none; }
 
-/* 글래스 커서 - 부드러운 화살표 이동 애니메이션 추가 */
 .f3ct-cursor {
     position: absolute;
     pointer-events: none;
@@ -107,12 +105,13 @@
     width: 82px; min-width: 82px; max-width: 82px;
 }
 
+/* 날짜 텍스트 폰트 굵기 수정 (700 -> 400) */
 .f3ct-date-td {
     position: sticky; left: 0; z-index: 90;
     background: #ffffff;
     text-align: center; width: 82px; min-width: 82px; max-width: 82px;
     border-right: 1px solid #e5e5ea !important; border-bottom: 1px solid #f2f2f7;
-    font-size: 11.5px; font-weight: 700; white-space: nowrap;
+    font-size: 11.5px; font-weight: 400; white-space: nowrap;
 }
 
 .f3ct-data-cell {
@@ -134,12 +133,12 @@
 .f3ct-row-today.f3ct-selected-row td { background: #eaf5ff !important; }
 .f3ct-row-today.f3ct-selected-row .f3ct-date-td { background: #d0e7ff !important; }
 
-/* 셀 클릭 시 해당하는 상위 헤더 주황색 강조 기능 */
+/* 셀 클릭 시 헤더 강조 색상을 불투명하게 변경하여 투명화 이슈 해결 */
 .f3ct-thead-lv1 th.f3ct-header-active,
 .f3ct-thead-lv2 th.f3ct-header-active,
 .f3ct-group-th.f3ct-header-active {
-    background-color: rgba(255, 160, 50, 0.18) !important;
-    color: #c05a00 !important;
+    background-color: #ffe8cc !important; 
+    color: #d35400 !important;
 }
 
 .f3ct-sat { color: #007aff !important; }
