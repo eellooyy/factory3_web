@@ -1,0 +1,143 @@
+/* static/css/factory3_contrast_style.css */
+
+.f3ct-wrapper {
+    width: 100%;
+    margin: 0 auto;
+    padding: 16px 0;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    box-sizing: border-box;
+}
+
+/* 3패널 컨테이너 (비율 3.5 : 3.5 : 2.5) */
+.f3ct-panels-outer {
+    display: flex;
+    gap: 16px; 
+    align-items: stretch;
+    background: transparent;
+    border-radius: 0;
+    box-shadow: none;
+    overflow: visible;
+}
+
+.f3ct-panel {
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    min-width: 0;
+    background: #ffffff;
+    border: 1px solid #e5e5ea; 
+    border-radius: 12px;       
+    box-shadow: 0 2px 12px rgba(0,0,0,0.03);
+}
+
+.f3ct-panel-left  { flex: 3.5; }
+.f3ct-panel-mid   { flex: 3.5; }
+.f3ct-panel-right { flex: 2.5; }
+
+.f3ct-scroll-area {
+    position: relative;
+    height: 580px;
+    overflow-y: auto;
+    overflow-x: hidden;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+}
+.f3ct-scroll-area::-webkit-scrollbar { display: none; }
+
+/* 글래스 커서 */
+.f3ct-cursor {
+    position: absolute;
+    pointer-events: none;
+    background: rgba(255, 255, 255, 0.35);
+    box-shadow: 0 4px 14px rgba(0,0,0,0.10), inset 0 0 8px rgba(255,255,255,0.5);
+    border-radius: 6px;
+    z-index: 8;
+    opacity: 0;
+    transition: all 0.12s cubic-bezier(0.23, 1, 0.32, 1);
+}
+.f3ct-cursor.active { opacity: 1; }
+
+/* 테이블 공통 */
+.f3ct-table {
+    table-layout: fixed;
+    width: 100%;
+    border-collapse: separate;
+    border-spacing: 0;
+}
+.f3ct-table thead { position: sticky; top: 0; z-index: 10; background: #fff; }
+.f3ct-table th, .f3ct-table td { box-sizing: border-box; }
+
+/* 헤더 스타일 */
+.f3ct-thead-lv1 th {
+    padding: 10px 4px 6px;
+    font-size: 13px; font-weight: 800; color: #1d1d1f; text-align: center;
+    border-bottom: 1px solid #e0e0e0; height: 44px; white-space: nowrap; background: #fff;
+}
+.f3ct-thead-lv2 th {
+    padding: 7px 2px 8px;
+    font-size: 12px; font-weight: 700; color: #636366; text-align: center;
+    border-bottom: 1px solid #e0e0e0; height: 44px; white-space: nowrap; background: #fff;
+}
+.f3ct-date-th, .f3ct-date-td {
+    position: sticky; left: 0; background: #fff !important; z-index: 11;
+    text-align: center; width: 85px; min-width: 85px; max-width: 85px;
+    border-right: 1px solid #e0e0e0 !important; white-space: nowrap;
+}
+.f3ct-date-th { border-bottom: 1px solid #e0e0e0 !important; font-size: 13px; font-weight: 800; }
+.f3ct-date-td { font-size: 12px; font-weight: 700; border-bottom: 1px solid #ebebeb; }
+
+/* 구분선 */
+.f3ct-sep { border-left: 1px solid #e0e0e0 !important; }
+
+/* 캡처 화면 반영: 합계 텍스트 파란색 */
+.f3ct-sum-th { color: #007aff !important; }
+.f3ct-sum-col { font-weight: 800 !important; color: #007aff !important; background: rgba(0, 122, 255, 0.03) !important; }
+
+/* 데이터 셀 */
+.f3ct-data-cell {
+    padding: 9px 3px; font-size: 13px; font-weight: 600;
+    text-align: center; border-bottom: 1px solid #ebebeb; color: #1d1d1f;
+    height: 44px; cursor: pointer; transition: background 0.12s;
+}
+
+/* 숫자 표시 및 음수 처리 */
+.f3ct-empty { color: #d1d1d6; font-weight: 400; }
+.f3ct-negative { color: #ff3b30; font-weight: 700; } /* 캡처처럼 음수는 빨간색 표시 */
+
+/* 반응형 날짜 (패널 2, 3용) */
+.f3ct-responsive-date { display: none; }
+
+/* 행 상태 색상 */
+.f3ct-row-today td { background: #e8f4fd !important; }
+.f3ct-row-today .f3ct-date-td { background: #bbdefb !important; }
+.f3ct-selected-row td { background: #f4f4f8 !important; }
+.f3ct-selected-row .f3ct-date-td { background: #ebebf0 !important; }
+.f3ct-row-today.f3ct-selected-row td { background: #daedf9 !important; }
+.f3ct-row-today.f3ct-selected-row .f3ct-date-td { background: #bbd8f0 !important; }
+
+.f3ct-sat { color: #007aff !important; }
+.f3ct-sun { color: #ff3b30 !important; }
+
+/* 선택된 셀(커서) */
+.f3ct-selected-cell { font-weight: 900 !important; color: #000 !important; position: relative; z-index: 10; }
+.f3ct-table tbody tr:not(.f3ct-selected-row):hover td { background: #f7f7fa; }
+
+/* 편집 모드 */
+.f3ct-editable-cell { transition: background 0.15s; }
+.gf3-wrapper.edit-mode .f3ct-editable-cell { background: #fdf5f5; } /* 편집 영역 약간 강조 */
+.f3ct-in-input {
+    display: block; width: 100%; height: 100%; border: none;
+    border-bottom: 2px solid #ff3b30; border-radius: 0; background: #fff0f0;
+    text-align: center; font-size: 13px; font-weight: 700; color: #000;
+    outline: none; padding: 4px 2px; box-sizing: border-box; appearance: textfield;
+}
+.f3ct-in-input::-webkit-outer-spin-button, .f3ct-in-input::-webkit-inner-spin-button { margin: 0; appearance: none; }
+.f3ct-in-input:focus { background: #ffe0e0; border-bottom-color: #d70000; }
+
+@media (max-width: 1200px) {
+    .f3ct-panels-outer { flex-direction: column; }
+    .f3ct-panel-left, .f3ct-panel-mid, .f3ct-panel-right { flex: none; width: 100%; }
+    .f3ct-responsive-date { display: table-cell !important; }
+}
