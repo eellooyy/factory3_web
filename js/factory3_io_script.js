@@ -125,10 +125,6 @@
 
     // factory3_io 테이블 전체 로드
     async function loadIoTable() {
-        const threeMonthsAgo = new Date();
-        oneMonthsAgo.setMonth(threeMonthsAgo.getMonth() - 1);
-        const startStr = fmtDate(oneMonthsAgo);
-
         const { data, error } = await supabase
             .from('factory3_io')
             .select('date, stock_a, stock_d, in_a, in_d')
@@ -226,27 +222,17 @@
         }
     }
 
-/* ─────────────────────────────────────────
-   입고 및 재고 저장 (upsert)
-───────────────────────────────────────── */
-async function saveIncoming(dateStr, in_a, in_d, stock_a, stock_d) {
-    const { error } = await supabase
-        .from('factory3_io')
-        .upsert({ 
-            date: dateStr, 
-            in_a: in_a, 
-            in_d: in_d, 
-            stock_a: stock_a, 
-            stock_d: stock_d 
-        }, { onConflict: 'date' });
+    /* ─────────────────────────────────────────
+       입고 저장 (upsert)
+    ───────────────────────────────────────── */
+    async function saveIncoming(dateStr, in_a, in_d) {
+        const { error } = await supabase
+            .from('factory3_io')
+            .upsert({ date: dateStr, in_a, in_d }, { onConflict: 'date' });
 
-    if (error) { 
-        console.error('저장 실패:', error);
-        alert('저장 실패: ' + error.message); 
-        return false; 
+        if (error) { alert('저장 실패: ' + error.message); return false; }
+        return true;
     }
-    return true;
-}
 
     /* ─────────────────────────────────────────
        저장 핸들러
