@@ -18,10 +18,14 @@
     const state = {
         loading:       false,
 <<<<<<< HEAD
+<<<<<<< HEAD
         initialLoaded: false,
 =======
         initialLoaded: false,   // 최초 기본 재고 전체 로드 완료 여부
 >>>>>>> parent of a78aaad (원복)
+=======
+        initialLoaded: false,
+>>>>>>> parent of 0326cf4 (원복)
         selectedDate:  null,
         selectedPanel: null,
         selectedCol:   null,
@@ -39,6 +43,7 @@
 <<<<<<< HEAD
 
 <<<<<<< HEAD
+<<<<<<< HEAD
     let oldestLoadedDate = null; // 무한 스크롤(위쪽) 기준점
     let isLoadingPrev    = false;
     let headerApi        = null;
@@ -48,6 +53,11 @@
     let isLoadingPrev = false;
     let headerApi     = null;
 >>>>>>> parent of a78aaad (원복)
+=======
+    let oldestLoadedDate = null; // 무한 스크롤(위쪽) 기준점
+    let isLoadingPrev    = false;
+    let headerApi        = null;
+>>>>>>> parent of 0326cf4 (원복)
 
     /* ─────────────────────────────────────────
        날짜 헬퍼
@@ -66,10 +76,27 @@
     }
 <<<<<<< HEAD
 <<<<<<< HEAD
+<<<<<<< HEAD
+=======
+>>>>>>> parent of 0326cf4 (원복)
     function addDays(ds, days) {
         const d = new Date(ds + 'T00:00:00');
         d.setDate(d.getDate() + days);
         return fmtDate(d);
+<<<<<<< HEAD
+=======
+    }
+    // start부터 end까지의 날짜 배열 생성
+    function getDatesRange(start, end) {
+        const arr = [];
+        let curr = new Date(start + 'T00:00:00');
+        const last = new Date(end + 'T00:00:00');
+        while (curr <= last) {
+            arr.push(fmtDate(curr));
+            curr.setDate(curr.getDate() + 1);
+        }
+        return arr;
+>>>>>>> parent of 0326cf4 (원복)
     }
     // start부터 end까지의 날짜 배열 생성
     function getDatesRange(start, end) {
@@ -132,6 +159,9 @@
 
     /* ─────────────────────────────────────────
 <<<<<<< HEAD
+<<<<<<< HEAD
+=======
+>>>>>>> parent of 0326cf4 (원복)
        재고 누적 계산 (baseline 부터 순방향 전체 계산)
     ───────────────────────────────────────── */
     function recalcAllStocks() {
@@ -158,11 +188,15 @@
 
     /* ─────────────────────────────────────────
 <<<<<<< HEAD
+<<<<<<< HEAD
+=======
+>>>>>>> parent of 0326cf4 (원복)
        Supabase 로드 — 지연 로딩 최적화 구간별 쿼리
     ───────────────────────────────────────── */
 
     // 1. 기준 재고(baseline) 탐색: 조회 구간 직전의 가장 최근 재고 기록 확보
     async function fetchBaseline(beforeDate) {
+<<<<<<< HEAD
 =======
        Supabase 로드 — 캐싱을 위한 초기화
     ───────────────────────────────────────── */
@@ -240,6 +274,37 @@
 
     // 2. factory3_io 테이블 특정 구간 로드
     async function loadIoTableRange(start, end) {
+=======
+        const { data, error } = await supabase
+            .from('factory3_io')
+            .select('date, stock_a, stock_d')
+            .lt('date', beforeDate)
+            .order('date', { ascending: false })
+            .limit(100);
+
+        let found = null;
+        if (!error && data && data.length > 0) {
+            for (const r of data) {
+                if (r.stock_a !== 0 || r.stock_d !== 0) {
+                    found = r;
+                    break;
+                }
+            }
+            if (!found) found = data[data.length - 1]; // 못 찾으면 가장 오래된 행이라도 기준점으로
+        }
+
+        if (found) {
+            // 더 과거의 기준점을 찾았을 경우에만 갱신 (데이터 누적을 위해)
+            if (!baselineRow || found.date < baselineRow.date) {
+                baselineRow = { date: found.date, stock_a: found.stock_a || 0, stock_d: found.stock_d || 0 };
+            }
+        } else {
+            if (!baselineRow) baselineRow = { date: '2000-01-01', stock_a: 0, stock_d: 0 };
+        }
+    }
+
+    // 2. factory3_io 테이블 특정 구간 로드
+    async function loadIoTableRange(start, end) {
         const { data, error } = await supabase
             .from('factory3_io')
             .select('date, in_a, in_d') // stock은 기준 계산용으로 fetchBaseline에서만 처리
@@ -251,6 +316,32 @@
             throw error;
         }
         if (data) {
+            data.forEach(row => {
+                if (!dataCache[row.date]) dataCache[row.date] = {};
+                dataCache[row.date].in_a = row.in_a || 0;
+                dataCache[row.date].in_d = row.in_d || 0;
+            });
+        }
+    }
+
+    // 3. 출고 데이터 특정 구간 로드
+    async function loadOutgoingRange(start, end) {
+>>>>>>> parent of 0326cf4 (원복)
+        const { data, error } = await supabase
+            .from('factory3_io')
+            .select('date, in_a, in_d') // stock은 기준 계산용으로 fetchBaseline에서만 처리
+            .gte('date', start)
+            .lte('date', end);
+
+<<<<<<< HEAD
+        if (error) {
+            console.error('[factory3_io] 입고 데이터 로드 오류:', error);
+            throw error;
+        }
+        if (data) {
+=======
+        if (!error && data) {
+>>>>>>> parent of 0326cf4 (원복)
             data.forEach(row => {
 =======
         if (ioError) throw new Error(`factory3_io 로드 실패: ${ioError.message}`);
@@ -297,6 +388,7 @@
 
 <<<<<<< HEAD
 <<<<<<< HEAD
+<<<<<<< HEAD
     // 4. 사용량(Usage) 데이터 특정 구간 로드
     async function loadUsageDataRange(start, end) {
 =======
@@ -312,12 +404,17 @@
         const end   = todayStr();
 
 >>>>>>> parent of c2887e0 (원복)
+=======
+    // 4. 사용량(Usage) 데이터 특정 구간 로드
+    async function loadUsageDataRange(start, end) {
+>>>>>>> parent of 0326cf4 (원복)
         const { data, error } = await supabase
             .from('factory3_usage')
             .select('print_date, media_name, item_code, usage_qty')
             .gte('print_date', startStr)
             .lte('print_date', endStr);
 
+<<<<<<< HEAD
 <<<<<<< HEAD
         if (!error && data) {
             data.forEach(row => {
@@ -346,6 +443,9 @@
         }
 
         if (data) {
+=======
+        if (!error && data) {
+>>>>>>> parent of 0326cf4 (원복)
             data.forEach(row => {
                 const date = row.print_date;
 <<<<<<< HEAD
@@ -355,6 +455,7 @@
 =======
                 if (!dataCache[date]) dataCache[date] = {};
                 
+<<<<<<< HEAD
                 if (!dataCache[date].usage_media) {
                     dataCache[date].usage_media = { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0, 6: 0 };
                 }
@@ -365,6 +466,12 @@
                 const qty = Number(row.usage_qty) || 0;
 
 >>>>>>> parent of c2887e0 (원복)
+=======
+                if (!dataCache[date].usage_media) dataCache[date].usage_media = { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0, 6: 0 };
+                if (!dataCache[date].usage_paper) dataCache[date].usage_paper = { A: 0, D: 0 };
+
+                const qty = Number(row.usage_qty) || 0;
+>>>>>>> parent of 0326cf4 (원복)
                 if (row.media_name === '매일경제신문') dataCache[date].usage_media[1] += qty;
                 else if (row.media_name === '매일경제신문(특집)') dataCache[date].usage_media[2] += qty;
                 else if (row.media_name === '경인일보') dataCache[date].usage_media[3] += qty;
@@ -380,7 +487,101 @@
 
     /* ─────────────────────────────────────────
 <<<<<<< HEAD
+<<<<<<< HEAD
        초기 로드 (최근 3주치) 및 지연 로드 (이전 3주치)
+=======
+       초기 로드 (최근 3주치) 및 지연 로드 (이전 3주치)
+    ───────────────────────────────────────── */
+    async function loadDataChunk(targetDateStr) {
+        if (state.loading) return;
+        state.loading = true;
+
+        dataCache = {}; // 초기화
+        baselineRow = null;
+        showLoading();
+
+        try {
+            const end = targetDateStr; 
+            const start = addDays(end, -(CHUNK_DAYS - 1)); // 21일 구간
+            
+            await fetchBaseline(start);
+            await loadIoTableRange(start, end);
+            await loadOutgoingRange(start, end);
+            await loadUsageDataRange(start, end);
+            
+            recalcAllStocks();
+
+            const dates = getDatesRange(start, end);
+            const rows  = dates.map(ds => buildRow(ds));
+            renderInitial(rows);
+
+            oldestLoadedDate = start;
+            state.initialLoaded = true;
+            scrollToBottom();
+            updateDateText(end);
+
+        } catch (err) {
+            console.error('[factory3_io] 로드 실패:', err);
+            showError(`데이터 로드 실패: ${err.message}`);
+        } finally {
+            state.loading = false;
+        }
+    }
+
+    async function loadPrevChunk() {
+        if (isLoadingPrev || state.loading || !oldestLoadedDate) return;
+        isLoadingPrev = true;
+
+        try {
+            const end = addDays(oldestLoadedDate, -1);
+            const start = addDays(end, -(CHUNK_DAYS - 1));
+
+            // 새롭게 불러올 구간보다 더 과거의 기준점이 필요한지 갱신
+            await fetchBaseline(start);
+            
+            await loadIoTableRange(start, end);
+            await loadOutgoingRange(start, end);
+            await loadUsageDataRange(start, end);
+            
+            // 캐시에 데이터가 추가되었으므로 다시 순방향 전체 정합성 재계산
+            recalcAllStocks();
+
+            const dates = getDatesRange(start, end);
+            const rows  = dates.map(ds => buildRow(ds));
+            const htmls = generateRowsHTML(rows);
+
+            const panel1 = document.getElementById('f3ioScrollPanel1');
+            const prevHeight = panel1 ? panel1.scrollHeight : 0;
+
+            document.getElementById('f3ioBody1').insertAdjacentHTML('afterbegin', htmls.html1);
+            document.getElementById('f3ioBody2').insertAdjacentHTML('afterbegin', htmls.html2);
+            document.getElementById('f3ioBody3').insertAdjacentHTML('afterbegin', htmls.html3);
+
+            // 누적 재고가 재계산되었을 수 있으므로 기존에 표시된 행들까지 전체 텍스트 갱신
+            rerenderAllRows();
+            
+            oldestLoadedDate = start;
+
+            // 스크롤 위치 보정
+            requestAnimationFrame(() => {
+                if (panel1) {
+                    const diff = panel1.scrollHeight - prevHeight;
+                    PANEL_IDS.forEach(id => { 
+                        const p = document.getElementById(id); 
+                        if (p) p.scrollTop += diff; 
+                    });
+                }
+            });
+        } catch (err) {
+            console.error('[factory3_io] 이전 데이터 로드 오류:', err);
+        } finally {
+            isLoadingPrev = false;
+        }
+    }
+
+    /* ─────────────────────────────────────────
+       입고 저장 (upsert) & 누적 재고 실시간 업데이트
+>>>>>>> parent of 0326cf4 (원복)
     ───────────────────────────────────────── */
     async function loadDataChunk(targetDateStr) {
         if (state.loading) return;
@@ -500,10 +701,14 @@
         dataCache[ds].in_d = in_d;
         
 <<<<<<< HEAD
+<<<<<<< HEAD
         // 데이터 정합성을 위한 재고 누적 재계산 및 업데이트
 =======
         // stock_a, stock_d 실시간 누적치 반영 계산
 >>>>>>> parent of c2887e0 (원복)
+=======
+        // 데이터 정합성을 위한 재고 누적 재계산 및 업데이트
+>>>>>>> parent of 0326cf4 (원복)
         recalcAllStocks();
 
         const stock_a = dataCache[ds]?.stock_a || 0;
@@ -531,6 +736,7 @@
             return;
         }
 <<<<<<< HEAD
+<<<<<<< HEAD
 =======
 
         // 핵심: 7일 이전 날짜 수정 차단
@@ -541,6 +747,8 @@
         }
 
 >>>>>>> parent of a78aaad (원복)
+=======
+>>>>>>> parent of 0326cf4 (원복)
         const ds  = state.selectedDate;
 
         // [핵심 변경] 오늘 기준 7일전 체크 검증
@@ -604,10 +812,14 @@
 
     /* ─────────────────────────────────────────
 <<<<<<< HEAD
+<<<<<<< HEAD
        DOM 갱신 및 HTML 생성 (재계산 업데이트 지원)
 =======
        DOM 갱신
 >>>>>>> parent of c2887e0 (원복)
+=======
+       DOM 갱신 및 HTML 생성 (재계산 업데이트 지원)
+>>>>>>> parent of 0326cf4 (원복)
     ───────────────────────────────────────── */
     function rerenderAllRows() {
         document.querySelectorAll('#f3ioBody1 tr[data-date]').forEach(tr => {
@@ -618,11 +830,14 @@
                 const col = td.getAttribute('data-col');
 <<<<<<< HEAD
 <<<<<<< HEAD
+<<<<<<< HEAD
 =======
                 
 >>>>>>> parent of a78aaad (원복)
 =======
 >>>>>>> parent of c2887e0 (원복)
+=======
+>>>>>>> parent of 0326cf4 (원복)
                 if      (col === '1') td.innerHTML = fmtNum(d.in_a,    ds, true);
                 else if (col === '2') td.innerHTML = fmtNum(d.in_d,    ds, true);
                 else if (col === '3') td.innerHTML = fmtNum(d.out_a,   ds, false);
@@ -651,11 +866,14 @@
                     td.innerHTML = fmtNum(mediaSum, ds, false);
 <<<<<<< HEAD
 <<<<<<< HEAD
+<<<<<<< HEAD
 =======
                     
 >>>>>>> parent of a78aaad (원복)
 =======
 >>>>>>> parent of c2887e0 (원복)
+=======
+>>>>>>> parent of 0326cf4 (원복)
                     if (mediaSum !== paperSum && new Date(ds + 'T00:00:00') < new Date(todayStr() + 'T00:00:00')) {
                         td.classList.add('f3io-sum-mismatch');
                     } else {
@@ -770,6 +988,7 @@
     /* ─────────────────────────────────────────
 <<<<<<< HEAD
 <<<<<<< HEAD
+<<<<<<< HEAD
        스크롤 동기화 & 상단 도달 시 이전 데이터 로드
 =======
        스크롤 동기화 & 무한 스크롤(Chunk 방식)
@@ -777,6 +996,9 @@
 =======
        스크롤 동기화 및 무한 스크롤 (7일씩 역산 로드)
 >>>>>>> parent of c2887e0 (원복)
+=======
+       스크롤 동기화 & 상단 도달 시 이전 데이터 로드
+>>>>>>> parent of 0326cf4 (원복)
     ───────────────────────────────────────── */
     let _syncLock = false;
     const PANEL_IDS = ['f3ioScrollPanel1', 'f3ioScrollPanel2', 'f3ioScrollPanel3'];
@@ -796,11 +1018,15 @@
                 _syncLock = false;
 <<<<<<< HEAD
 <<<<<<< HEAD
+<<<<<<< HEAD
+=======
+>>>>>>> parent of 0326cf4 (원복)
 
                 // 스크롤 최상단 시 지연 로딩
                 if (top <= 10 && !isLoadingPrev && !state.loading && oldestLoadedDate) {
                     loadPrevChunk();
                 }
+<<<<<<< HEAD
 =======
                 
                 // 최상단 도달 시 이전 7일치 추가 로드
@@ -811,6 +1037,8 @@
                 // 최상단 도달 시 기존 월 단위 로드가 아닌 7일 이전 영역 단위 추가 로드 작동
                 if (top <= 10 && !isLoadingPrev && !state.loading) loadPrevPeriod();
 >>>>>>> parent of c2887e0 (원복)
+=======
+>>>>>>> parent of 0326cf4 (원복)
             });
         });
     }
@@ -947,6 +1175,7 @@
         else if (top < pan.scrollTop + 88)           pan.scrollTop = top - 88 - 10;
     }
 
+<<<<<<< HEAD
 <<<<<<< HEAD
 =======
     /* ─────────────────────────────────────────
@@ -1199,6 +1428,8 @@
        클릭 및 스크롤 이벤트
     ───────────────────────────────────────── */
 >>>>>>> parent of a78aaad (원복)
+=======
+>>>>>>> parent of 0326cf4 (원복)
     function bindBodyClicks() {
         [[1,'f3ioBody1'], [2,'f3ioBody2'], [3,'f3ioBody3']].forEach(([pi, bid]) => {
             const body = document.getElementById(bid);
@@ -1213,6 +1444,7 @@
         });
     }
 
+<<<<<<< HEAD
 <<<<<<< HEAD
 =======
     function scrollToTarget(targetDs) {
@@ -1254,6 +1486,8 @@
     }
 
 >>>>>>> parent of a78aaad (원복)
+=======
+>>>>>>> parent of 0326cf4 (원복)
     /* ─────────────────────────────────────────
        모듈 초기화
     ───────────────────────────────────────── */
@@ -1270,6 +1504,7 @@
                         onEditModeExit();
                     }
 <<<<<<< HEAD
+<<<<<<< HEAD
 =======
                     const d = new Date(dateStr);
 >>>>>>> parent of c2887e0 (원복)
@@ -1281,6 +1516,11 @@
                     // 달력에서 날짜를 선택하면, 해당 날짜를 기준으로 과거 7일을 다시 로드합니다.
                     loadData(dateStr);
 >>>>>>> parent of a78aaad (원복)
+=======
+                    clearHighlights();
+                    // 헤더 캘린더 등에서 기준일을 변경하면 해당일자 기준으로 다시 초기 3주치 로드
+                    loadDataChunk(dateStr);
+>>>>>>> parent of 0326cf4 (원복)
                 },
                 onSave: handleSave,
             });
@@ -1315,11 +1555,16 @@
             });
 
 <<<<<<< HEAD
+<<<<<<< HEAD
             // 초기 페이지 진입 시 오늘을 기준으로 로드 시작
             loadDataChunk(todayStr());
 =======
             loadData(todayStr());
 >>>>>>> parent of a78aaad (원복)
+=======
+            // 초기 페이지 진입 시 오늘을 기준으로 로드 시작
+            loadDataChunk(todayStr());
+>>>>>>> parent of 0326cf4 (원복)
         },
         destroy: function () {}
     };
