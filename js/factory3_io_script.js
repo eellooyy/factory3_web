@@ -15,19 +15,21 @@
     const WD_KR = ['일', '월', '화', '수', '목', '금', '토'];
 
     const state = {
+        year:          new Date().getFullYear(),
+        month:         new Date().getMonth() + 1,
         loading:       false,
         initialLoaded: false,   // 최초 전체 로드 완료 여부
         selectedDate:  null,
         selectedPanel: null,
         selectedCol:   null,
-        currentStartDate: null, // 현재 화면에 표시된 가장 오래된 날짜 (무한 스크롤용)
-        currentEndDate:   null  // 현재 화면에 표시된 가장 최신 날짜
     };
 
     // 날짜 → { in_a, in_d, out_a, out_d, stock_a, stock_d, usage_media: {}, usage_paper: {} }
     let dataCache   = {};
     let baselineRow = null; // { date, stock_a, stock_d }
 
+    let oldestYear    = state.year;
+    let oldestMonth   = state.month;
     let isLoadingPrev = false;
     let headerApi     = null;
 
@@ -48,8 +50,24 @@
         const d = new Date(ds + 'T00:00:00');
         return `${d.getFullYear()}년 ${d.getMonth()+1}월 ${d.getDate()}일 (${WD_KR[d.getDay()]})`;
     }
+    function isFuture(ds) {
+        const today = new Date(); today.setHours(0,0,0,0);
+        return new Date(ds + 'T00:00:00') > today;
+    }
+    function getDatesOfMonth(y, m) {
+        const days = new Date(y, m, 0).getDate();
+        return Array.from({ length: days }, (_, i) => `${y}-${pad(m)}-${pad(i+1)}`);
+    }
     function fmtDate(d) {
         return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
+    }
+
+    /* ─────────────────────────────────────────
+       매체 매핑 헬퍼 (레거시 지원용 유지)
+    ───────────────────────────────────────── */
+    function getMediaNameByCol(col) {
+        const names = ['', '본지', '별쇄', '경인일보', '기독교타임즈', '대학신문', '평화신문'];
+        return names[col] || '';
     }
 
     /* ─────────────────────────────────────────
@@ -102,8 +120,10 @@
     }
 
     /* ─────────────────────────────────────────
-       Supabase 로드 — 캐싱을 위한 초기화
+       Supabase 로드 — 초기 1회 전체 로드
     ───────────────────────────────────────── */
+
+    // factory3_io 테이블 전체 로드
     async function loadIoTable() {
         const { data, error } = await supabase
             .from('factory3_io')
@@ -130,8 +150,9 @@
         }
     }
 
+    // Panel 1의 출고 데이터 로드용 (geup_out 유형만 필터링하여 보존)
     async function loadOutgoing() {
-        const start = baselineRow ? baselineRow.date : '2026-01-01';
+        const start = baselineRow ? baselineRow.date : `${state.year}-01-01`;
         const end   = todayStr();
 
         const { data, error } = await supabase
@@ -155,8 +176,9 @@
         }
     }
 
+    // 신규 추가: factory3_usage 테이블 데이터 매핑 및 계산 로직
     async function loadUsageData() {
-        const start = baselineRow ? baselineRow.date : '2026-01-01';
+        const start = baselineRow ? baselineRow.date : `${state.year}-01-01`;
         const end   = todayStr();
 
         const { data, error } = await supabase
@@ -175,6 +197,7 @@
                 const date = row.print_date;
                 if (!dataCache[date]) dataCache[date] = {};
                 
+                // 구조 초기화
                 if (!dataCache[date].usage_media) {
                     dataCache[date].usage_media = { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0, 6: 0 };
                 }
@@ -184,6 +207,7 @@
 
                 const qty = Number(row.usage_qty) || 0;
 
+                // 1. 매체별 사용량 매핑 (하위 레벨 순서 일치)
                 if (row.media_name === '매일경제신문') dataCache[date].usage_media[1] += qty;
                 else if (row.media_name === '매일경제신문(특집)') dataCache[date].usage_media[2] += qty;
                 else if (row.media_name === '경인일보') dataCache[date].usage_media[3] += qty;
@@ -191,6 +215,7 @@
                 else if (row.media_name === '한국대학신문') dataCache[date].usage_media[5] += qty;
                 else if (row.media_name === '가톨릭평화신문') dataCache[date].usage_media[6] += qty;
 
+                // 2. 용지별 사용량 매핑 (아이템 코드 일치)
                 if (row.item_code === '11ANP-0000001') dataCache[date].usage_paper.A += qty;
                 else if (row.item_code === '11ANP-0000003') dataCache[date].usage_paper.D += qty;
             });
@@ -198,12 +223,12 @@
     }
 
     /* ─────────────────────────────────────────
-       입고 및 재고 동시 저장 (upsert)
+       입고 저장 (upsert)
     ───────────────────────────────────────── */
-    async function saveIncoming(dateStr, in_a, in_d, stock_a, stock_d) {
+    async function saveIncoming(dateStr, in_a, in_d) {
         const { error } = await supabase
             .from('factory3_io')
-            .upsert({ date: dateStr, in_a, in_d, stock_a, stock_d }, { onConflict: 'date' });
+            .upsert({ date: dateStr, in_a, in_d }, { onConflict: 'date' });
 
         if (error) { alert('저장 실패: ' + error.message); return false; }
         return true;
@@ -223,26 +248,20 @@
         const in_a = inputA ? (parseInt(inputA.value, 10) || 0) : (dataCache[ds]?.in_a || 0);
         const in_d = inputD ? (parseInt(inputD.value, 10) || 0) : (dataCache[ds]?.in_d || 0);
 
+        const ok = await saveIncoming(ds, in_a, in_d);
+        if (!ok) return;
+
         if (!dataCache[ds]) dataCache[ds] = {};
         dataCache[ds].in_a = in_a;
         dataCache[ds].in_d = in_d;
         
-        // stock_a, stock_d 실시간 누적치 반영 계산
         recalcAllStocks();
-
-        const stock_a = dataCache[ds]?.stock_a || 0;
-        const stock_d = dataCache[ds]?.stock_d || 0;
-
-        // DB에 입고량 및 실시간 연산 재고값 동시 전달 기입
-        const ok = await saveIncoming(ds, in_a, in_d, stock_a, stock_d);
-        if (!ok) return;
-
         rerenderAllRows();
         alert('저장 완료');
     }
 
     /* ─────────────────────────────────────────
-       편집 모드 진입 / 종료 (7일 수정 제한 가드 포함)
+       편집 모드 진입 / 종료
     ───────────────────────────────────────── */
     function onEditModeEnter() {
         if (!state.selectedDate) {
@@ -252,19 +271,6 @@
         }
 
         const ds  = state.selectedDate;
-
-        // [핵심 변경] 오늘 기준 7일전 체크 검증
-        const todayObj = new Date(todayStr() + 'T00:00:00');
-        const selectedObj = new Date(ds + 'T00:00:00');
-        const diffTime = todayObj.getTime() - selectedObj.getTime();
-        const diffDays = diffTime / (1000 * 60 * 60 * 24);
-
-        if (diffDays > 7 || diffDays < 0) {
-            alert('입고 내역은 오늘 기준 7일 전 내역까지만 수정할 수 있습니다.');
-            if (headerApi) headerApi.toggleEditMode();
-            return;
-        }
-
         const d   = dataCache[ds] || {};
         const row = document.querySelector(`#f3ioBody1 tr[data-date="${ds}"]`);
         if (!row) return;
@@ -314,15 +320,18 @@
     }
 
     /* ─────────────────────────────────────────
-       DOM 갱신
+       DOM 갱신 (실시간 리렌더링 및 교차 오류 검증)
     ───────────────────────────────────────── */
     function rerenderAllRows() {
+        // Panel 1: 입출고 및 재고 대장
         document.querySelectorAll('#f3ioBody1 tr[data-date]').forEach(tr => {
             const ds = tr.getAttribute('data-date');
             const d  = dataCache[ds] || {};
             tr.querySelectorAll('td[data-col]').forEach(td => {
                 if (td.querySelector('.f3io-in-input')) return;
                 const col = td.getAttribute('data-col');
+                
+                // 입고(col 1, 2)는 오늘 날짜 허용 (true), 나머지는 비허용 (false)
                 if      (col === '1') td.innerHTML = fmtNum(d.in_a,    ds, true);
                 else if (col === '2') td.innerHTML = fmtNum(d.in_d,    ds, true);
                 else if (col === '3') td.innerHTML = fmtNum(d.out_a,   ds, false);
@@ -332,6 +341,7 @@
             });
         });
 
+        // Panel 2: 매체별 사용량 및 교차 오류 검증 (전체 어제까지만 렌더링)
         document.querySelectorAll('#f3ioBody2 tr[data-date]').forEach(tr => {
             const ds = tr.getAttribute('data-date');
             const d  = dataCache[ds] || {};
@@ -349,6 +359,8 @@
                     mediaSum += val;
                 } else if (col === 7) {
                     td.innerHTML = fmtNum(mediaSum, ds, false);
+                    
+                    // 검증: 매체별 합계와 용지별 합계(A+D)가 불일치할 경우 경고 스타일 적용
                     if (mediaSum !== paperSum && new Date(ds + 'T00:00:00') < new Date(todayStr() + 'T00:00:00')) {
                         td.classList.add('f3io-sum-mismatch');
                     } else {
@@ -358,6 +370,7 @@
             });
         });
 
+        // Panel 3: 용지별 사용량 (전체 어제까지만 렌더링)
         document.querySelectorAll('#f3ioBody3 tr[data-date]').forEach(tr => {
             const ds = tr.getAttribute('data-date');
             const d  = dataCache[ds] || {};
@@ -372,7 +385,7 @@
     }
 
     /* ─────────────────────────────────────────
-       스크롤 동기화 및 무한 스크롤 (7일씩 역산 로드)
+       스크롤 동기화 & 무한 스크롤
     ───────────────────────────────────────── */
     let _syncLock = false;
     const PANEL_IDS = ['f3ioScrollPanel1', 'f3ioScrollPanel2', 'f3ioScrollPanel3'];
@@ -390,9 +403,7 @@
                 });
                 hideCursors();
                 _syncLock = false;
-                
-                // 최상단 도달 시 기존 월 단위 로드가 아닌 7일 이전 영역 단위 추가 로드 작동
-                if (top <= 10 && !isLoadingPrev && !state.loading) loadPrevPeriod();
+                if (top <= 10 && !isLoadingPrev && !state.loading) loadPrevMonth();
             });
         });
     }
@@ -561,6 +572,8 @@
             const dateTd    = `<td class="f3io-date-td ${wdC}" data-date="${row.date}">${m}/${dy} (${wn})</td>`;
             const resDateTd = `<td class="f3io-date-td f3io-responsive-date ${wdC}" data-date="${row.date}">${m}/${dy} (${wn})</td>`;
 
+            // Panel 1 HTML
+            // 입고(in_a, in_d)에는 true를 넘겨 오늘 날짜에도 값이 보이도록 설정
             html1 += `<tr class="${trC}" data-date="${row.date}">
                 ${dateTd}
                 <td class="f3io-data-cell f3io-editable-cell" data-col="1">${fmtNum(row.in_a,    row.date, true)}</td>
@@ -571,6 +584,7 @@
                 <td class="f3io-data-cell"                    data-col="6">${fmtNum(row.stock_d, row.date, false)}</td>
             </tr>`;
 
+            // Panel 2 HTML: 매체별 동적 생성 및 합계 계산 (전부 false 처리)
             let mediaHtml = '';
             let mediaSum = 0;
             const usageMedia = row.usage_media;
@@ -583,6 +597,7 @@
                 mediaSum += val;
             }
 
+            // 매체별 합계와 용지별 합계 비교 검증 클래스 추가
             let mismatchClass = '';
             if (mediaSum !== paperSum && d < new Date(todayStr() + 'T00:00:00')) {
                 mismatchClass = ' f3io-sum-mismatch';
@@ -594,6 +609,7 @@
                 <td class="f3io-data-cell f3io-sum-col${mismatchClass}" data-col="7">${fmtNum(mediaSum, row.date, false)}</td>
             </tr>`;
 
+            // Panel 3 HTML: 용지별 실사용량 매핑 (A, D)
             html3 += `<tr class="${trC}" data-date="${row.date}">
                 ${resDateTd}
                 <td class="f3io-data-cell" data-col="1">${fmtNum(usagePaper.A, row.date, false)}</td>
@@ -615,7 +631,7 @@
     }
 
     /* ─────────────────────────────────────────
-       데이터 로드 (오늘 기준 7일전 범위 변경 반영)
+       데이터 로드
     ───────────────────────────────────────── */
     async function loadData() {
         if (state.loading) return;
@@ -626,25 +642,13 @@
             if (!state.initialLoaded) {
                 await loadIoTable();
                 await loadOutgoing();
-                await loadUsageData(); 
+                await loadUsageData(); // 신규 추가된 테이블 대조 로직
                 recalcAllStocks();
                 state.initialLoaded = true;
             }
 
-            // [핵심 변경] 오늘 날짜 기준 7일 전 내역 리스트 구성 (오늘 포함 7개 행 생성)
-            const rows = [];
-            const anchorDate = new Date(todayStr() + 'T00:00:00');
-            for (let i = 6; i >= 0; i--) {
-                const targetDateObj = new Date(anchorDate.getTime());
-                targetDateObj.setDate(anchorDate.getDate() - i);
-                rows.push(buildRow(fmtDate(targetDateObj)));
-            }
-
-            if (rows.length > 0) {
-                state.currentStartDate = rows[0].date;
-                state.currentEndDate = rows[rows.length - 1].date;
-            }
-
+            const dates = getDatesOfMonth(state.year, state.month);
+            const rows  = dates.map(ds => buildRow(ds));
             renderInitial(rows);
             scrollToToday();
         } catch (err) {
@@ -655,34 +659,21 @@
         }
     }
 
-    /* ─────────────────────────────────────────
-       무한 스크롤 연동 추가 7일 단위 갱신 로직
-    ───────────────────────────────────────── */
-    function loadPrevPeriod(isAutoFill = false) {
+    function getMonthRows(y, m) {
+        return getDatesOfMonth(y, m).map(ds => buildRow(ds));
+    }
+
+    function loadPrevMonth(isAutoFill = false) {
         return new Promise(resolve => {
             if (isLoadingPrev) return resolve();
             isLoadingPrev = true;
-
-            // 현재 표시 중인 최상단 날짜 기준 이전 7일 날짜를 확보
-            const currentOldest = new Date(state.currentStartDate + 'T00:00:00');
-            const rows = [];
-
-            for (let i = 1; i <= 7; i++) {
-                const prevDateObj = new Date(currentOldest.getTime());
-                prevDateObj.setDate(currentOldest.getDate() - i);
-                rows.push(buildRow(fmtDate(prevDateObj)));
-            }
-            
-            // 오래된 날짜 순 정렬을 위해 리버스
-            rows.reverse();
-
-            if (rows.length > 0) {
-                state.currentStartDate = rows[0].date;
-            }
+            oldestMonth--;
+            if (oldestMonth < 1) { oldestMonth = 12; oldestYear--; }
 
             const panel1     = document.getElementById('f3ioScrollPanel1');
             const prevHeight = panel1 ? panel1.scrollHeight : 0;
 
+            const rows  = getMonthRows(oldestYear, oldestMonth);
             const htmls = generateRowsHTML(rows);
             document.getElementById('f3ioBody1').insertAdjacentHTML('afterbegin', htmls.html1);
             document.getElementById('f3ioBody2').insertAdjacentHTML('afterbegin', htmls.html2);
@@ -735,7 +726,7 @@
                 const target = top - offset;
 
                 if (target < 0 && !isLoadingPrev) {
-                    loadPrevPeriod(true).then(() => requestAnimationFrame(() => {
+                    loadPrevMonth(true).then(() => requestAnimationFrame(() => {
                         let nr = panel1.querySelector(`tr[data-date="${today}"]`)
                               || panel1.querySelector(`tr[data-date="${yesterdayStr()}"]`);
                         if (nr) {
@@ -757,6 +748,12 @@
     ───────────────────────────────────────── */
     const Factory3IoModule = {
         init: function () {
+            const now   = new Date();
+            state.year  = now.getFullYear();
+            state.month = now.getMonth() + 1;
+            oldestYear  = state.year;
+            oldestMonth = state.month;
+
             bindScrollSync();
             bindBodyClicks();
             bindKeyboardNav();
@@ -768,6 +765,10 @@
                         onEditModeExit();
                     }
                     const d = new Date(dateStr);
+                    state.year  = d.getFullYear();
+                    state.month = d.getMonth() + 1;
+                    oldestYear  = state.year;
+                    oldestMonth = d.getMonth() + 1;
                     clearHighlights();
                     loadData();
                 },

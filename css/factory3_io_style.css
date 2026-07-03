@@ -169,7 +169,7 @@
     border-bottom: 1px solid #e0e0e0;
     background: #fff;
     white-space: nowrap;
-    height: 44px;
+    height: 44px; /* 높이 고정 (정렬 맞춤) */
     box-sizing: border-box;
 }
 
@@ -180,7 +180,7 @@
     font-weight: 800 !important;
     border-bottom: 1px solid #e0e0e0 !important;
     letter-spacing: -0.2px;
-    height: 44px !important;
+    height: 44px !important; /* 높이 고정 */
     box-sizing: border-box;
 }
 
@@ -194,7 +194,7 @@
     border-bottom: 1px solid #e0e0e0;
     background: #fff;
     white-space: nowrap;
-    height: 44px;
+    height: 44px; /* 높이 고정 */
     box-sizing: border-box;
 }
 
@@ -215,11 +215,11 @@
     border-bottom: 1px solid #ebebeb;
     color: #1d1d1f;
     transition: background 0.12s;
-    height: 44px;
+    height: 44px; /* 높이 고정 (3개 패널 행 높이 완벽 동기화) */
     box-sizing: border-box;
 }
 
-/* ─ 날짜 헤더 & 셀 ─ */
+/* ─ 날짜 헤더 & 셀 (너비 확장 130px) ─ */
 .f3io-date-th {
     position: sticky;
     left: 0;
@@ -254,6 +254,7 @@
     min-width: 80px !important;
     width: 80px !important;
     box-sizing: border-box;
+    white-space: nowrap;
 }
 
 .f3io-responsive-date {
@@ -288,7 +289,7 @@
 .f3io-row-today.f3io-selected-row td { background: #daedf9 !important; }
 .f3io-row-today.f3io-selected-row .f3io-date-td { background: #bbd8f0 !important; }
 
-/* ─ 데이터 불일치 경고 ─ */
+/* ─ 데이터 불일치 경고 (매체합계 != 용지합계) ─ */
 td.f3io-sum-col.f3io-sum-mismatch {
     background: rgba(255, 59, 48, 0.12) !important;
     color: #ff3b30 !important; 
@@ -336,41 +337,38 @@ td.f3io-sum-col.f3io-sum-mismatch {
     transition: background 0.15s;
 }
 
-/* [UI 참고 변경]: geupji_factory3의 gf3-input 활성화 구조를 이식한 선명한 인라인 UI 스타일 */
+/* 편집 모드 진입 시 input 스타일 — geupji gf3-input과 동일 계열 */
 .f3io-in-input {
     display: block;
     width: 100%;
     height: 100%;
     border: none;
-    border-bottom: 2px solid #007aff; /* 하단 푸른 강조선 구현 */
-    border-radius: 4px;
-    background: #eef4ff; /* 연한 파란 틴트 계열 배경색 이식 */
+    border-bottom: 2px solid #007aff;
+    border-radius: 0;
+    background: #eef4ff;
     text-align: center;
     font-size: 13px;
     font-family: inherit;
-    font-weight: 700;
+    font-weight: 600;
     color: #0051d0;
     outline: none;
     padding: 4px 2px;
     box-sizing: border-box;
+    /* number input 스피너 숨김 */
     -moz-appearance: textfield;
     appearance: textfield;
 }
-
 .f3io-in-input::-webkit-outer-spin-button,
 .f3io-in-input::-webkit-inner-spin-button {
     -webkit-appearance: none;
     margin: 0;
 }
-
-/* 포커스 활성화 디자인 색상 세밀 조정 */
 .f3io-in-input:focus {
     background: #ddeaff;
     border-bottom-color: #003fa8;
-    box-shadow: 0 2px 4px rgba(0, 122, 255, 0.15);
 }
 
-/* 편집 모드일 때 테이블 입고 셀 전체의 배경 힌트 부여 */
+/* 편집 모드일 때 편집 가능 셀 배경 강조 */
 .gf3-wrapper.edit-mode #f3ioBody1 td.f3io-editable-cell {
     background: #f5f9ff;
 }
