@@ -18,14 +18,15 @@
         year:          new Date().getFullYear(),
         month:         new Date().getMonth() + 1,
         loading:       false,
-        initialLoaded: false,
+        initialLoaded: false,   // 최초 전체 로드 완료 여부
         selectedDate:  null,
         selectedPanel: null,
         selectedCol:   null,
     };
 
+    // 날짜 → { in_a, in_d, out_a, out_d, stock_a, stock_d, usage_media: {}, usage_paper: {} }
     let dataCache   = {};
-    let baselineRow = null; 
+    let baselineRow = null; // { date, stock_a, stock_d }
 
     let oldestYear    = state.year;
     let oldestMonth   = state.month;
@@ -49,21 +50,34 @@
         const d = new Date(ds + 'T00:00:00');
         return `${d.getFullYear()}년 ${d.getMonth()+1}월 ${d.getDate()}일 (${WD_KR[d.getDay()]})`;
     }
-    function fmtDate(d) {
-        return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
+    function isFuture(ds) {
+        const today = new Date(); today.setHours(0,0,0,0);
+        return new Date(ds + 'T00:00:00') > today;
     }
     function getDatesOfMonth(y, m) {
         const days = new Date(y, m, 0).getDate();
         return Array.from({ length: days }, (_, i) => `${y}-${pad(m)}-${pad(i+1)}`);
     }
+    function fmtDate(d) {
+        return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
+    }
 
     /* ─────────────────────────────────────────
-       숫자 포맷
+       매체 매핑 헬퍼 (레거시 지원용 유지)
+    ───────────────────────────────────────── */
+    function getMediaNameByCol(col) {
+        const names = ['', '본지', '별쇄', '경인일보', '기독교타임즈', '대학신문', '평화신문'];
+        return names[col] || '';
+    }
+
+    /* ─────────────────────────────────────────
+       숫자 포맷 (입고 vs 출고/재고 분리)
     ───────────────────────────────────────── */
     function fmtNum(v, ds, allowToday = false) {
         const rowDate = new Date(ds + 'T00:00:00');
         const todayDate = new Date(todayStr() + 'T00:00:00');
 
+        // 미래 날짜이거나, (오늘인데 입고(allowToday)가 아닌 경우) '-' 표시
         if (rowDate > todayDate || (rowDate.getTime() === todayDate.getTime() && !allowToday)) {
             return '<span class="f3io-empty">-</span>';
         }
@@ -79,7 +93,7 @@
     }
 
     /* ─────────────────────────────────────────
-       재고 누적 계산
+       재고 누적 계산 (baseline 다음 날 ~ targetDate)
     ───────────────────────────────────────── */
     function calcStock(targetDate) {
         if (!baselineRow) return { stock_a: 0, stock_d: 0 };
@@ -106,15 +120,21 @@
     }
 
     /* ─────────────────────────────────────────
-       데이터 로드
+       Supabase 로드 — 초기 1회 전체 로드
     ───────────────────────────────────────── */
+
+    // factory3_io 테이블 전체 로드
     async function loadIoTable() {
         const { data, error } = await supabase
             .from('factory3_io')
             .select('date, stock_a, stock_d, in_a, in_d')
             .order('date', { ascending: true });
 
-        if (error) throw new Error(`factory3_io 테이블 로드 실패: ${error.message}`);
+        if (error) {
+            console.error('[factory3_io] factory3_io 테이블 로드 오류:', error);
+            throw new Error(`factory3_io 테이블 로드 실패: ${error.message}`);
+        }
+
         if (data) {
             data.forEach(row => {
                 if (!dataCache[row.date]) dataCache[row.date] = {};
@@ -130,9 +150,11 @@
         }
     }
 
+    // Panel 1의 출고 데이터 로드용 (geup_out 유형만 필터링하여 보존)
     async function loadOutgoing() {
         const start = baselineRow ? baselineRow.date : `${state.year}-01-01`;
         const end   = todayStr();
+
         const { data, error } = await supabase
             .from('factory3_geupji_real')
             .select('date, col_id, value, item_type')
@@ -140,7 +162,11 @@
             .gte('date', start)
             .lte('date', end);
 
-        if (error) return;
+        if (error) {
+            console.error('[factory3_io] 출고 데이터 로드 오류:', error);
+            return;
+        }
+
         if (data) {
             data.forEach(row => {
                 if (!dataCache[row.date]) dataCache[row.date] = {};
@@ -150,24 +176,38 @@
         }
     }
 
+    // 신규 추가: factory3_usage 테이블 데이터 매핑 및 계산 로직
     async function loadUsageData() {
         const start = baselineRow ? baselineRow.date : `${state.year}-01-01`;
         const end   = todayStr();
+
         const { data, error } = await supabase
             .from('factory3_usage')
             .select('print_date, media_name, item_code, usage_qty')
             .gte('print_date', start)
             .lte('print_date', end);
 
-        if (error) return;
+        if (error) {
+            console.error('[factory3_io] factory3_usage 로드 오류:', error);
+            return;
+        }
+
         if (data) {
             data.forEach(row => {
                 const date = row.print_date;
                 if (!dataCache[date]) dataCache[date] = {};
-                if (!dataCache[date].usage_media) dataCache[date].usage_media = { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0, 6: 0 };
-                if (!dataCache[date].usage_paper) dataCache[date].usage_paper = { A: 0, D: 0 };
+                
+                // 구조 초기화
+                if (!dataCache[date].usage_media) {
+                    dataCache[date].usage_media = { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0, 6: 0 };
+                }
+                if (!dataCache[date].usage_paper) {
+                    dataCache[date].usage_paper = { A: 0, D: 0 };
+                }
 
                 const qty = Number(row.usage_qty) || 0;
+
+                // 1. 매체별 사용량 매핑 (하위 레벨 순서 일치)
                 if (row.media_name === '매일경제신문') dataCache[date].usage_media[1] += qty;
                 else if (row.media_name === '매일경제신문(특집)') dataCache[date].usage_media[2] += qty;
                 else if (row.media_name === '경인일보') dataCache[date].usage_media[3] += qty;
@@ -175,6 +215,7 @@
                 else if (row.media_name === '한국대학신문') dataCache[date].usage_media[5] += qty;
                 else if (row.media_name === '가톨릭평화신문') dataCache[date].usage_media[6] += qty;
 
+                // 2. 용지별 사용량 매핑 (아이템 코드 일치)
                 if (row.item_code === '11ANP-0000001') dataCache[date].usage_paper.A += qty;
                 else if (row.item_code === '11ANP-0000003') dataCache[date].usage_paper.D += qty;
             });
@@ -182,17 +223,20 @@
     }
 
     /* ─────────────────────────────────────────
-       입고 및 재고 저장 (수정됨: stock_a, stock_d 추가)
+       입고 저장 (upsert)
     ───────────────────────────────────────── */
-    async function saveIncoming(dateStr, in_a, in_d, stock_a, stock_d) {
+    async function saveIncoming(dateStr, in_a, in_d) {
         const { error } = await supabase
             .from('factory3_io')
-            .upsert({ date: dateStr, in_a, in_d, stock_a, stock_d }, { onConflict: 'date' });
+            .upsert({ date: dateStr, in_a, in_d }, { onConflict: 'date' });
 
         if (error) { alert('저장 실패: ' + error.message); return false; }
         return true;
     }
 
+    /* ─────────────────────────────────────────
+       저장 핸들러
+    ───────────────────────────────────────── */
     async function handleSave() {
         if (!state.selectedDate) return;
         const ds = state.selectedDate;
@@ -204,23 +248,21 @@
         const in_a = inputA ? (parseInt(inputA.value, 10) || 0) : (dataCache[ds]?.in_a || 0);
         const in_d = inputD ? (parseInt(inputD.value, 10) || 0) : (dataCache[ds]?.in_d || 0);
 
-        // 현재 계산된 재고값을 함께 저장
-        const stock = calcStock(ds);
-        
-        const ok = await saveIncoming(ds, in_a, in_d, stock.stock_a, stock.stock_d);
+        const ok = await saveIncoming(ds, in_a, in_d);
         if (!ok) return;
 
         if (!dataCache[ds]) dataCache[ds] = {};
         dataCache[ds].in_a = in_a;
         dataCache[ds].in_d = in_d;
-        dataCache[ds].stock_a = stock.stock_a;
-        dataCache[ds].stock_d = stock.stock_d;
         
         recalcAllStocks();
         rerenderAllRows();
         alert('저장 완료');
     }
 
+    /* ─────────────────────────────────────────
+       편집 모드 진입 / 종료
+    ───────────────────────────────────────── */
     function onEditModeEnter() {
         if (!state.selectedDate) {
             alert('먼저 입고를 수정할 날짜 행을 클릭해 선택해주세요.');
@@ -277,13 +319,19 @@
         rerenderAllRows();
     }
 
+    /* ─────────────────────────────────────────
+       DOM 갱신 (실시간 리렌더링 및 교차 오류 검증)
+    ───────────────────────────────────────── */
     function rerenderAllRows() {
+        // Panel 1: 입출고 및 재고 대장
         document.querySelectorAll('#f3ioBody1 tr[data-date]').forEach(tr => {
             const ds = tr.getAttribute('data-date');
             const d  = dataCache[ds] || {};
             tr.querySelectorAll('td[data-col]').forEach(td => {
                 if (td.querySelector('.f3io-in-input')) return;
                 const col = td.getAttribute('data-col');
+                
+                // 입고(col 1, 2)는 오늘 날짜 허용 (true), 나머지는 비허용 (false)
                 if      (col === '1') td.innerHTML = fmtNum(d.in_a,    ds, true);
                 else if (col === '2') td.innerHTML = fmtNum(d.in_d,    ds, true);
                 else if (col === '3') td.innerHTML = fmtNum(d.out_a,   ds, false);
@@ -293,6 +341,7 @@
             });
         });
 
+        // Panel 2: 매체별 사용량 및 교차 오류 검증 (전체 어제까지만 렌더링)
         document.querySelectorAll('#f3ioBody2 tr[data-date]').forEach(tr => {
             const ds = tr.getAttribute('data-date');
             const d  = dataCache[ds] || {};
@@ -310,6 +359,8 @@
                     mediaSum += val;
                 } else if (col === 7) {
                     td.innerHTML = fmtNum(mediaSum, ds, false);
+                    
+                    // 검증: 매체별 합계와 용지별 합계(A+D)가 불일치할 경우 경고 스타일 적용
                     if (mediaSum !== paperSum && new Date(ds + 'T00:00:00') < new Date(todayStr() + 'T00:00:00')) {
                         td.classList.add('f3io-sum-mismatch');
                     } else {
@@ -319,6 +370,7 @@
             });
         });
 
+        // Panel 3: 용지별 사용량 (전체 어제까지만 렌더링)
         document.querySelectorAll('#f3ioBody3 tr[data-date]').forEach(tr => {
             const ds = tr.getAttribute('data-date');
             const d  = dataCache[ds] || {};
@@ -332,54 +384,35 @@
         });
     }
 
+    /* ─────────────────────────────────────────
+       스크롤 동기화 & 무한 스크롤
+    ───────────────────────────────────────── */
+    let _syncLock = false;
+    const PANEL_IDS = ['f3ioScrollPanel1', 'f3ioScrollPanel2', 'f3ioScrollPanel3'];
+
     function bindScrollSync() {
-        const PANEL_IDS = ['f3ioScrollPanel1', 'f3ioScrollPanel2', 'f3ioScrollPanel3'];
         PANEL_IDS.forEach(id => {
             const el = document.getElementById(id);
             if (!el) return;
             el.addEventListener('scroll', () => {
-                if (window._syncLock) return;
-                window._syncLock = true;
+                if (_syncLock) return;
+                _syncLock = true;
                 const top = el.scrollTop;
                 PANEL_IDS.filter(x => x !== id).forEach(tid => {
                     const t = document.getElementById(tid); if (t) t.scrollTop = top;
                 });
                 hideCursors();
-                window._syncLock = false;
+                _syncLock = false;
                 if (top <= 10 && !isLoadingPrev && !state.loading) loadPrevMonth();
             });
         });
     }
 
+    /* ─────────────────────────────────────────
+       하이라이트 & 커서
+    ───────────────────────────────────────── */
     function hideCursors() {
         [1,2,3].forEach(i => { const c = document.getElementById(`f3ioCursor${i}`); if (c) c.classList.remove('active'); });
-    }
-
-    function applyHighlight(panelIdx, ds, colDataCol) {
-        if (headerApi && headerApi.isEditMode()) return;
-        clearHighlights();
-        state.selectedDate  = ds;
-        state.selectedPanel = panelIdx;
-        state.selectedCol   = colDataCol;
-        updateDateText(ds);
-
-        const PANEL_IDS = ['f3ioScrollPanel1', 'f3ioScrollPanel2', 'f3ioScrollPanel3'];
-        PANEL_IDS.forEach((id, i) => {
-            const body = document.getElementById(`f3ioBody${i+1}`);
-            if (body) {
-                const row = body.querySelector(`tr[data-date="${ds}"]`);
-                if (row) row.classList.add('f3io-selected-row');
-            }
-        });
-
-        const clickedBody = document.getElementById(`f3ioBody${panelIdx}`);
-        if (clickedBody && colDataCol !== null) {
-            const row = clickedBody.querySelector(`tr[data-date="${ds}"]`);
-            if (row) {
-                const td = row.querySelector(`td[data-col="${colDataCol}"]`);
-                if (td) { td.classList.add('f3io-selected-cell'); showCursor(panelIdx, td); }
-            }
-        }
     }
 
     function showCursor(idx, td) {
@@ -402,6 +435,51 @@
         hideCursors();
     }
 
+    function applyHighlight(panelIdx, ds, colDataCol) {
+        if (headerApi && headerApi.isEditMode()) return;
+        clearHighlights();
+        state.selectedDate  = ds;
+        state.selectedPanel = panelIdx;
+        state.selectedCol   = colDataCol;
+        updateDateText(ds);
+
+        PANEL_IDS.forEach((id, i) => {
+            const body = document.getElementById(`f3ioBody${i+1}`);
+            if (!body) return;
+            const row = body.querySelector(`tr[data-date="${ds}"]`);
+            if (row) row.classList.add('f3io-selected-row');
+        });
+
+        const clickedBody = document.getElementById(`f3ioBody${panelIdx}`);
+        if (clickedBody && colDataCol !== null) {
+            const row = clickedBody.querySelector(`tr[data-date="${ds}"]`);
+            if (row) {
+                const td = row.querySelector(`td[data-col="${colDataCol}"]`);
+                if (td) { td.classList.add('f3io-selected-cell'); showCursor(panelIdx, td); }
+            }
+        }
+
+        if (colDataCol !== null) {
+            const pan = document.getElementById(`f3ioScrollPanel${panelIdx}`);
+            if (pan) {
+                const lv2 = pan.querySelector(`.f3io-thead-lv2 th[data-col="${colDataCol}"]`);
+                if (lv2) {
+                    lv2.classList.add('f3io-header-active');
+                    const pg = lv2.getAttribute('data-parent-group');
+                    if (pg) {
+                        const lv1 = pan.querySelector(`.f3io-thead-lv1 th[data-group="${pg}"]`);
+                        if (lv1) lv1.classList.add('f3io-header-active');
+                    } else {
+                        pan.querySelectorAll('.f3io-thead-lv1 th.f3io-top-group-th').forEach(th => th.classList.add('f3io-header-active'));
+                    }
+                }
+            }
+        }
+    }
+
+    /* ─────────────────────────────────────────
+       키보드 네비게이션
+    ───────────────────────────────────────── */
     function bindKeyboardNav() {
         document.addEventListener('keydown', e => {
             if (headerApi && headerApi.isEditMode()) return;
@@ -448,6 +526,9 @@
         else if (top < pan.scrollTop + 88)           pan.scrollTop = top - 88 - 10;
     }
 
+    /* ─────────────────────────────────────────
+       렌더링 헬퍼
+    ───────────────────────────────────────── */
     function showLoading() {
         [{ id:'f3ioBody1',cols:7 }, { id:'f3ioBody2',cols:8 }, { id:'f3ioBody3',cols:3 }].forEach(({ id, cols }) => {
             const el = document.getElementById(id);
@@ -491,6 +572,8 @@
             const dateTd    = `<td class="f3io-date-td ${wdC}" data-date="${row.date}">${m}/${dy} (${wn})</td>`;
             const resDateTd = `<td class="f3io-date-td f3io-responsive-date ${wdC}" data-date="${row.date}">${m}/${dy} (${wn})</td>`;
 
+            // Panel 1 HTML
+            // 입고(in_a, in_d)에는 true를 넘겨 오늘 날짜에도 값이 보이도록 설정
             html1 += `<tr class="${trC}" data-date="${row.date}">
                 ${dateTd}
                 <td class="f3io-data-cell f3io-editable-cell" data-col="1">${fmtNum(row.in_a,    row.date, true)}</td>
@@ -501,6 +584,7 @@
                 <td class="f3io-data-cell"                    data-col="6">${fmtNum(row.stock_d, row.date, false)}</td>
             </tr>`;
 
+            // Panel 2 HTML: 매체별 동적 생성 및 합계 계산 (전부 false 처리)
             let mediaHtml = '';
             let mediaSum = 0;
             const usageMedia = row.usage_media;
@@ -513,7 +597,11 @@
                 mediaSum += val;
             }
 
-            let mismatchClass = (mediaSum !== paperSum && d < new Date(todayStr() + 'T00:00:00')) ? ' f3io-sum-mismatch' : '';
+            // 매체별 합계와 용지별 합계 비교 검증 클래스 추가
+            let mismatchClass = '';
+            if (mediaSum !== paperSum && d < new Date(todayStr() + 'T00:00:00')) {
+                mismatchClass = ' f3io-sum-mismatch';
+            }
 
             html2 += `<tr class="${trC}" data-date="${row.date}">
                 ${resDateTd}
@@ -521,6 +609,7 @@
                 <td class="f3io-data-cell f3io-sum-col${mismatchClass}" data-col="7">${fmtNum(mediaSum, row.date, false)}</td>
             </tr>`;
 
+            // Panel 3 HTML: 용지별 실사용량 매핑 (A, D)
             html3 += `<tr class="${trC}" data-date="${row.date}">
                 ${resDateTd}
                 <td class="f3io-data-cell" data-col="1">${fmtNum(usagePaper.A, row.date, false)}</td>
@@ -542,7 +631,7 @@
     }
 
     /* ─────────────────────────────────────────
-       초기 로딩 15일 전/후 범위 설정 (수정됨)
+       데이터 로드
     ───────────────────────────────────────── */
     async function loadData() {
         if (state.loading) return;
@@ -553,29 +642,25 @@
             if (!state.initialLoaded) {
                 await loadIoTable();
                 await loadOutgoing();
-                await loadUsageData();
+                await loadUsageData(); // 신규 추가된 테이블 대조 로직
                 recalcAllStocks();
                 state.initialLoaded = true;
             }
 
-            // 오늘 기준 이전 15일 ~ 이후 15일 범위 계산
-            const today = new Date();
-            const startDate = new Date(today); startDate.setDate(today.getDate() - 15);
-            const endDate = new Date(today); endDate.setDate(today.getDate() + 15);
-            const dateRange = [];
-            for (let d = new Date(startDate); d <= endDate; d.setDate(d.getDate() + 1)) {
-                dateRange.push(fmtDate(d));
-            }
-            
-            const rows = dateRange.map(ds => buildRow(ds));
+            const dates = getDatesOfMonth(state.year, state.month);
+            const rows  = dates.map(ds => buildRow(ds));
             renderInitial(rows);
             scrollToToday();
         } catch (err) {
             console.error('[factory3_io] 로드 실패:', err);
-            showError(`데이터 로드 실패: ${err.message}`);
+            showError(`데이터 로드 실패: ${err.message}<br><small>Supabase RLS 정책을 확인하세요.</small>`);
         } finally {
             state.loading = false;
         }
+    }
+
+    function getMonthRows(y, m) {
+        return getDatesOfMonth(y, m).map(ds => buildRow(ds));
     }
 
     function loadPrevMonth(isAutoFill = false) {
@@ -588,8 +673,7 @@
             const panel1     = document.getElementById('f3ioScrollPanel1');
             const prevHeight = panel1 ? panel1.scrollHeight : 0;
 
-            const dates = getDatesOfMonth(oldestYear, oldestMonth);
-            const rows  = dates.map(ds => buildRow(ds));
+            const rows  = getMonthRows(oldestYear, oldestMonth);
             const htmls = generateRowsHTML(rows);
             document.getElementById('f3ioBody1').insertAdjacentHTML('afterbegin', htmls.html1);
             document.getElementById('f3ioBody2').insertAdjacentHTML('afterbegin', htmls.html2);
@@ -598,7 +682,7 @@
             requestAnimationFrame(() => {
                 if (panel1 && !isAutoFill) {
                     const diff = panel1.scrollHeight - prevHeight;
-                    ['f3ioScrollPanel1', 'f3ioScrollPanel2', 'f3ioScrollPanel3'].forEach(id => { const p = document.getElementById(id); if (p) p.scrollTop += diff; });
+                    PANEL_IDS.forEach(id => { const p = document.getElementById(id); if (p) p.scrollTop += diff; });
                 }
                 isLoadingPrev = false;
                 resolve();
@@ -606,6 +690,9 @@
         });
     }
 
+    /* ─────────────────────────────────────────
+       클릭 이벤트
+    ───────────────────────────────────────── */
     function bindBodyClicks() {
         [[1,'f3ioBody1'], [2,'f3ioBody2'], [3,'f3ioBody3']].forEach(([pi, bid]) => {
             const body = document.getElementById(bid);
@@ -620,6 +707,9 @@
         });
     }
 
+    /* ─────────────────────────────────────────
+       오늘 스크롤
+    ───────────────────────────────────────── */
     function scrollToToday() {
         setTimeout(() => requestAnimationFrame(() => {
             const today  = todayStr();
@@ -634,12 +724,28 @@
                 while (el && el !== panel1 && el !== document.body) { top += el.offsetTop; el = el.offsetParent; }
                 const offset = panel1.clientHeight / 3;
                 const target = top - offset;
-                ['f3ioScrollPanel1', 'f3ioScrollPanel2', 'f3ioScrollPanel3'].forEach(id => { const p = document.getElementById(id); if (p) p.scrollTo({ top: Math.max(0, target), behavior:'auto' }); });
+
+                if (target < 0 && !isLoadingPrev) {
+                    loadPrevMonth(true).then(() => requestAnimationFrame(() => {
+                        let nr = panel1.querySelector(`tr[data-date="${today}"]`)
+                              || panel1.querySelector(`tr[data-date="${yesterdayStr()}"]`);
+                        if (nr) {
+                            let nt = 0, nc = nr;
+                            while (nc && nc !== panel1 && nc !== document.body) { nt += nc.offsetTop; nc = nc.offsetParent; }
+                            PANEL_IDS.forEach(id => { const p = document.getElementById(id); if (p) p.scrollTo({ top: Math.max(0, nt - offset), behavior:'auto' }); });
+                        }
+                    }));
+                } else {
+                    PANEL_IDS.forEach(id => { const p = document.getElementById(id); if (p) p.scrollTo({ top: Math.max(0, target), behavior:'auto' }); });
+                }
             }
             updateDateText(today);
         }), 50);
     }
 
+    /* ─────────────────────────────────────────
+       모듈 초기화
+    ───────────────────────────────────────── */
     const Factory3IoModule = {
         init: function () {
             const now   = new Date();
@@ -655,7 +761,9 @@
             headerApi = window.Factory3Header.init({
                 idPrefix: 'Io',
                 onDateChange: (dateStr) => {
-                    if (headerApi && headerApi.isEditMode()) onEditModeExit();
+                    if (headerApi && headerApi.isEditMode()) {
+                        onEditModeExit();
+                    }
                     const d = new Date(dateStr);
                     state.year  = d.getFullYear();
                     state.month = d.getMonth() + 1;
@@ -669,8 +777,27 @@
 
             if (!headerApi) return;
 
-            document.getElementById('gf3IoEditBtn')?.addEventListener('click', () => setTimeout(() => headerApi.isEditMode() ? onEditModeEnter() : onEditModeExit(), 0));
-            document.getElementById('gf3IoSaveBtn')?.addEventListener('click', () => setTimeout(() => { if (!headerApi.isEditMode()) onEditModeExit(); }, 300));
+            const editBtn = document.getElementById('gf3IoEditBtn');
+            if (editBtn) {
+                editBtn.addEventListener('click', () => {
+                    setTimeout(() => {
+                        if (headerApi.isEditMode()) {
+                            onEditModeEnter();
+                        } else {
+                            onEditModeExit();
+                        }
+                    }, 0);
+                });
+            }
+
+            const saveBtn = document.getElementById('gf3IoSaveBtn');
+            if (saveBtn) {
+                saveBtn.addEventListener('click', () => {
+                    setTimeout(() => {
+                        if (!headerApi.isEditMode()) onEditModeExit();
+                    }, 300);
+                });
+            }
 
             ['gf3IoPrevBtn', 'gf3IoNextBtn', 'gf3IoExcelBtn'].forEach(id => {
                 const btn = document.getElementById(id);
@@ -678,11 +805,16 @@
             });
 
             loadData();
-        }
+        },
+        destroy: function () {}
     };
 
     window.Factory3IoModule = Factory3IoModule;
-    if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', () => Factory3IoModule.init());
-    else Factory3IoModule.init();
+
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', () => Factory3IoModule.init());
+    } else {
+        Factory3IoModule.init();
+    }
 
 })();
