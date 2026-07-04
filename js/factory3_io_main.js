@@ -1,4 +1,3 @@
-/* js/factory3_io_main.js */
 window.Factory3Io = window.Factory3Io || {};
 
 (function () {
@@ -215,6 +214,10 @@ window.Factory3Io = window.Factory3Io || {};
     }
 
     function onEditModeEnter() {
+        // [수정 사항]: 테이블 컨테이너에도 디자인 제어용 edit-mode 클래스 추가
+        const wrapper = document.querySelector('.f3io-wrapper');
+        if (wrapper) wrapper.classList.add('edit-mode');
+
         const today = Utils.todayStr();
         const editDates = Utils.getDatesRange(Utils.addDays(today, -6), today);
         let firstInput = null;
@@ -256,6 +259,10 @@ window.Factory3Io = window.Factory3Io || {};
     }
 
     function onEditModeExit() {
+        // [수정 사항]: 편집 모드 종료 시 클래스 제거
+        const wrapper = document.querySelector('.f3io-wrapper');
+        if (wrapper) wrapper.classList.remove('edit-mode');
+
         Render.rerenderAllRows(true);
     }
 

@@ -368,7 +368,22 @@ td.f3io-sum-col.f3io-sum-mismatch {
     border-bottom-color: #003fa8;
 }
 
-/* 편집 모드일 때 편집 가능 셀 배경 강조 */
-.gf3-wrapper.edit-mode #f3ioBody1 td.f3io-editable-cell {
-    background: #f5f9ff;
+/* [수정 및 추가 사항]: 급지 재고 관리 디자인과 완벽한 통일 (따뜻한 노란색 계열) */
+
+/* 1. 편집 모드일 때 편집 가능 셀 배경 강조 */
+.f3io-wrapper.edit-mode #f3ioBody1 td.f3io-editable-cell {
+    background: #fff9e6 !important;
+}
+
+/* 2. 편집 모드 진입 시 내부에 생성되는 input 기본 배경 및 테두리선 변경 */
+.f3io-wrapper.edit-mode .f3io-in-input {
+    background: #fff9e6 !important;
+    color: #b07d00 !important;
+    border-bottom-color: #ffb300 !important;
+}
+
+/* 3. 편집 모드에서 실제 input에 마우스나 키보드 포커스가 갔을 때의 강조 색상 */
+.f3io-wrapper.edit-mode .f3io-in-input:focus {
+    background: #fff2cc !important;
+    border-bottom-color: #e69500 !important;
 }
