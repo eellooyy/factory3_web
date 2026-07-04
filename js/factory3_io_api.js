@@ -112,9 +112,11 @@ Factory3Io.API = {
     },
 
     loadUsageDataRange: async function (start, end) {
+        // [대폭 최적화 수정]: 원본 factory3_usage 테이블을 받아와 브라우저 단에서 직접 더하던 부하를 없애고,
+        // DB 단에서 이미 완벽히 일별 합산/정렬이 끝난 Supabase View인 'v_factory3_usage_daily'를 즉시 호출합니다.
         const { data, error } = await Factory3Io.supabase
-            .from('factory3_usage')
-            .select('print_date, media_name, item_code, usage_qty')
+            .from('v_factory3_usage_daily')
+            .select('print_date, media_1, media_2, media_3, media_4, media_5, media_6, paper_a, paper_d')
             .gte('print_date', start)
             .lte('print_date', end);
 
@@ -122,19 +124,23 @@ Factory3Io.API = {
             data.forEach(row => {
                 const date = row.print_date;
                 if (!Factory3Io.dataCache[date]) Factory3Io.dataCache[date] = {};
-                if (!Factory3Io.dataCache[date].usage_media) Factory3Io.dataCache[date].usage_media = { 1:0, 2:0, 3:0, 4:0, 5:0, 6:0 };
-                if (!Factory3Io.dataCache[date].usage_paper) Factory3Io.dataCache[date].usage_paper = { A:0, D:0 };
+                
+                // [기존 렌더링 시스템과의 완벽 호환 보장]
+                // 불러온 뷰 데이터를 기존 factory3_io_render.js가 참조하던 데이터 트리 포맷과 100% 동일하게 매핑합니다.
+                // 이 덕분에 화면 렌더링 측 소스코드를 건드릴 필요가 없어 안정성이 극대화됩니다.
+                Factory3Io.dataCache[date].usage_media = {
+                    1: Number(row.media_1) || 0,
+                    2: Number(row.media_2) || 0,
+                    3: Number(row.media_3) || 0,
+                    4: Number(row.media_4) || 0,
+                    5: Number(row.media_5) || 0,
+                    6: Number(row.media_6) || 0
+                };
 
-                const qty = Number(row.usage_qty) || 0;
-                if (row.media_name === '매일경제신문') Factory3Io.dataCache[date].usage_media[1] += qty;
-                else if (row.media_name === '매일경제신문(특집)') Factory3Io.dataCache[date].usage_media[2] += qty;
-                else if (row.media_name === '경인일보') Factory3Io.dataCache[date].usage_media[3] += qty;
-                else if (row.media_name === '기독교타임즈') Factory3Io.dataCache[date].usage_media[4] += qty;
-                else if (row.media_name === '한국대학신문') Factory3Io.dataCache[date].usage_media[5] += qty;
-                else if (row.media_name === '가톨릭평화신문') Factory3Io.dataCache[date].usage_media[6] += qty;
-
-                if (row.item_code === '11ANP-0000001') Factory3Io.dataCache[date].usage_paper.A += qty;
-                else if (row.item_code === '11ANP-0000003') Factory3Io.dataCache[date].usage_paper.D += qty;
+                Factory3Io.dataCache[date].usage_paper = {
+                    A: Number(row.paper_a) || 0,
+                    D: Number(row.paper_d) || 0
+                };
             });
         }
     },
