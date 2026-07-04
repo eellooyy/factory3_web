@@ -47,17 +47,8 @@ Factory3Io.Utils = {
         t.setDate(t.getDate() - 1);
         return `${t.getFullYear()}-${this.pad(t.getMonth() + 1)}-${this.pad(t.getDate())}`;
     },
-    // [수정] 기간 텍스트(예: "2026-06-14 ~ 2026-07-04")가 들어와도 정상 파싱되도록 대응
     fmtKo: function (ds) {
         if (!ds) return '';
-        if (ds.includes(' ~ ')) {
-            const parts = ds.split(' ~ ');
-            return this.fmtKoSingle(parts[0]) + ' ~ ' + this.fmtKoSingle(parts[1]);
-        }
-        return this.fmtKoSingle(ds);
-    },
-    // 단일 날짜 포맷팅 헬퍼 함수
-    fmtKoSingle: function (ds) {
         const d = new Date(ds + 'T00:00:00');
         if (isNaN(d.getTime())) return ds;
         return `${d.getFullYear()}년 ${this.pad(d.getMonth() + 1)}월 ${this.pad(d.getDate())}일 (${Factory3Io.WD_KR[d.getDay()]})`;

@@ -1,211 +1,446 @@
 /* js/factory3_io_main.js */
 window.Factory3Io = window.Factory3Io || {};
 
-Factory3Io.Main = {
-    // 한 번에 로드할 날짜 범위 설정 (21일치 청크)
-    CHUNK_DAYS: 21,
+(function () {
+    'use strict';
 
-    init: async function () {
-        // [수정] 오늘 이후의 날짜 프레임도 강제로 노출시키기 위해 종료일을 '오늘 + 4일'로 잡음
-        const today = new Date();
-        const endDate = new Date();
-        endDate.setDate(today.getDate() + 4); 
-        const endStr = Factory3Io.Utils.fmtDate(endDate);
-        
-        // 시작일 계산
-        const startDate = new Date(endDate);
-        startDate.setDate(startDate.getDate() - (this.CHUNK_DAYS - 1));
-        const startStr = Factory3Io.Utils.fmtDate(startDate);
+    const Utils = Factory3Io.Utils;
+    const API = Factory3Io.API;
+    const Render = Factory3Io.Render;
 
-        // 최초 데이터 로드 영역 고정
-        Factory3Io.currentStartDate = startStr;
-        Factory3Io.currentEndDate = endStr;
+    Factory3Io.CHUNK_DAYS = 21;
 
-        // 화면 텍스트 업데이트 및 로딩 시작
-        Factory3Io.Render.updateDateText(`${startStr} ~ ${endStr}`);
-        Factory3Io.dataCache = {};
-        Factory3Io.baselineRow = null;
+    Factory3Io.Main = {
+        init: async function () {
+            // 초기 구동 시 스크롤, 클릭, 키보드 네비게이션 이벤트를 선행 바인딩합니다.
+            bindScrollSync();
+            bindBodyClicks();
+            bindKeyboardNav();
 
-        // [추가] 이벤트 리스너(스크롤 동기화, 클릭 하이라이트) 선행 등록
-        this.bindEvents();
+            // 공통 헤더 모듈 연동 정의
+            Factory3Io.state.headerApi = window.Factory3Header.init({
+                idPrefix: 'Io',
+                onDateChange: (dateStr) => {
+                    if (Factory3Io.state.headerApi && Factory3Io.state.headerApi.isEditMode()) {
+                        onEditModeExit();
+                    }
+                    clearHighlights();
+                    loadDataChunk(dateStr);
+                },
+                onSave: handleSave,
+            });
 
-        // 첫 청크 데이터 호출 및 빌드
-        await this.loadDataChunk(startStr, endStr);
+            // 헤더 액션 컨트롤러 제어
+            const editBtn = document.getElementById('gf3IoEditBtn');
+            if (editBtn) {
+                editBtn.addEventListener('click', () => {
+                    setTimeout(() => {
+                        if (Factory3Io.state.headerApi.isEditMode()) {
+                            onEditModeEnter();
+                        } else {
+                            onEditModeExit();
+                        }
+                    }, 0);
+                });
+            }
 
-        // [추가] 오늘/어제 날짜 행이 가운데 상단(윗쪽)에 배치되도록 자동 스크롤 조절
-        this.scrollToToday();
-    },
+            const saveBtn = document.getElementById('gf3IoSaveBtn');
+            if (saveBtn) {
+                saveBtn.addEventListener('click', () => {
+                    setTimeout(() => {
+                        if (!Factory3Io.state.headerApi.isEditMode()) onEditModeExit();
+                    }, 300);
+                });
+            }
+
+            // 불필요한 컨트롤 일시 비활성화 처리
+            ['gf3IoPrevBtn', 'gf3IoNextBtn', 'gf3IoExcelBtn'].forEach(id => {
+                const btn = document.getElementById(id);
+                if (btn) { btn.disabled = true; btn.style.opacity = '0.3'; btn.style.pointerEvents = 'none'; }
+            });
+
+            // 기본값으로 어제 날짜 기준 레이아웃 구동 시작
+            await loadDataChunk(Utils.yesterdayStr());
+        }
+    };
 
     /* ─────────────────────────────────────────
-       핵심: 데이터 로드 및 최적화 오케스트레이션
+       초기 로드 및 지연 로드 컨트롤러
     ───────────────────────────────────────── */
-    loadDataChunk: async function (start, end) {
+    async function loadDataChunk(targetDateStr) {
+        if (Factory3Io.state.loading) return;
+        Factory3Io.state.loading = true;
+
+        Render.showLoading();
+
         try {
-            // 1. 화면에 로딩 상태 표시
-            Factory3Io.Render.showLoading();
-
-            // 2. 누적 재고의 시작 기준점이 되는 Baseline 데이터 선행 조회
-            await Factory3Io.API.fetchBaseline(start);
-
-            // 3. 의존성이 없는 3개의 API를 동시에 병렬 호출
+            const baseDate = targetDateStr || Utils.todayStr();
+            // [요구사항] 과거 3주(21일전) ~ 미래 1주(7일후) 일괄 프레임 스케줄링 지정
+            const start = Utils.addDays(baseDate, -21);
+            const end = Utils.addDays(baseDate, 7);
+            
+            // 병렬 최적화 구조로 Supabase View 호출 통합 처리
+            await API.fetchBaseline(start);
             await Promise.all([
-                Factory3Io.API.loadIoTableRange(start, end),
-                Factory3Io.API.loadOutgoingRange(start, end),
-                Factory3Io.API.loadUsageDataRange(start, end)
+                API.loadIoTableRange(start, end),
+                API.loadOutgoingRange(start, end),
+                API.loadUsageDataRange(start, end)
             ]);
-
-            // [추가 핵심]: DB에 데이터가 없거나 오늘 이후 미래 날짜여도 테이블에 행 프레임을 강제로 표시하도록 배열 생성
-            const allDates = Factory3Io.Utils.getDatesRange(start, end);
-            allDates.forEach(ds => {
+            
+            // DB에 데이터가 비어있어도 날짜 행을 무조건 출력하도록 껍데기 세팅
+            const dates = Utils.getDatesRange(start, end);
+            dates.forEach(ds => {
                 if (!Factory3Io.dataCache[ds]) {
-                    Factory3Io.dataCache[ds] = {}; // 빈 데이터 껍데기 바인딩
+                    Factory3Io.dataCache[ds] = {};
                 }
             });
 
-            // 4. 로드 완료된 데이터를 기반으로 순방향 롤링 재고 재계산
-            Factory3Io.API.recalcAllStocks();
+            // 실시간 재고 롤링 연산 가동
+            API.recalcAllStocks();
 
-            // 5. 날짜별로 정렬하여 화면 초기 렌더링 수행
-            const dates = Object.keys(Factory3Io.dataCache).sort();
-            const rows = dates.map(ds => Factory3Io.Render.buildRow(ds));
+            const rows = dates.map(ds => Render.buildRow(ds));
+            Render.renderInitial(rows);
+
+            Factory3Io.state.oldestLoadedDate = start;
+            Factory3Io.state.initialLoaded = true;
             
-            Factory3Io.Render.renderInitial(rows);
+            // 어제 위치가 화면 상단 정렬 세팅을 유도하도록 스크롤바 조절
+            scrollToYesterday(baseDate);
+            Render.updateDateText(baseDate);
 
         } catch (err) {
-            console.error('Data Load Error:', err);
-            Factory3Io.Render.showError('데이터를 가져오는 중 오류가 발생했습니다. 다시 시도해 주세요.');
+            console.error('[factory3_io] 로드 실패:', err);
+            Render.showError(`데이터 로드 실패: ${err.message}`);
+        } finally {
+            Factory3Io.state.loading = false;
         }
-    },
+    }
 
     /* ─────────────────────────────────────────
-       이전 내역 더보기 기능 (스크롤 연동 완료)
+       과거 스크롤 도달 시 역방향 청크 렌더링
     ───────────────────────────────────────── */
-    loadPrevChunk: async function () {
-        if (!Factory3Io.currentStartDate) return;
+    async function loadPrevChunk() {
+        if (Factory3Io.state.isLoadingPrev || Factory3Io.state.loading || !Factory3Io.state.oldestLoadedDate) return;
+        Factory3Io.state.isLoadingPrev = true;
 
-        const currStart = new Date(Factory3Io.currentStartDate + 'T00:00:00');
-        
-        // 새로운 종료일은 기존 시작일의 하루 전
-        const newEnd = new Date(currStart);
-        newEnd.setDate(newEnd.getDate() - 1);
-        
-        // 새로운 시작일 계산
-        const newStart = new Date(newEnd);
-        newStart.setDate(newStart.getDate() - (this.CHUNK_DAYS - 1));
+        try {
+            const end = Utils.addDays(Factory3Io.state.oldestLoadedDate, -1);
+            const start = Utils.addDays(end, -(Factory3Io.CHUNK_DAYS - 1));
 
-        const startStr = Factory3Io.Utils.fmtDate(newStart);
-        const endStr = Factory3Io.Utils.fmtDate(newEnd);
+            await API.fetchBaseline(start);
+            await Promise.all([
+                API.loadIoTableRange(start, end),
+                API.loadOutgoingRange(start, end),
+                API.loadUsageDataRange(start, end)
+            ]);
 
-        // 기준 데이터 글로벌 전역 범위 확장
-        Factory3Io.currentStartDate = startStr;
-        Factory3Io.Render.updateDateText(`${startStr} ~ ${Factory3Io.currentEndDate}`);
-
-        // 기존 캐시를 유지한 채로 과거 청크 데이터 병렬 추가 로드
-        await this.loadDataChunk(startStr, Factory3Io.currentEndDate);
-    },
-
-    /* ─────────────────────────────────────────
-       [추가] 이벤트 동기화 및 바인딩 관리 핸들러
-    ───────────────────────────────────────── */
-    bindEvents: function () {
-        const panels = Factory3Io.PANEL_IDS.map(id => document.getElementById(id)).filter(Boolean);
-        
-        // 1. 3개 패널 세로 스크롤 완전 동기화 및 무한 스크롤 연동
-        let isSyncing = false;
-        panels.forEach(panel => {
-            panel.addEventListener('scroll', async () => {
-                // 패널 스크롤 동기화 가드
-                if (!isSyncing) {
-                    isSyncing = true;
-                    const top = panel.scrollTop;
-                    panels.forEach(p => {
-                        if (p !== panel) p.scrollTop = top;
-                    });
-                    isSyncing = false;
-                }
-
-                // 최상단 도달 시 과거 DB 데이터 갱신 및 트리거 호출
-                if (panel.scrollTop === 0 && !Factory3Io.state.isLoadingPrev) {
-                    Factory3Io.state.isLoadingPrev = true;
-                    
-                    // 과거 데이터 렌더링 전 스크롤 높이 기록
-                    const preScrollHeight = panel.scrollHeight;
-
-                    await this.loadPrevChunk();
-                    
-                    // 갱신 완료 후 위치가 갑자기 맨 위로 튀지 않도록 이전 위치 유지 보정
-                    setTimeout(() => {
-                        const postScrollHeight = panel.scrollHeight;
-                        const diff = postScrollHeight - preScrollHeight;
-                        panels.forEach(p => p.scrollTop = diff > 0 ? diff : 10);
-                        Factory3Io.state.isLoadingPrev = false;
-                    }, 50);
-                }
+            const dates = Utils.getDatesRange(start, end);
+            dates.forEach(ds => {
+                if (!Factory3Io.dataCache[ds]) Factory3Io.dataCache[ds] = {};
             });
-        });
 
-        // 2. 셀/행 클릭 이벤트 처리 (CSS 하이라이트 클래스 동적 변환)
-        ['f3ioBody1', 'f3ioBody2', 'f3ioBody3'].forEach(bodyId => {
-            const body = document.getElementById(bodyId);
-            if (!body) return;
+            API.recalcAllStocks();
 
-            body.addEventListener('click', (e) => {
-                // 날짜 셀 또는 일반 데이터 셀 탐색
-                const td = e.target.closest('.f3io-data-cell, .f3io-date-td');
-                if (!td) return;
-                
-                const tr = td.closest('tr');
-                if (!tr) return;
-                
-                const date = tr.getAttribute('data-date');
-                if (!date) return;
+            const rows = dates.map(ds => Render.buildRow(ds));
+            const htmls = Render.generateRowsHTML(rows);
 
-                // 글로벌 상태 저장
-                Factory3Io.state.selectedDate = date;
-                Factory3Io.state.selectedCol = td.getAttribute('data-col');
-
-                // 활성화되어 있던 기존 모든 하이라이트 디자인 청소
-                document.querySelectorAll('.f3io-selected-row').forEach(r => r.classList.remove('f3io-selected-row'));
-                document.querySelectorAll('.f3io-selected-cell').forEach(c => c.classList.remove('f3io-selected-cell'));
-
-                // 클릭된 날짜와 매치되는 3개 패널의 모든 tr을 찾아 동시에 강조 색상 부여
-                document.querySelectorAll(`tr[data-date="${date}"]`).forEach(r => {
-                    r.classList.add('f3io-selected-row');
-                });
-
-                // 클릭한 그 셀 한 칸만 진한 테두리/폰트 강조 포인트 효과 부여
-                if (td.classList.contains('f3io-data-cell')) {
-                    td.classList.add('f3io-selected-cell');
-                }
-            });
-        });
-    },
-
-    /* ─────────────────────────────────────────
-       [추가] 위치 지정 가이드: 어제/오늘 날짜 중앙 포커스
-    ───────────────────────────────────────── */
-    scrollToToday: function () {
-        setTimeout(() => {
-            const todayStr = Factory3Io.Utils.todayStr();
-            const todayRow = document.querySelector(`#f3ioBody1 tr[data-date="${todayStr}"]`);
             const panel1 = document.getElementById('f3ioScrollPanel1');
-            const panels = Factory3Io.PANEL_IDS.map(id => document.getElementById(id)).filter(Boolean);
-            
-            if (todayRow && panel1) {
-                // 오늘 데이터 행의 y위치에서 스크롤 패널 높이의 3분의 1을 빼주어 "가운데에서 상단 윗쪽"에 안착시킴
-                const targetTop = todayRow.offsetTop - (panel1.clientHeight / 3);
-                panels.forEach(p => p.scrollTop = targetTop);
-            } else {
-                // 실패 시 기본 안전장치로 최하단 정렬
-                panels.forEach(p => p.scrollTop = p.scrollHeight);
-            }
-        }, 300);
-    }
-};
+            const prevHeight = panel1 ? panel1.scrollHeight : 0;
 
-// DOM 생성 완료 시 즉시 구동 시작
-document.addEventListener('DOMContentLoaded', () => {
-    if (Factory3Io.Main && typeof Factory3Io.Main.init === 'function') {
-        Factory3Io.Main.init();
+            // 과거 데이터를 상단 갱신 처리
+            document.getElementById('f3ioBody1').insertAdjacentHTML('afterbegin', htmls.html1);
+            document.getElementById('f3ioBody2').insertAdjacentHTML('afterbegin', htmls.html2);
+            document.getElementById('f3ioBody3').insertAdjacentHTML('afterbegin', htmls.html3);
+
+            Render.rerenderAllRows();
+            Factory3Io.state.oldestLoadedDate = start;
+
+            // 스크롤 포커스 튕김 방지용 스크롤 상쇄 연산 실행
+            requestAnimationFrame(() => {
+                if (panel1) {
+                    const diff = panel1.scrollHeight - prevHeight;
+                    Factory3Io.PANEL_IDS.forEach(id => { 
+                        const p = document.getElementById(id); 
+                        if (p) p.scrollTop += diff; 
+                    });
+                }
+            });
+        } catch (err) {
+            console.error('[factory3_io] 이전 데이터 로드 오류:', err);
+        } finally {
+            Factory3Io.state.isLoadingPrev = false;
+        }
     }
-});
+
+    /* ─────────────────────────────────────────
+       입고실적 편집 및 일괄 저장 처리
+    ───────────────────────────────────────── */
+    async function handleSave() {
+        const today = Utils.todayStr();
+        const editDates = Utils.getDatesRange(Utils.addDays(today, -6), today);
+        
+        editDates.forEach(ds => {
+            const row = document.querySelector(`#f3ioBody1 tr[data-date="${ds}"]`);
+            if (!row) return;
+
+            const inputA = row.querySelector('td[data-col="1"] .f3io-in-input');
+            const inputD = row.querySelector('td[data-col="2"] .f3io-in-input');
+
+            if (!Factory3Io.dataCache[ds]) Factory3Io.dataCache[ds] = {};
+            if (inputA) Factory3Io.dataCache[ds].in_a = parseInt(inputA.value, 10) || 0;
+            if (inputD) Factory3Io.dataCache[ds].in_d = parseInt(inputD.value, 10) || 0;
+        });
+
+        API.recalcAllStocks();
+
+        const batchRows = editDates.map(ds => {
+            const cacheData = Factory3Io.dataCache[ds] || {};
+            return {
+                date: ds,
+                in_a: cacheData.in_a || 0,
+                in_d: cacheData.in_d || 0,
+                stock_a: cacheData.stock_a || 0,
+                stock_d: cacheData.stock_d || 0
+            };
+        });
+
+        const ok = await API.saveIncomingBatch(batchRows);
+        if (!ok) return;
+
+        if (Factory3Io.state.headerApi && Factory3Io.state.headerApi.isEditMode()) {
+            Factory3Io.state.headerApi.toggleEditMode();
+        }
+        onEditModeExit();
+        alert('최근 7일치 입고 실적 및 연산 재고가 실시간으로 일괄 저장되었습니다.');
+    }
+
+    function onEditModeEnter() {
+        const today = Utils.todayStr();
+        const editDates = Utils.getDatesRange(Utils.addDays(today, -6), today);
+        let firstInput = null;
+
+        editDates.forEach(ds => {
+            const d = Factory3Io.dataCache[ds] || {};
+            const row = document.querySelector(`#f3ioBody1 tr[data-date="${ds}"]`);
+            if (!row) return;
+
+            const tdA = row.querySelector('td[data-col="1"]');
+            const tdD = row.querySelector('td[data-col="2"]');
+
+            function makeInput(val) {
+                const inp = document.createElement('input');
+                inp.type = 'number';
+                inp.min = '0';
+                inp.value = val;
+                inp.className = 'f3io-in-input';
+                return inp;
+            }
+
+            if (tdA) {
+                tdA.innerHTML = '';
+                const inp = makeInput(d.in_a || 0);
+                tdA.appendChild(inp);
+                if (!firstInput) firstInput = inp;
+            }
+            if (tdD) {
+                tdD.innerHTML = '';
+                const inp = makeInput(d.in_d || 0);
+                tdD.appendChild(inp);
+            }
+        });
+
+        if (firstInput) {
+            firstInput.focus();
+            firstInput.select();
+        }
+    }
+
+    function onEditModeExit() {
+        Render.rerenderAllRows(true);
+    }
+
+    /* ─────────────────────────────────────────
+       인터랙션: 스크롤 동기화 및 포커싱 자동 배치
+    ───────────────────────────────────────── */
+    let _syncLock = false;
+
+    function bindScrollSync() {
+        Factory3Io.PANEL_IDS.forEach(id => {
+            const el = document.getElementById(id);
+            if (!el) return;
+            el.addEventListener('scroll', () => {
+                if (_syncLock) return;
+                _syncLock = true;
+                const top = el.scrollTop;
+                Factory3Io.PANEL_IDS.filter(x => x !== id).forEach(tid => {
+                    const t = document.getElementById(tid); if (t) t.scrollTop = top;
+                });
+                hideCursors();
+                _syncLock = false;
+
+                // 스크롤 상단 근접 시 무한 스크롤 트리거 작동
+                if (top <= 10 && !Factory3Io.state.isLoadingPrev && !Factory3Io.state.loading && Factory3Io.state.oldestLoadedDate) {
+                    loadPrevChunk();
+                }
+            });
+        });
+    }
+
+    function scrollToYesterday(targetDateStr) {
+        setTimeout(() => requestAnimationFrame(() => {
+            const target = targetDateStr || Utils.yesterdayStr();
+            const row = document.querySelector(`#f3ioBody1 tr[data-date="${target}"]`);
+            if (!row) return;
+            
+            const topPos = row.offsetTop;
+            Factory3Io.PANEL_IDS.forEach(id => { 
+                const p = document.getElementById(id); 
+                // 어제 날짜 기준 가운데 윗쪽에 위치하도록 스크롤 패널 안착 분기
+                if (p) p.scrollTop = topPos - 44; 
+            });
+        }), 50);
+    }
+
+    /* ─────────────────────────────────────────
+       인터랙션: 셀 하이라이트 및 가상 글래스 커서
+    ───────────────────────────────────────── */
+    function hideCursors() {
+        [1,2,3].forEach(i => { const c = document.getElementById(`f3ioCursor${i}`); if (c) c.classList.remove('active'); });
+    }
+
+    function showCursor(idx, td) {
+        const cur = document.getElementById(`f3ioCursor${idx}`);
+        const pan = document.getElementById(`f3ioScrollPanel${idx}`);
+        if (!cur || !pan || !td) return;
+        let top = 0, left = 0, el = td;
+        while (el && el !== pan && el !== document.body) { top += el.offsetTop; left += el.offsetLeft; el = el.offsetParent; }
+        cur.style.width  = td.offsetWidth  + 'px';
+        cur.style.height = td.offsetHeight + 'px';
+        cur.style.left   = left + 'px';
+        cur.style.top    = top  + 'px';
+        cur.classList.add('active');
+    }
+
+    function clearHighlights() {
+        document.querySelectorAll('.f3io-selected-row').forEach(el => el.classList.remove('f3io-selected-row'));
+        document.querySelectorAll('.f3io-selected-cell').forEach(el => el.classList.remove('f3io-selected-cell'));
+        document.querySelectorAll('.f3io-header-active').forEach(el => el.classList.remove('f3io-header-active'));
+        hideCursors();
+    }
+
+    function applyHighlight(panelIdx, ds, colDataCol) {
+        if (Factory3Io.state.headerApi && Factory3Io.state.headerApi.isEditMode()) return;
+        clearHighlights();
+        Factory3Io.state.selectedDate  = ds;
+        Factory3Io.state.selectedPanel = panelIdx;
+        Factory3Io.state.selectedCol   = colDataCol;
+        Render.updateDateText(ds);
+
+        // 3개 대장 패널 행 동시 도색
+        Factory3Io.PANEL_IDS.forEach((id, i) => {
+            const body = document.getElementById(`f3ioBody${i+1}`);
+            if (!body) return;
+            const row = body.querySelector(`tr[data-date="${ds}"]`);
+            if (row) row.classList.add('f3io-selected-row');
+        });
+
+        // 단일 타겟 셀 스포트라이트 및 유리 커서 작동
+        const clickedBody = document.getElementById(`f3ioBody${panelIdx}`);
+        if (clickedBody && colDataCol !== null) {
+            const row = clickedBody.querySelector(`tr[data-date="${ds}"]`);
+            if (row) {
+                const td = row.querySelector(`td[data-col="${colDataCol}"]`);
+                if (td) { td.classList.add('f3io-selected-cell'); showCursor(panelIdx, td); }
+            }
+        }
+
+        // 헤더 대조 매핑 하이라이트
+        if (colDataCol !== null) {
+            const pan = document.getElementById(`f3ioScrollPanel${panelIdx}`);
+            if (pan) {
+                const lv2 = pan.querySelector(`.f3io-thead-lv2 th[data-col="${colDataCol}"]`);
+                if (lv2) {
+                    lv2.classList.add('f3io-header-active');
+                    const pg = lv2.getAttribute('data-parent-group');
+                    if (pg) {
+                        const lv1 = pan.querySelector(`.f3io-thead-lv1 th[data-group="${pg}"]`);
+                        if (lv1) lv1.classList.add('f3io-header-active');
+                    } else {
+                        pan.querySelectorAll('.f3io-thead-lv1 th.f3io-top-group-th').forEach(th => th.classList.add('f3io-header-active'));
+                    }
+                }
+            }
+        }
+    }
+
+    /* ─────────────────────────────────────────
+       인터랙션: 키보드 제어 및 클릭 리스너 연결
+    ───────────────────────────────────────── */
+    function bindKeyboardNav() {
+        document.addEventListener('keydown', e => {
+            if (Factory3Io.state.headerApi && Factory3Io.state.headerApi.isEditMode()) return;
+            if (!Factory3Io.state.selectedDate || !Factory3Io.state.selectedPanel || !Factory3Io.state.selectedCol) return;
+            if (!['ArrowUp','ArrowDown','ArrowLeft','ArrowRight'].includes(e.key)) return;
+            e.preventDefault();
+
+            let panelIdx = Number(Factory3Io.state.selectedPanel);
+            let colNum   = Number(Factory3Io.state.selectedCol);
+            const body   = document.getElementById(`f3ioBody${panelIdx}`);
+            if (!body) return;
+            const curRow = body.querySelector(`tr[data-date="${Factory3Io.state.selectedDate}"]`);
+            if (!curRow) return;
+
+            if (e.key === 'ArrowUp' || e.key === 'ArrowDown') {
+                const target = e.key === 'ArrowUp' ? curRow.previousElementSibling : curRow.nextElementSibling;
+                if (target && target.getAttribute('data-date')) {
+                    applyHighlight(panelIdx, target.getAttribute('data-date'), String(colNum));
+                    scrollToActiveCell(panelIdx);
+                }
+            } else {
+                const colCount = { 1:6, 2:7, 3:2 };
+                if (e.key === 'ArrowLeft') {
+                    colNum--;
+                    if (colNum < 1) { if (panelIdx > 1) { panelIdx--; colNum = colCount[panelIdx]; } else colNum = 1; }
+                } else {
+                    colNum++;
+                    if (colNum > colCount[panelIdx]) { if (panelIdx < 3) { panelIdx++; colNum = 1; } else colNum = colCount[panelIdx]; }
+                }
+                applyHighlight(panelIdx, Factory3Io.state.selectedDate, String(colNum));
+                scrollToActiveCell(panelIdx);
+            }
+        });
+    }
+
+    function scrollToActiveCell(idx) {
+        const pan = document.getElementById(`f3ioScrollPanel${idx}`);
+        const td  = document.querySelector(`#f3ioBody${idx} tr[data-date="${Factory3Io.state.selectedDate}"] td[data-col="${Factory3Io.state.selectedCol}"]`);
+        if (!pan || !td) return;
+        let top = 0, el = td;
+        while (el && el !== pan && el !== document.body) { top += el.offsetTop; el = el.offsetParent; }
+        const bot = top + td.offsetHeight;
+        if (bot > pan.scrollTop + pan.clientHeight) pan.scrollTop = bot - pan.clientHeight + 10;
+        else if (top < pan.scrollTop + 88)           pan.scrollTop = top - 88 - 10;
+    }
+
+    function bindBodyClicks() {
+        [[1,'f3ioBody1'], [2,'f3ioBody2'], [3,'f3ioBody3']].forEach(([pi, bid]) => {
+            const body = document.getElementById(bid);
+            if (!body) return;
+            body.addEventListener('click', e => {
+                const td = e.target.closest('td');
+                if (!td || td.classList.contains('f3io-date-td')) return;
+                const tr = td.closest('tr[data-date]');
+                if (!tr) return;
+                applyHighlight(pi, tr.getAttribute('data-date'), td.getAttribute('data-col'));
+            });
+        });
+    }
+
+    // 모듈 자동 가동 구조화 선언 연동
+    document.addEventListener('DOMContentLoaded', () => {
+        if (Factory3Io.Main && typeof Factory3Io.Main.init === 'function') {
+            Factory3Io.Main.init();
+        }
+    });
+
+})();
