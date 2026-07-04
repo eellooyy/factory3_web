@@ -8,8 +8,11 @@ window.Factory3Io = window.Factory3Io || {};
     const API = Factory3Io.API;
     const Render = Factory3Io.Render;
 
+    // 청크 일수 기본값 설정 (과거 3주 기준 21일)
+    Factory3Io.CHUNK_DAYS = Factory3Io.CHUNK_DAYS || 21;
+
     /* ─────────────────────────────────────────
-       초기 로드 (최근 3주치) 및 지연 로드 (이전 3주치) 컨트롤러
+       초기 로드 및 지연 로드 컨트롤러
     ───────────────────────────────────────── */
     async function loadDataChunk(targetDateStr) {
         if (Factory3Io.state.loading) return;
@@ -20,14 +23,17 @@ window.Factory3Io = window.Factory3Io || {};
         Render.showLoading();
 
         try {
-            const end = targetDateStr; 
-            const start = Utils.addDays(end, -(Factory3Io.CHUNK_DAYS - 1));
+            // ① [요구사항 반영] 오늘 기준 미래 7일 ~ 과거 3주 범위 데이터 조회
+            const baseDate = targetDateStr || Utils.todayStr();
+            const start = Utils.addDays(baseDate, -21); // 과거 3주 (21일 전)
+            const end = Utils.addDays(baseDate, 7);     // 미래 7일 (7일 후)
             
             await API.fetchBaseline(start);
             await API.loadIoTableRange(start, end);
             await API.loadOutgoingRange(start, end);
             await API.loadUsageDataRange(start, end);
             
+            // ② [요구사항 반영] 6월 29일 및 실재고 기반 실시간 재고 롤링 연산
             API.recalcAllStocks();
 
             const dates = Utils.getDatesRange(start, end);
@@ -36,8 +42,10 @@ window.Factory3Io = window.Factory3Io || {};
 
             Factory3Io.state.oldestLoadedDate = start;
             Factory3Io.state.initialLoaded = true;
-            scrollToBottom();
-            Render.updateDateText(end);
+            
+            // ① [요구사항 반영] 로드 완료 후 어제 날짜 위치로 상단 스크롤 이동
+            scrollToYesterday();
+            Render.updateDateText(baseDate);
 
         } catch (err) {
             console.error('[factory3_io] 로드 실패:', err);
@@ -92,88 +100,109 @@ window.Factory3Io = window.Factory3Io || {};
         }
     }
 
+    /* ─────────────────────────────────────────
+       입고 및 실시간 연산재고 일괄 저장 처리
+    ───────────────────────────────────────── */
     async function handleSave() {
-        if (!Factory3Io.state.selectedDate) return;
-        const ds = Factory3Io.state.selectedDate;
+        const today = Utils.todayStr();
+        // ③ 최근 7일치 날짜 범위 확보 (오늘 포함 과거 7일)
+        const editDates = Utils.getDatesRange(Utils.addDays(today, -6), today);
+        
+        // 1. 화면에 일괄 생성된 인풋창들의 값을 싹 다 캐시에 매핑
+        editDates.forEach(ds => {
+            const row = document.querySelector(`#f3ioBody1 tr[data-date="${ds}"]`);
+            if (!row) return;
 
-        const row1   = document.querySelector(`#f3ioBody1 tr[data-date="${ds}"]`);
-        const inputA = row1 ? row1.querySelector('td[data-col="1"] .f3io-in-input') : null;
-        const inputD = row1 ? row1.querySelector('td[data-col="2"] .f3io-in-input') : null;
+            const inputA = row.querySelector('td[data-col="1"] .f3io-in-input');
+            const inputD = row.querySelector('td[data-col="2"] .f3io-in-input');
 
-        const in_a = inputA ? (parseInt(inputA.value, 10) || 0) : (Factory3Io.dataCache[ds]?.in_a || 0);
-        const in_d = inputD ? (parseInt(inputD.value, 10) || 0) : (Factory3Io.dataCache[ds]?.in_d || 0);
+            if (!Factory3Io.dataCache[ds]) Factory3Io.dataCache[ds] = {};
+            
+            if (inputA) Factory3Io.dataCache[ds].in_a = parseInt(inputA.value, 10) || 0;
+            if (inputD) Factory3Io.dataCache[ds].in_d = parseInt(inputD.value, 10) || 0;
+        });
 
-        const ok = await API.saveIncoming(ds, in_a, in_d);
+        // 2. ② [요구사항 반영] 입력된 데이터를 바탕으로 6월 29일 포함 순방향 전체 재고 실시간 재계산
+        API.recalcAllStocks();
+
+        // 3. ②, ③ [요구사항 반영] 최근 7일치 입고량 + 실시간 연산된 최종 재고 컬럼까지 포함하여 일괄 Upsert 바인딩
+        const batchRows = editDates.map(ds => {
+            const cacheData = Factory3Io.dataCache[ds] || {};
+            return {
+                date: ds,
+                in_a: cacheData.in_a || 0,
+                in_d: cacheData.in_d || 0,
+                stock_a: cacheData.stock_a || 0, // 실시간 계산된 재고 DB 연동
+                stock_d: cacheData.stock_d || 0  // 실시간 계산된 재고 DB 연동
+            };
+        });
+
+        // 4. API 대용량 일괄 저장 작동
+        const ok = await API.saveIncomingBatch(batchRows);
         if (!ok) return;
 
-        if (!Factory3Io.dataCache[ds]) Factory3Io.dataCache[ds] = {};
-        Factory3Io.dataCache[ds].in_a = in_a;
-        Factory3Io.dataCache[ds].in_d = in_d;
-        
-        API.recalcAllStocks();
-        Render.rerenderAllRows();
-        alert('저장 완료');
+        // 5. 헤더 에디트 모드 강제 비활성화 및 화면 리프레시 (인풋박스 청소)
+        if (Factory3Io.state.headerApi && Factory3Io.state.headerApi.isEditMode()) {
+            Factory3Io.state.headerApi.toggleEditMode();
+        }
+        onEditModeExit();
+        alert('최근 7일치 입고 실적 및 연산 재고가 실시간으로 일괄 저장되었습니다.');
     }
 
     /* ─────────────────────────────────────────
-       편집 모드 진입 / 종료 처리
+       ③ 수정 클릭 시 최근 7일치 입고 일괄 활성화 처리
     ───────────────────────────────────────── */
     function onEditModeEnter() {
-        if (!Factory3Io.state.selectedDate) {
-            alert('먼저 입고를 수정할 날짜 행을 클릭해 선택해주세요.');
-            if (Factory3Io.state.headerApi) Factory3Io.state.headerApi.toggleEditMode();
-            return;
-        }
-        const ds  = Factory3Io.state.selectedDate;
-        const d   = Factory3Io.dataCache[ds] || {};
-        const row = document.querySelector(`#f3ioBody1 tr[data-date="${ds}"]`);
-        if (!row) return;
+        const today = Utils.todayStr();
+        // 오늘 기준 과거 7일치 일괄 획득
+        const editDates = Utils.getDatesRange(Utils.addDays(today, -6), today);
+        
+        let firstInput = null;
 
-        const tdA = row.querySelector('td[data-col="1"]');
-        const tdD = row.querySelector('td[data-col="2"]');
+        editDates.forEach(ds => {
+            const d = Factory3Io.dataCache[ds] || {};
+            const row = document.querySelector(`#f3ioBody1 tr[data-date="${ds}"]`);
+            if (!row) return;
 
-        function makeInput(val) {
-            const inp = document.createElement('input');
-            inp.type      = 'number';
-            inp.min       = '0';
-            inp.value     = val;
-            inp.className = 'f3io-in-input';
-            return inp;
-        }
+            const tdA = row.querySelector('td[data-col="1"]');
+            const tdD = row.querySelector('td[data-col="2"]');
 
-        if (tdA) {
-            tdA.innerHTML = '';
-            const inp = makeInput(d.in_a || 0);
-            tdA.appendChild(inp);
-            inp.addEventListener('keydown', e => {
-                if (e.key === 'Tab' || e.key === 'Enter') {
-                    e.preventDefault();
-                    const inpD = row.querySelector('td[data-col="2"] .f3io-in-input');
-                    if (inpD) { inpD.focus(); inpD.select(); }
-                }
-            });
-            inp.focus(); inp.select();
-        }
-        if (tdD) {
-            tdD.innerHTML = '';
-            const inp = makeInput(d.in_d || 0);
-            tdD.appendChild(inp);
-            inp.addEventListener('keydown', e => {
-                if (e.key === 'Enter') {
-                    e.preventDefault();
-                    const saveBtn = document.getElementById('gf3IoSaveBtn');
-                    if (saveBtn && !saveBtn.disabled) saveBtn.click();
-                }
-            });
+            function makeInput(val) {
+                const inp = document.createElement('input');
+                inp.type      = 'number';
+                inp.min       = '0';
+                inp.value     = val;
+                inp.className = 'f3io-in-input';
+                return inp;
+            }
+
+            if (tdA) {
+                tdA.innerHTML = '';
+                const inp = makeInput(d.in_a || 0);
+                tdA.appendChild(inp);
+                if (!firstInput) firstInput = inp; // 가장 첫 행 포커싱용
+            }
+            if (tdD) {
+                tdD.innerHTML = '';
+                const inp = makeInput(d.in_d || 0);
+                tdD.appendChild(inp);
+            }
+        });
+
+        // 사용성 향상을 위해 일괄 활성화된 최상단 인풋에 포커스 자동 지정
+        if (firstInput) {
+            firstInput.focus();
+            firstInput.select();
         }
     }
 
     function onEditModeExit() {
-        Render.rerenderAllRows();
+        // forceClear 파라미터 true를 전달하여 인풋 요소를 확실하게 지우고 새로 그려줌
+        Render.rerenderAllRows(true);
     }
 
     /* ─────────────────────────────────────────
-       스크롤 동기화 & 상단 도달 시 이전 데이터 로드
+       스크롤 동기화 및 어제 날짜 위치 자동 이동 
     ───────────────────────────────────────── */
     let _syncLock = false;
 
@@ -198,13 +227,16 @@ window.Factory3Io = window.Factory3Io || {};
         });
     }
 
-    function scrollToBottom() {
+    function scrollToYesterday() {
         setTimeout(() => requestAnimationFrame(() => {
-            const panel1 = document.getElementById('f3ioScrollPanel1');
-            if (!panel1) return;
+            const yesterday = Utils.yesterdayStr();
+            const row = document.querySelector(`#f3ioBody1 tr[data-date="${yesterday}"]`);
+            if (!row) return;
+            
+            const topPos = row.offsetTop;
             Factory3Io.PANEL_IDS.forEach(id => { 
                 const p = document.getElementById(id); 
-                if (p) p.scrollTop = p.scrollHeight; 
+                if (p) p.scrollTop = topPos; // 어제 날짜 행 위치로 상단 타겟 스크롤 정렬
             });
         }), 50);
     }
@@ -279,7 +311,7 @@ window.Factory3Io = window.Factory3Io || {};
     }
 
     /* ─────────────────────────────────────────
-       키보드 네비게이션 & 클릭 바인딩
+       키보드 네비게이션 및 클릭 바인딩
     ───────────────────────────────────────── */
     function bindKeyboardNav() {
         document.addEventListener('keydown', e => {
@@ -342,7 +374,7 @@ window.Factory3Io = window.Factory3Io || {};
     }
 
     /* ─────────────────────────────────────────
-       모듈 외부에 노출할 인터페이스 선언
+       모듈 초기 가동화 인터페이스 선언
     ───────────────────────────────────────── */
     const Factory3IoModule = {
         init: function () {

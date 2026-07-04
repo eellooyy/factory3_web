@@ -5,7 +5,6 @@ window.Factory3Io = window.Factory3Io || {};
    상수 설정
 ───────────────────────────────────────── */
 Factory3Io.WD_KR = ['일', '월', '화', '수', '목', '금', '토'];
-Factory3Io.CHUNK_DAYS = 21; // 3주치 (21일) 단위 지연 로딩
 Factory3Io.PANEL_IDS = ['f3ioScrollPanel1', 'f3ioScrollPanel2', 'f3ioScrollPanel3'];
 
 /* ─────────────────────────────────────────
@@ -17,13 +16,13 @@ Factory3Io.state = {
     selectedDate:  null,
     selectedPanel: null,
     selectedCol:   null,
-    oldestLoadedDate: null, // 무한 스크롤(위쪽) 기준점
+    oldestLoadedDate: null, 
     isLoadingPrev:    false,
     headerApi:        null
 };
 
 Factory3Io.dataCache = {};
-Factory3Io.baselineRow = null; // { date, stock_a, stock_d }
+Factory3Io.baselineRow = null; 
 
 /* ─────────────────────────────────────────
    Supabase 클라이언트 초기화

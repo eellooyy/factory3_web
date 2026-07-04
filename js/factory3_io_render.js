@@ -24,14 +24,16 @@ Factory3Io.Render = {
     },
 
     /* ─────────────────────────────────────────
-       DOM 전체 리랜더링 및 유효성(합계 불일치) 검증
+       DOM 전체 리랜더링 및 합계 유효성 검증
     ───────────────────────────────────────── */
-    rerenderAllRows: function () {
+    rerenderAllRows: function (forceClear = false) {
         document.querySelectorAll('#f3ioBody1 tr[data-date]').forEach(tr => {
             const ds = tr.getAttribute('data-date');
             const d  = Factory3Io.dataCache[ds] || {};
             tr.querySelectorAll('td[data-col]').forEach(td => {
-                if (td.querySelector('.f3io-in-input')) return;
+                // 수정 취소 및 저장 시 인풋창을 완전히 비우고 일반 텍스트로 복귀시킵니다.
+                if (!forceClear && td.querySelector('.f3io-in-input')) return;
+                
                 const col = td.getAttribute('data-col');
                 if      (col === '1') td.innerHTML = this.fmtNum(d.in_a,    ds, true);
                 else if (col === '2') td.innerHTML = this.fmtNum(d.in_d,    ds, true);

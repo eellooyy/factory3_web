@@ -3,30 +3,55 @@ window.Factory3Io = window.Factory3Io || {};
 
 Factory3Io.API = {
     /* ─────────────────────────────────────────
-       재고 누적 계산 (baseline 부터 순방향 전체 계산)
+       재고 누적 계산 (가장 오래된 기말재고 기준점을 찾아 순방향 전체 계산)
     ───────────────────────────────────────── */
     recalcAllStocks: function () {
-        if (!Factory3Io.baselineRow) return;
-
-        let currentSa = Factory3Io.baselineRow.stock_a;
-        let currentSd = Factory3Io.baselineRow.stock_d;
-
         const dates = Object.keys(Factory3Io.dataCache).sort();
+        
+        let anchorDate = null;
+        let currentSa = 0;
+        let currentSd = 0;
+
+        // 1. 외부 베이스라인 데이터 점검
+        if (Factory3Io.baselineRow) {
+            anchorDate = Factory3Io.baselineRow.date;
+            currentSa = Factory3Io.baselineRow.stock_a;
+            currentSd = Factory3Io.baselineRow.stock_d;
+        }
+
+        // 2. 현재 캐시 영역 내에서 가장 최초로 등장하는 수동입력 실재고(예: 6월 29일) 탐색 및 기준점 고정
+        for (const ds of dates) {
+            const r = Factory3Io.dataCache[ds];
+            if ((r.db_stock_a || r.db_stock_d) && (!anchorDate || ds <= anchorDate)) {
+                anchorDate = ds;
+                currentSa = r.db_stock_a || 0;
+                currentSd = r.db_stock_d || 0;
+            }
+        }
+
+        // 3. 기준점 이후의 모든 날짜 연산 처리
         dates.forEach(ds => {
-            if (ds > Factory3Io.baselineRow.date) {
-                const r = Factory3Io.dataCache[ds];
+            const r = Factory3Io.dataCache[ds];
+            if (anchorDate && ds === anchorDate) {
+                // 기준일 당일은 입력값 보존
+                r.stock_a = currentSa;
+                r.stock_d = currentSd;
+            } else if (anchorDate && ds > anchorDate) {
+                // 기준일 이후는 이전 실재고 기반 롤링 연산
                 currentSa += (r.in_a || 0) - (r.out_a || 0);
                 currentSd += (r.in_d || 0) - (r.out_d || 0);
-            }
-            if (Factory3Io.dataCache[ds]) {
-                Factory3Io.dataCache[ds].stock_a = currentSa;
-                Factory3Io.dataCache[ds].stock_d = currentSd;
+                r.stock_a = currentSa;
+                r.stock_d = currentSd;
+            } else {
+                // 기준일 이전 데이터 세팅
+                r.stock_a = r.db_stock_a || 0;
+                r.stock_d = r.db_stock_d || 0;
             }
         });
     },
 
     /* ─────────────────────────────────────────
-       Supabase 로드 쿼리 모음
+       Supabase 연동 쿼리
     ───────────────────────────────────────── */
     fetchBaseline: async function (beforeDate) {
         const { data, error } = await Factory3Io.supabase
@@ -34,44 +59,37 @@ Factory3Io.API = {
             .select('date, stock_a, stock_d')
             .lt('date', beforeDate)
             .order('date', { ascending: false })
-            .limit(100);
+            .limit(50);
 
         let found = null;
         if (!error && data && data.length > 0) {
             for (const r of data) {
-                if (r.stock_a !== 0 || r.stock_d !== 0) {
-                    found = r;
-                    break;
-                }
+                if (r.stock_a !== 0 || r.stock_d !== 0) { found = r; break; }
             }
-            if (!found) found = data[data.length - 1];
         }
-
         if (found) {
             if (!Factory3Io.baselineRow || found.date < Factory3Io.baselineRow.date) {
                 Factory3Io.baselineRow = { date: found.date, stock_a: found.stock_a || 0, stock_d: found.stock_d || 0 };
             }
-        } else {
-            if (!Factory3Io.baselineRow) Factory3Io.baselineRow = { date: '2000-01-01', stock_a: 0, stock_d: 0 };
         }
     },
 
     loadIoTableRange: async function (start, end) {
+        // [중요 수정]: stock_a, stock_d 컬럼을 함께 로드하여 수동 입력된 재고값을 캐싱합니다.
         const { data, error } = await Factory3Io.supabase
             .from('factory3_io')
-            .select('date, in_a, in_d')
+            .select('date, in_a, in_d, stock_a, stock_d')
             .gte('date', start)
             .lte('date', end);
 
-        if (error) {
-            console.error('[factory3_io] 입고 데이터 로드 오류:', error);
-            throw error;
-        }
+        if (error) throw error;
         if (data) {
             data.forEach(row => {
                 if (!Factory3Io.dataCache[row.date]) Factory3Io.dataCache[row.date] = {};
                 Factory3Io.dataCache[row.date].in_a = row.in_a || 0;
                 Factory3Io.dataCache[row.date].in_d = row.in_d || 0;
+                Factory3Io.dataCache[row.date].db_stock_a = row.stock_a || 0;
+                Factory3Io.dataCache[row.date].db_stock_d = row.stock_d || 0;
             });
         }
     },
@@ -104,9 +122,8 @@ Factory3Io.API = {
             data.forEach(row => {
                 const date = row.print_date;
                 if (!Factory3Io.dataCache[date]) Factory3Io.dataCache[date] = {};
-                
-                if (!Factory3Io.dataCache[date].usage_media) Factory3Io.dataCache[date].usage_media = { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0, 6: 0 };
-                if (!Factory3Io.dataCache[date].usage_paper) Factory3Io.dataCache[date].usage_paper = { A: 0, D: 0 };
+                if (!Factory3Io.dataCache[date].usage_media) Factory3Io.dataCache[date].usage_media = { 1:0, 2:0, 3:0, 4:0, 5:0, 6:0 };
+                if (!Factory3Io.dataCache[date].usage_paper) Factory3Io.dataCache[date].usage_paper = { A:0, D:0 };
 
                 const qty = Number(row.usage_qty) || 0;
                 if (row.media_name === '매일경제신문') Factory3Io.dataCache[date].usage_media[1] += qty;
@@ -122,12 +139,18 @@ Factory3Io.API = {
         }
     },
 
-    saveIncoming: async function (dateStr, in_a, in_d) {
+    /* ─────────────────────────────────────────
+       [신규 추가] 최근 7일치 입고 및 연산재고 일괄 Upsert 함수
+    ───────────────────────────────────────── */
+    saveIncomingBatch: async function (batchRows) {
         const { error } = await Factory3Io.supabase
             .from('factory3_io')
-            .upsert({ date: dateStr, in_a, in_d }, { onConflict: 'date' });
+            .upsert(batchRows, { onConflict: 'date' });
 
-        if (error) { alert('저장 실패: ' + error.message); return false; }
+        if (error) {
+            alert('일괄 저장 실패: ' + error.message);
+            return false;
+        }
         return true;
     }
 };
