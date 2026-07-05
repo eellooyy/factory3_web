@@ -7,7 +7,8 @@
         const dates = window.FC_API.getDatesRange(targetStr);
         const rows = dates.map(ds => window.FC_API.buildRow(ds));
 
-        let h1='', h2='', h3='', h4='', h5='', h6('');
+        // 오타 완전 수정 완료 (h6('')에서 h6=''으로 원복)
+        let h1='', h2='', h3='', h4='', h5='', h6='';
 
         rows.forEach(row => {
             const d = new Date(row.date + 'T00:00:00');
@@ -17,43 +18,32 @@
             const m = window.FC_CONST.pad(d.getMonth()+1), dy = window.FC_CONST.pad(d.getDate()), wn = window.FC_CONST.WD_KR[wd];
             const dateTd = `<td class="f3ct-date-td ${wdC}" data-date="${row.date}">${m}/${dy} (${wn})</td>`;
 
-            // 판넬 1: 지고 재고
             h1 += `<tr class="${trC}" data-date="${row.date}">
                 ${dateTd}
                 <td class="f3ct-data-cell" data-col="1">${window.FC_API.fmtNum(row.jigo_a, row.date)}</td>
                 <td class="f3ct-data-cell" data-col="2">${window.FC_API.fmtNum(row.jigo_d, row.date)}</td>
                 <td class="f3ct-data-cell f3ct-sum-col" data-col="3">${window.FC_API.fmtNum(row.jigo_sum, row.date)}</td>
             </tr>`;
-            
-            // 판넬 2: 급지 재고
             h2 += `<tr class="${trC}" data-date="${row.date}">
                 <td class="f3ct-data-cell" data-col="1">${window.FC_API.fmtNum(row.geupji_a, row.date)}</td>
                 <td class="f3ct-data-cell" data-col="2">${window.FC_API.fmtNum(row.geupji_d, row.date)}</td>
                 <td class="f3ct-data-cell f3ct-sum-col" data-col="3">${window.FC_API.fmtNum(row.geupji_sum, row.date)}</td>
             </tr>`;
-            
-            // 판넬 3: 실재고
             h3 += `<tr class="${trC}" data-date="${row.date}">
                 <td class="f3ct-data-cell" data-col="1">${window.FC_API.fmtNum(row.real_a, row.date)}</td>
                 <td class="f3ct-data-cell" data-col="2">${window.FC_API.fmtNum(row.real_d, row.date)}</td>
                 <td class="f3ct-data-cell f3ct-sum-col" data-col="3">${window.FC_API.fmtNum(row.real_sum, row.date)}</td>
             </tr>`;
-            
-            // 판넬 4: ERP 재고(수동)
             h4 += `<tr class="${trC}" data-date="${row.date}">
                 <td class="f3ct-data-cell" data-col="1">${window.FC_API.fmtNum(row.erp_a, row.date)}</td>
                 <td class="f3ct-data-cell" data-col="2">${window.FC_API.fmtNum(row.erp_d, row.date)}</td>
                 <td class="f3ct-data-cell f3ct-sum-col" data-col="3">${window.FC_API.fmtNum(row.erp_sum, row.date)}</td>
             </tr>`;
-            
-            // 판넬 5: 실재고 - ERP 재고
             h5 += `<tr class="${trC}" data-date="${row.date}">
                 <td class="f3ct-data-cell" data-col="1">${window.FC_API.fmtNum(row.diff_a, row.date)}</td>
                 <td class="f3ct-data-cell" data-col="2">${window.FC_API.fmtNum(row.diff_d, row.date)}</td>
                 <td class="f3ct-data-cell f3ct-sum-col" data-col="3">${window.FC_API.fmtNum(row.diff_sum, row.date)}</td>
             </tr>`;
-            
-            // 판넬 6: 증감
             h6 += `<tr class="${trC}" data-date="${row.date}">
                 <td class="f3ct-data-cell f3ct-sum-col" data-col="1">${window.FC_API.fmtNum(row.jeunggam, row.date)}</td>
             </tr>`;

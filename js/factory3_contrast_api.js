@@ -38,15 +38,15 @@
             return;
         }
 
-        // 새로 작성한 DB 뷰(v_daily_factory3_stock)의 컬럼 구조와 완벽히 일치하도록 매핑 수정
+        // 가져온 데이터를 신규 DB 뷰 컬럼 구조에 맞게 캐시에 매핑
         data.forEach(row => {
             dataCache[row.date] = {
                 jigo_a: row.jigo_a || 0,
                 jigo_d: row.jigo_d || 0,
                 jigo_sum: row.jigo_sum || 0,
-                geupji_a: row.geupji_a || 0,
-                geupji_d: row.geupji_d || 0,
-                geupji_sum: row.geupji_sum || 0,
+                geupji_a: row.geupji_a || 0,     // 변경: row.geup_a -> row.geupji_a
+                geupji_d: row.geupji_d || 0,     // 변경: row.geup_d -> row.geupji_d
+                geupji_sum: row.geupji_sum || 0, // 변경: row.geup_sum -> row.geupji_sum
                 real_a: row.real_a || 0,
                 real_d: row.real_d || 0,
                 real_sum: row.real_sum || 0,
@@ -56,7 +56,7 @@
                 diff_a: row.diff_a || 0,
                 diff_d: row.diff_d || 0,
                 diff_sum: row.diff_sum || 0,
-                jeunggam: row.jeunggam || 0
+                jeunggam: row.jeunggam || 0      // 변경: row.trend_sum -> row.jeunggam
             };
         });
     }
@@ -75,7 +75,7 @@
     }
 
     function buildRow(ds) {
-        // 캐시에 데이터가 없으면 공백 데이터 반환
+        // 캐시에 데이터가 없으면 공백 데이터 반환 (미래 날짜 대응)
         const d = dataCache[ds] || {
             jigo_a: 0, jigo_d: 0, jigo_sum: 0,
             geupji_a: 0, geupji_d: 0, geupji_sum: 0,
