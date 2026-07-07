@@ -9,7 +9,9 @@
         init: function() {
             // 헤더 공통 라이브러리 연동 수주 및 콜백 등록
             App.headerApi = Factory3Header.init({
-                idPrefix: '',
+                idPrefix: 'f3i',
+                wrapperSelector: '.f3i-wrapper',
+                inputSelector: '.f3i-td.editable .f3i-input',
                 onDateChange: App.loadData,
                 onSave: App.handleSave,
                 onExportExcel: App.exportToExcel

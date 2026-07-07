@@ -29,7 +29,7 @@
             }
             
             const beforeSum = startBal + wanKgSum;
-            const beforeInput = document.querySelector(`.gf3-input[data-col="${col}"][data-row="8"]`);
+            const beforeInput = document.querySelector(`.f3i-input[data-col="${col}"][data-row="8"]`);
             if (beforeInput) beforeInput.value = beforeSum > 0 ? beforeSum.toLocaleString() : "";
 
             const endBal = App.utils.parseNum(document.querySelector(`.target-calc[data-col="${col}"][data-row="10"]`)?.value);
@@ -37,7 +37,7 @@
             else endBalA += endBal;
 
             let usage = 0;
-            const usageInput = document.querySelector(`.gf3-input[data-col="${col}"][data-row="9"]`);
+            const usageInput = document.querySelector(`.f3i-input[data-col="${col}"][data-row="9"]`);
             if (usageInput) {
                 if (beforeSum > 0 && endBal > 0) {
                      usage = beforeSum - endBal;
@@ -129,7 +129,7 @@
     App.bindKeyboardNavigation = function() {
         App.headerApi.elements.wrapper.addEventListener('keydown', function(e) {
             const target = e.target;
-            if (!target.classList.contains('gf3-input')) return;
+            if (!target.classList.contains('f3i-input')) return;
 
             const row = parseInt(target.dataset.row, 10);
             const col = target.dataset.col;
@@ -153,7 +153,7 @@
                 }
                 if (nextRow >= 1 && nextRow <= 10 && nextColIdx >= 0 && nextColIdx < cols.length) {
                     const nextCol = cols[nextColIdx];
-                    const nextInput = App.headerApi.elements.wrapper.querySelector(`.gf3-input[data-row="${nextRow}"][data-col="${nextCol}"]`);
+                    const nextInput = App.headerApi.elements.wrapper.querySelector(`.f3i-input[data-row="${nextRow}"][data-col="${nextCol}"]`);
                     if (nextInput && !nextInput.readOnly) {
                         nextInput.focus(); nextInput.select();
                     }

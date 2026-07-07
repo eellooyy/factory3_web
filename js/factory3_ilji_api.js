@@ -20,7 +20,7 @@
 
             if (error) { console.error("Supabase 로드 에러:", error); return; }
 
-            document.querySelectorAll('.gf3-input').forEach(input => input.value = "");
+            document.querySelectorAll('.f3i-input').forEach(input => input.value = "");
             const loadedStartBalCols = new Set(); 
             App.state.prevWanA = 0; App.state.prevWanD = 0;
 
@@ -57,11 +57,11 @@
                         const el = document.getElementById('statTotalUsage');
                         if (el) el.value = val;
                     } else {
-                        const el = document.querySelector(`.gf3-input[data-row="${r}"][data-col="${c}"]`);
+                        const el = document.querySelector(`.f3i-input[data-row="${r}"][data-col="${c}"]`);
                         if (el) el.value = val;
                         
                         if (r === "1" && item.memo) {
-                            const memoEl = document.querySelector(`.gf3-input[data-row="1"][data-col="H"]`);
+                            const memoEl = document.querySelector(`.f3i-input[data-row="1"][data-col="H"]`);
                             if (memoEl) memoEl.value = item.memo;
                         }
                     }
@@ -81,7 +81,7 @@
                     if (item.item_type === 'end_bal_10' && missingStartBalCols.includes(item.col_id)) {
                         const valNum = item.value ? Number(item.value) : 0;
                         if (valNum !== 0) {
-                            const el = document.querySelector(`.gf3-input[data-row="1"][data-col="${item.col_id}"]`);
+                            const el = document.querySelector(`.f3i-input[data-row="1"][data-col="${item.col_id}"]`);
                             if (el) el.value = valNum.toLocaleString();
                         }
                     }
@@ -105,16 +105,16 @@
         const extractVal = (el) => el ? el.value.replace(/,/g, '').replace(/kg/g, '').replace(/R\/L/g, '').trim() : "";
 
         cols.forEach(col => {
-            const startEl = document.querySelector(`.gf3-input[data-row="1"][data-col="${col}"]`);
-            const memoEl = document.querySelector(`.gf3-input[data-row="1"][data-col="H"]`);
+            const startEl = document.querySelector(`.f3i-input[data-row="1"][data-col="${col}"]`);
+            const memoEl = document.querySelector(`.f3i-input[data-row="1"][data-col="H"]`);
             rawPayloadData.push({ item_type: 'start_bal_1', col_id: col, value: extractVal(startEl), memo: memoEl ? memoEl.value : "" });
 
             for (let r = 2; r <= 7; r++) {
-                const wanEl = document.querySelector(`.gf3-input[data-row="${r}"][data-col="${col}"]`);
+                const wanEl = document.querySelector(`.f3i-input[data-row="${r}"][data-col="${col}"]`);
                 rawPayloadData.push({ item_type: `wan_roll_${r}`, col_id: col, value: extractVal(wanEl), memo: "" });
             }
 
-            const endEl = document.querySelector(`.gf3-input[data-row="10"][data-col="${col}"]`);
+            const endEl = document.querySelector(`.f3i-input[data-row="10"][data-col="${col}"]`);
             rawPayloadData.push({ item_type: 'end_bal_10', col_id: col, value: extractVal(endEl), memo: "" });
         });
 

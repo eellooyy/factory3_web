@@ -5,6 +5,9 @@ window.Factory3Header = (function() {
     const utils = window.Factory3Utils;
 
     function elementId(prefix, name) {
+        if (prefix === 'f3i') {
+            return `f3i${name}`;
+        }
         return `gf3${prefix}${name}`;
     }
 
@@ -43,6 +46,8 @@ window.Factory3Header = (function() {
 
     function init(config) {
         const prefix = config.idPrefix || '';
+        const wrapperSelector = config.wrapperSelector || '.gf3-wrapper';
+        const inputSelector = config.inputSelector || '.gf3-td.editable .gf3-input';
         const onDateChange = config.onDateChange || null;
         const onSave = config.onSave || (() => alert('저장 기능은 준비 중입니다.'));
         const onExportExcel = config.onExportExcel || (() => defaultExportExcel(elements));
@@ -91,14 +96,14 @@ window.Factory3Header = (function() {
                 elements.wrapper.classList.add('edit-mode');
                 elements.editBtn.textContent = '보기';
                 elements.saveBtn.disabled = false;
-                elements.wrapper.querySelectorAll('.gf3-td.editable .gf3-input').forEach(input => {
+                elements.wrapper.querySelectorAll(inputSelector).forEach(input => {
                     input.readOnly = false;
                 });
             } else {
                 elements.wrapper.classList.remove('edit-mode');
                 elements.editBtn.textContent = '수정';
                 elements.saveBtn.disabled = true;
-                elements.wrapper.querySelectorAll('.gf3-td.editable .gf3-input').forEach(input => {
+                elements.wrapper.querySelectorAll(inputSelector).forEach(input => {
                     input.readOnly = true;
                 });
             }
@@ -116,7 +121,7 @@ window.Factory3Header = (function() {
             }
         });
 
-        elements.wrapper = document.querySelector('.gf3-wrapper');
+        elements.wrapper = document.querySelector(wrapperSelector);
         if (!elements.wrapper) return null;
 
         elements.dateText = document.getElementById(elementId(prefix, 'DateText'));
