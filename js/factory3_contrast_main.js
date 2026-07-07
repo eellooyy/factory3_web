@@ -2,22 +2,24 @@
 (function () {
     'use strict';
 
+    window.Factory3Contrast = window.Factory3Contrast || {};
+
     const state = {
-        selectedDate: window.FC_CONST.yesterdayStr(),
+        selectedDate: Factory3Contrast.constant.yesterdayStr(),
         selectedPanel: null,
         selectedCol: null,
     };
 
     let _syncLock = false;
     function bindScrollSync() {
-        window.FC_CONST.PIDS.forEach(id => {
+        Factory3Contrast.constant.PIDS.forEach(id => {
             const el = document.getElementById(id);
             if (!el) return;
             el.addEventListener('scroll', () => {
                 if (_syncLock) return;
                 _syncLock = true;
                 const top = el.scrollTop;
-                window.FC_CONST.PIDS.filter(x => x !== id).forEach(tid => {
+                Factory3Contrast.constant.PIDS.filter(x => x !== id).forEach(tid => {
                     const t = document.getElementById(tid); if(t) t.scrollTop = top;
                 });
                 _syncLock = false;
@@ -33,7 +35,7 @@
                 const td = e.target.closest('td[data-col]');
                 if (!td) return;
                 const tr = td.closest('tr[data-date]');
-                window.FC_RENDER.applyHighlight(i, tr.getAttribute('data-date'), td.getAttribute('data-col'));
+                Factory3Contrast.render.applyHighlight(i, tr.getAttribute('data-date'), td.getAttribute('data-col'));
             });
         });
     }
@@ -54,8 +56,8 @@
             if (e.key === 'ArrowUp' || e.key === 'ArrowDown') {
                 const target = e.key === 'ArrowUp' ? curRow.previousElementSibling : curRow.nextElementSibling;
                 if (target && target.getAttribute('data-date')) {
-                    window.FC_RENDER.applyHighlight(panelIdx, target.getAttribute('data-date'), String(colNum));
-                    window.FC_RENDER.scrollToActiveCell(panelIdx);
+                    Factory3Contrast.render.applyHighlight(panelIdx, target.getAttribute('data-date'), String(colNum));
+                    Factory3Contrast.render.scrollToActiveCell(panelIdx);
                 }
             } else {
                 const colCount = { 1:3, 2:3, 3:3, 4:3, 5:3, 6:1 };
@@ -73,8 +75,8 @@
                         else colNum = colCount[panelIdx]; 
                     }
                 }
-                window.FC_RENDER.applyHighlight(panelIdx, state.selectedDate, String(colNum));
-                window.FC_RENDER.scrollToActiveCell(panelIdx);
+                Factory3Contrast.render.applyHighlight(panelIdx, state.selectedDate, String(colNum));
+                Factory3Contrast.render.scrollToActiveCell(panelIdx);
             }
         });
     }
@@ -90,29 +92,29 @@
                     idPrefix: 'Contrast',
                     onDateChange: async (ds) => { // async 추가
                         state.selectedDate = ds;
-                        window.FC_RENDER.clearHighlights();
+                        Factory3Contrast.render.clearHighlights();
                         
                         // 날짜 변경 시 Supabase에서 새로운 범위의 데이터를 로드합니다.
-                        await window.FC_API.fetchDataRange(ds); 
+                        await Factory3Contrast.api.fetchDataRange(ds); 
                         
-                        window.FC_RENDER.renderAllRows(); 
-                        window.FC_RENDER.scrollToDate(ds); 
+                        Factory3Contrast.render.renderAllRows(); 
+                        Factory3Contrast.render.scrollToDate(ds); 
                     }, 
                     onSave: () => {} 
                 });
             }
 
-            state.selectedDate = window.FC_CONST.yesterdayStr();
+            state.selectedDate = Factory3Contrast.constant.yesterdayStr();
             
             // 최초 실행 시 Supabase에서 데이터를 연동합니다.
-            await window.FC_API.fetchDataRange(state.selectedDate);
+            await Factory3Contrast.api.fetchDataRange(state.selectedDate);
             
-            window.FC_RENDER.renderAllRows();
-            window.FC_RENDER.scrollToDate(window.FC_CONST.yesterdayStr());
+            Factory3Contrast.render.renderAllRows();
+            Factory3Contrast.render.scrollToDate(Factory3Contrast.constant.yesterdayStr());
         }
     };
 
-    window.FC_MAIN = {
+    Factory3Contrast.main = {
         state: state
     };
 

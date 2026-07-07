@@ -6,7 +6,7 @@
     if (!App) return;
 
     // Supabase 클라이언트 초기화
-    const supabase = window.supabase.createClient(App.supabaseUrl, App.supabaseKey);
+    const supabase = Factory3Utils.initSupabase();
 
     // 데이터 불러오기
     App.loadData = async function(dateStr) {

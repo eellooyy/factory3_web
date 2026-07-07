@@ -1,5 +1,14 @@
 /* factory3_utils.js — 3공장 공통 유틸 */
 window.Factory3Utils = {
+    supabaseUrl: 'https://npiflqoscsvnnauvqhrr.supabase.co',
+    supabaseKey: 'sb_publishable_ir-mHSsX6SSIQwHerkLbfA_2qCOP3KW',
+    supabase: null,
+    initSupabase: function() {
+        if (!this.supabase && window.supabase) {
+            this.supabase = window.supabase.createClient(this.supabaseUrl, this.supabaseKey);
+        }
+        return this.supabase;
+    },
     getTodayStr: () => {
         const d = new Date();
         return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;

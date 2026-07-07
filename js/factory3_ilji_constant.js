@@ -5,9 +5,7 @@
     // 전역 공유 객체 초기화
     window.Factory3Ilji = window.Factory3Ilji || {};
     
-    // Supabase 설정
-    Factory3Ilji.supabaseUrl = 'https://npiflqoscsvnnauvqhrr.supabase.co';
-    Factory3Ilji.supabaseKey = 'sb_publishable_ir-mHSsX6SSIQwHerkLbfA_2qCOP3KW'; 
+    // Supabase 설정은 Factory3Utils 공통 설정을 사용합니다.
     
     // 연산용 상수
     Factory3Ilji.FACTOR_788 = 571;

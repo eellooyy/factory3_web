@@ -2,12 +2,10 @@
 (function () {
     'use strict';
 
-    // Supabase 프로젝트 정보
-    const SUPABASE_URL = 'https://npiflqoscsvnnauvqhrr.supabase.co';
-    const SUPABASE_ANON_KEY = 'sb_publishable_ir-mHSsX6SSIQwHerkLbfA_2qCOP3KW'; 
+    window.Factory3Contrast = window.Factory3Contrast || {};
     
-    // Supabase 클라이언트 초기화
-    const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+    // Supabase 클라이언트 초기화 (Factory3Utils 공통 모듈 사용)
+    const supabase = Factory3Utils.initSupabase();
     const dataCache = {};
 
     function getDatesRange(targetDateStr) {
@@ -16,7 +14,7 @@
         for (let i = -15; i <= 15; i++) {
             const d = new Date(baseDate);
             d.setDate(baseDate.getDate() + i);
-            dates.push(`${d.getFullYear()}-${window.FC_CONST.pad(d.getMonth()+1)}-${window.FC_CONST.pad(d.getDate())}`);
+            dates.push(`${d.getFullYear()}-${Factory3Contrast.constant.pad(d.getMonth()+1)}-${Factory3Contrast.constant.pad(d.getDate())}`);
         }
         return dates;
     }
@@ -63,7 +61,7 @@
 
     function fmtNum(v, ds) {
         const rowDate = new Date(ds + 'T00:00:00');
-        const yesterdayDate = new Date(window.FC_CONST.yesterdayStr() + 'T00:00:00'); 
+        const yesterdayDate = new Date(Factory3Contrast.constant.yesterdayStr() + 'T00:00:00'); 
 
         if (rowDate > yesterdayDate) {
             return '<span class="f3ct-empty">-</span>';
@@ -96,7 +94,7 @@
         };
     }
 
-    window.FC_API = {
+    Factory3Contrast.api = {
         dataCache: dataCache,
         getDatesRange: getDatesRange,
         fetchDataRange: fetchDataRange,

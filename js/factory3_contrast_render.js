@@ -2,50 +2,52 @@
 (function () {
     'use strict';
 
+    window.Factory3Contrast = window.Factory3Contrast || {};
+
     function renderAllRows() {
-        const targetStr = window.FC_MAIN.state.selectedDate || window.FC_CONST.yesterdayStr();
-        const dates = window.FC_API.getDatesRange(targetStr);
-        const rows = dates.map(ds => window.FC_API.buildRow(ds));
+        const targetStr = Factory3Contrast.main.state.selectedDate || Factory3Contrast.constant.yesterdayStr();
+        const dates = Factory3Contrast.api.getDatesRange(targetStr);
+        const rows = dates.map(ds => Factory3Contrast.api.buildRow(ds));
 
         // 오타 완전 수정 완료 (h6('')에서 h6=''으로 원복)
         let h1='', h2='', h3='', h4='', h5='', h6='';
 
         rows.forEach(row => {
             const d = new Date(row.date + 'T00:00:00');
-            const trC = row.date === window.FC_CONST.yesterdayStr() ? 'f3ct-row-today' : '';
+            const trC = row.date === Factory3Contrast.constant.yesterdayStr() ? 'f3ct-row-today' : '';
             const wd = d.getDay();
             const wdC = wd === 6 ? 'f3ct-sat' : wd === 0 ? 'f3ct-sun' : '';
-            const m = window.FC_CONST.pad(d.getMonth()+1), dy = window.FC_CONST.pad(d.getDate()), wn = window.FC_CONST.WD_KR[wd];
+            const m = Factory3Contrast.constant.pad(d.getMonth()+1), dy = Factory3Contrast.constant.pad(d.getDate()), wn = Factory3Contrast.constant.WD_KR[wd];
             const dateTd = `<td class="f3ct-date-td ${wdC}" data-date="${row.date}">${m}/${dy} (${wn})</td>`;
 
             h1 += `<tr class="${trC}" data-date="${row.date}">
                 ${dateTd}
-                <td class="f3ct-data-cell" data-col="1">${window.FC_API.fmtNum(row.jigo_a, row.date)}</td>
-                <td class="f3ct-data-cell" data-col="2">${window.FC_API.fmtNum(row.jigo_d, row.date)}</td>
-                <td class="f3ct-data-cell f3ct-sum-col" data-col="3">${window.FC_API.fmtNum(row.jigo_sum, row.date)}</td>
+                <td class="f3ct-data-cell" data-col="1">${Factory3Contrast.api.fmtNum(row.jigo_a, row.date)}</td>
+                <td class="f3ct-data-cell" data-col="2">${Factory3Contrast.api.fmtNum(row.jigo_d, row.date)}</td>
+                <td class="f3ct-data-cell f3ct-sum-col" data-col="3">${Factory3Contrast.api.fmtNum(row.jigo_sum, row.date)}</td>
             </tr>`;
             h2 += `<tr class="${trC}" data-date="${row.date}">
-                <td class="f3ct-data-cell" data-col="1">${window.FC_API.fmtNum(row.geupji_a, row.date)}</td>
-                <td class="f3ct-data-cell" data-col="2">${window.FC_API.fmtNum(row.geupji_d, row.date)}</td>
-                <td class="f3ct-data-cell f3ct-sum-col" data-col="3">${window.FC_API.fmtNum(row.geupji_sum, row.date)}</td>
+                <td class="f3ct-data-cell" data-col="1">${Factory3Contrast.api.fmtNum(row.geupji_a, row.date)}</td>
+                <td class="f3ct-data-cell" data-col="2">${Factory3Contrast.api.fmtNum(row.geupji_d, row.date)}</td>
+                <td class="f3ct-data-cell f3ct-sum-col" data-col="3">${Factory3Contrast.api.fmtNum(row.geupji_sum, row.date)}</td>
             </tr>`;
             h3 += `<tr class="${trC}" data-date="${row.date}">
-                <td class="f3ct-data-cell" data-col="1">${window.FC_API.fmtNum(row.real_a, row.date)}</td>
-                <td class="f3ct-data-cell" data-col="2">${window.FC_API.fmtNum(row.real_d, row.date)}</td>
-                <td class="f3ct-data-cell f3ct-sum-col" data-col="3">${window.FC_API.fmtNum(row.real_sum, row.date)}</td>
+                <td class="f3ct-data-cell" data-col="1">${Factory3Contrast.api.fmtNum(row.real_a, row.date)}</td>
+                <td class="f3ct-data-cell" data-col="2">${Factory3Contrast.api.fmtNum(row.real_d, row.date)}</td>
+                <td class="f3ct-data-cell f3ct-sum-col" data-col="3">${Factory3Contrast.api.fmtNum(row.real_sum, row.date)}</td>
             </tr>`;
             h4 += `<tr class="${trC}" data-date="${row.date}">
-                <td class="f3ct-data-cell" data-col="1">${window.FC_API.fmtNum(row.erp_a, row.date)}</td>
-                <td class="f3ct-data-cell" data-col="2">${window.FC_API.fmtNum(row.erp_d, row.date)}</td>
-                <td class="f3ct-data-cell f3ct-sum-col" data-col="3">${window.FC_API.fmtNum(row.erp_sum, row.date)}</td>
+                <td class="f3ct-data-cell" data-col="1">${Factory3Contrast.api.fmtNum(row.erp_a, row.date)}</td>
+                <td class="f3ct-data-cell" data-col="2">${Factory3Contrast.api.fmtNum(row.erp_d, row.date)}</td>
+                <td class="f3ct-data-cell f3ct-sum-col" data-col="3">${Factory3Contrast.api.fmtNum(row.erp_sum, row.date)}</td>
             </tr>`;
             h5 += `<tr class="${trC}" data-date="${row.date}">
-                <td class="f3ct-data-cell" data-col="1">${window.FC_API.fmtNum(row.diff_a, row.date)}</td>
-                <td class="f3ct-data-cell" data-col="2">${window.FC_API.fmtNum(row.diff_d, row.date)}</td>
-                <td class="f3ct-data-cell f3ct-sum-col" data-col="3">${window.FC_API.fmtNum(row.diff_sum, row.date)}</td>
+                <td class="f3ct-data-cell" data-col="1">${Factory3Contrast.api.fmtNum(row.diff_a, row.date)}</td>
+                <td class="f3ct-data-cell" data-col="2">${Factory3Contrast.api.fmtNum(row.diff_d, row.date)}</td>
+                <td class="f3ct-data-cell f3ct-sum-col" data-col="3">${Factory3Contrast.api.fmtNum(row.diff_sum, row.date)}</td>
             </tr>`;
             h6 += `<tr class="${trC}" data-date="${row.date}">
-                <td class="f3ct-data-cell f3ct-sum-col" data-col="1">${window.FC_API.fmtNum(row.jeunggam, row.date)}</td>
+                <td class="f3ct-data-cell" data-col="1">${Factory3Contrast.api.fmtNum(row.jeunggam, row.date)}</td>
             </tr>`;
         });
 
@@ -66,9 +68,9 @@
 
     function applyHighlight(panelIdx, ds, col) {
         clearHighlights();
-        window.FC_MAIN.state.selectedDate = ds; 
-        window.FC_MAIN.state.selectedPanel = panelIdx; 
-        window.FC_MAIN.state.selectedCol = col;
+        Factory3Contrast.main.state.selectedDate = ds; 
+        Factory3Contrast.main.state.selectedPanel = panelIdx; 
+        Factory3Contrast.main.state.selectedCol = col;
 
         [1,2,3,4,5,6].forEach(i => {
             const tr = document.querySelector(`#f3ctBody${i} tr[data-date="${ds}"]`);
@@ -102,7 +104,7 @@
 
     function scrollToActiveCell(idx) {
         const pan = document.getElementById(`f3ctScrollPanel${idx}`);
-        const td  = document.querySelector(`#f3ctBody${idx} tr[data-date="${window.FC_MAIN.state.selectedDate}"] td[data-col="${window.FC_MAIN.state.selectedCol}"]`);
+        const td  = document.querySelector(`#f3ctBody${idx} tr[data-date="${Factory3Contrast.main.state.selectedDate}"] td[data-col="${Factory3Contrast.main.state.selectedCol}"]`);
         if (!pan || !td) return;
         let top = 0, el = td;
         while (el && el !== pan && el !== document.body) { top += el.offsetTop; el = el.offsetParent; }
@@ -122,7 +124,7 @@
                     el = el.offsetParent; 
                 }
                 const targetScrollTop = top - (pan.clientHeight / 3.5); 
-                window.FC_CONST.PIDS.forEach(id => { 
+                Factory3Contrast.constant.PIDS.forEach(id => { 
                     const p = document.getElementById(id); 
                     if (p) p.scrollTop = targetScrollTop; 
                 });
@@ -130,7 +132,7 @@
         }), 120);
     }
 
-    window.FC_RENDER = {
+    Factory3Contrast.render = {
         renderAllRows: renderAllRows,
         clearHighlights: clearHighlights,
         applyHighlight: applyHighlight,

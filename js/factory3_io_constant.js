@@ -1,4 +1,4 @@
-/* js/factory3_io_constants.js */
+/* js/factory3_io_constant.js */
 window.Factory3Io = window.Factory3Io || {};
 
 /* ─────────────────────────────────────────
@@ -25,41 +25,31 @@ Factory3Io.dataCache = {};
 Factory3Io.baselineRow = null; 
 
 /* ─────────────────────────────────────────
-   Supabase 클라이언트 초기화
+   Supabase 클라이언트 초기화 (Factory3Utils 공통 모듈 사용)
 ───────────────────────────────────────── */
-Factory3Io.supabaseUrl = 'https://npiflqoscsvnnauvqhrr.supabase.co';
-Factory3Io.supabaseKey = 'sb_publishable_ir-mHSsX6SSIQwHerkLbfA_2qCOP3KW';
-Factory3Io.supabase = window.supabase.createClient(Factory3Io.supabaseUrl, Factory3Io.supabaseKey);
+Factory3Io.supabase = Factory3Utils.initSupabase();
 
 /* ─────────────────────────────────────────
-   날짜 연산 유틸리티 헬퍼
+   날짜 연산 유틸리티 헬퍼 (Factory3Utils 위임 구조)
 ───────────────────────────────────────── */
 Factory3Io.Utils = {
     pad: function (n) { 
         return String(n).padStart(2, '0'); 
     },
     todayStr: function () {
-        const t = new Date();
-        return `${t.getFullYear()}-${this.pad(t.getMonth() + 1)}-${this.pad(t.getDate())}`;
+        return Factory3Utils.getTodayStr();
     },
     yesterdayStr: function () {
-        const t = new Date();
-        t.setDate(t.getDate() - 1);
-        return `${t.getFullYear()}-${this.pad(t.getMonth() + 1)}-${this.pad(t.getDate())}`;
+        return Factory3Utils.addDays(Factory3Utils.getTodayStr(), -1);
     },
     fmtKo: function (ds) {
-        if (!ds) return '';
-        const d = new Date(ds + 'T00:00:00');
-        if (isNaN(d.getTime())) return ds;
-        return `${d.getFullYear()}년 ${this.pad(d.getMonth() + 1)}월 ${this.pad(d.getDate())}일 (${Factory3Io.WD_KR[d.getDay()]})`;
+        return Factory3Utils.formatKoDate(ds);
     },
     fmtDate: function (d) {
         return `${d.getFullYear()}-${this.pad(d.getMonth() + 1)}-${this.pad(d.getDate())}`;
     },
     addDays: function (ds, days) {
-        const d = new Date(ds + 'T00:00:00');
-        d.setDate(d.getDate() + days);
-        return this.fmtDate(d);
+        return Factory3Utils.addDays(ds, days);
     },
     getDatesRange: function (start, end) {
         const arr = [];
