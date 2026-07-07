@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>3공장 일지</title>
+    
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0,0" />
+    
+    <link rel="stylesheet" href="css/factory3_ilji.css">
+
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+    <script src="https://cdn.jsdelivr.net/npm/flatpickr/dist/l10n/ko.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/xlsx-js-style@1.2.0/dist/xlsx.bundle.js"></script>
+    
+    <script src="js/common_ui.js" defer></script>
+</head>
+<body>
+
+<div class="f3i-wrapper" data-page-module="Factory3IljiModule" data-is-admin="1">
+    
+    <div class="f3i-header">
+        <div class="f3i-title-wrap">
+            <span class="material-symbols-outlined f3i-hamburger">menu</span>
+            <span class="f3i-main-title">3공장 일지</span>
+            
+            <div class="f3i-dropdown">
+                <a href="factory3_ilji.html" class="active">3공장 일지</a>
+                <a href="factory3_io.html">3공장 입출고 대장</a>
+                <a href="factory3_contrast.html">3공장 실재고 및 ERP대조</a>
+            </div>
+        </div>
+        
+        <div class="f3i-controls">
+            <div class="f3i-nav-group">
+                <button id="f3iPrevBtn" class="f3i-icon-btn" title="이전 날짜"><span class="material-symbols-outlined">chevron_left</span></button>
+                <div class="f3i-cal-wrap" id="f3iCalendarWrap">
+                    <span id="f3iDateText" class="f3i-date-text cursor-pointer"></span>
+                    <input type="text" id="f3iFlatpickr" style="display: none;">
+                </div>
+                <button id="f3iNextBtn" class="f3i-icon-btn" title="다음 날짜"><span class="material-symbols-outlined">chevron_right</span></button>
+            </div>
+            
+            <button id="f3iTodayBtn" class="f3i-action-btn today-btn">오늘</button>
+            <button id="f3iEditBtn" class="f3i-action-btn edit-btn" disabled>수정</button>
+            <button id="f3iSaveBtn" class="f3i-action-btn save-btn" disabled>저장</button>
+            <button id="f3iExcelBtn" class="f3i-action-btn excel-btn">
+                <span class="material-symbols-outlined" style="font-size: 16px; margin-right: 4px;">table_view</span>엑셀 저장
+            </button>
+        </div>
+    </div>
+
+    <div class="f3i-layout">
+        <div class="f3i-main-table-box">
+            <table class="f3i-table border-outer">
+                <colgroup>
+                    <col style="width: 100px;"> 
+                    <col style="width: 75px;">  
+                    <col style="width: 75px;">  
+                    <col style="width: 75px;">  
+                    <col style="width: 75px;">  
+                    <col style="width: 75px;">  
+                    <col style="width: 75px;">  
+                    <col style="width: 120px;"> 
+                    <col style="width: 110px;">
+                </colgroup>
+                <thead class="border-bottom-thick">
+                    <tr>
+                        <th class="f3i-th col-title border-right-thick"></th>
+                        <th class="f3i-th">788</th>
+                        <th class="f3i-th">R51</th>
+                        <th class="f3i-th">R52</th>
+                        <th class="f3i-th">R53</th>
+                        <th class="f3i-th">R54</th>
+                        <th class="f3i-th border-right-thick">R55</th>
+                        <th class="f3i-th" colspan="2">특집</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr class="border-bottom-thick">
+                        <th class="f3i-th row-title border-right-thick">사용 전 잔량</th>
+                        <td class="f3i-td editable"><input type="text" class="f3i-input target-calc" data-col="B" data-row="1" readonly></td>
+                        <td class="f3i-td editable"><input type="text" class="f3i-input target-calc" data-col="C" data-row="1" readonly></td>
+                        <td class="f3i-td editable"><input type="text" class="f3i-input target-calc" data-col="D" data-row="1" readonly></td>
+                        <td class="f3i-td editable"><input type="text" class="f3i-input target-calc" data-col="E" data-row="1" readonly></td>
+                        <td class="f3i-td editable"><input type="text" class="f3i-input target-calc" data-col="F" data-row="1" readonly></td>
+                        <td class="f3i-td editable border-right-thick"><input type="text" class="f3i-input target-calc" data-col="G" data-row="1" readonly></td>
+                        <td class="f3i-td editable" colspan="2"><input type="text" class="f3i-input" data-col="H" data-row="1" placeholder="메모" readonly></td>
+                    </tr>
+                    
+                    <tr>
+                        <th class="f3i-th row-title border-right-thick" rowspan="6">완 롤</th>
+                        <td class="f3i-td editable"><input type="text" class="f3i-input target-calc" data-col="B" data-row="2" readonly></td>
+                        <td class="f3i-td editable"><input type="text" class="f3i-input target-calc" data-col="C" data-row="2" readonly></td>
+                        <td class="f3i-td editable"><input type="text" class="f3i-input target-calc" data-col="D" data-row="2" readonly></td>
+                        <td class="f3i-td editable"><input type="text" class="f3i-input target-calc" data-col="E" data-row="2" readonly></td>
+                        <td class="f3i-td editable"><input type="text" class="f3i-input target-calc" data-col="F" data-row="2" readonly></td>
+                        <td class="f3i-td editable border-right-thick"><input type="text" class="f3i-input target-calc" data-col="G" data-row="2" readonly></td>
+                        <td class="f3i-td special-cell" colspan="2"></td>
+                    </tr>
+                    
+                    <tr>
+                        <td class="f3i-td editable"><input type="text" class="f3i-input target-calc" data-col="B" data-row="3" readonly></td>
+                        <td class="f3i-td editable"><input type="text" class="f3i-input target-calc" data-col="C" data-row="3" readonly></td>
+                        <td class="f3i-td editable"><input type="text" class="f3i-input target-calc" data-col="D" data-row="3" readonly></td>
+                        <td class="f3i-td editable"><input type="text" class="f3i-input target-calc" data-col="E" data-row="3" readonly></td>
+                        <td class="f3i-td editable"><input type="text" class="f3i-input target-calc" data-col="F" data-row="3" readonly></td>
+                        <td class="f3i-td editable border-right-thick"><input type="text" class="f3i-input target-calc" data-col="G" data-row="3" readonly></td>
+                        <th class="f3i-th special-cell special-label">사용량 총계:</th>
+                        <td class="f3i-td editable special-cell"><input type="text" class="f3i-input" id="statTotalUsage" readonly></td>
+                    </tr>
+
+                    <tr>
+                        <td class="f3i-td editable"><input type="text" class="f3i-input target-calc" data-col="B" data-row="4" readonly></td>
+                        <td class="f3i-td editable"><input type="text" class="f3i-input target-calc" data-col="C" data-row="4" readonly></td>
+                        <td class="f3i-td editable"><input type="text" class="f3i-input target-calc" data-col="D" data-row="4" readonly></td>
+                        <td class="f3i-td editable"><input type="text" class="f3i-input target-calc" data-col="E" data-row="4" readonly></td>
+                        <td class="f3i-td editable"><input type="text" class="f3i-input target-calc" data-col="F" data-row="4" readonly></td>
+                        <td class="f3i-td editable border-right-thick"><input type="text" class="f3i-input target-calc" data-col="G" data-row="4" readonly></td>
+                        <th class="f3i-th special-cell special-label">실사용량:</th>
+                        <td class="f3i-td special-cell"><input type="text" class="f3i-input" id="statRealUsage" readonly></td>
+                    </tr>
+
+                    <tr>
+                        <td class="f3i-td editable"><input type="text" class="f3i-input target-calc" data-col="B" data-row="5" readonly></td>
+                        <td class="f3i-td editable"><input type="text" class="f3i-input target-calc" data-col="C" data-row="5" readonly></td>
+                        <td class="f3i-td editable"><input type="text" class="f3i-input target-calc" data-col="D" data-row="5" readonly></td>
+                        <td class="f3i-td editable"><input type="text" class="f3i-input target-calc" data-col="E" data-row="5" readonly></td>
+                        <td class="f3i-td editable"><input type="text" class="f3i-input target-calc" data-col="F" data-row="5" readonly></td>
+                        <td class="f3i-td editable border-right-thick"><input type="text" class="f3i-input target-calc" data-col="G" data-row="5" readonly></td>
+                        <th class="f3i-th special-cell special-label">증감:</th>
+                        <td class="f3i-td special-cell"><input type="text" class="f3i-input" id="statDiff" readonly></td>
+                    </tr>
+
+                    <tr>
+                        <td class="f3i-td editable"><input type="text" class="f3i-input target-calc" data-col="B" data-row="6" readonly></td>
+                        <td class="f3i-td editable"><input type="text" class="f3i-input target-calc" data-col="C" data-row="6" readonly></td>
+                        <td class="f3i-td editable"><input type="text" class="f3i-input target-calc" data-col="D" data-row="6" readonly></td>
+                        <td class="f3i-td editable"><input type="text" class="f3i-input target-calc" data-col="E" data-row="6" readonly></td>
+                        <td class="f3i-td editable"><input type="text" class="f3i-input target-calc" data-col="F" data-row="6" readonly></td>
+                        <td class="f3i-td editable border-right-thick"><input type="text" class="f3i-input target-calc" data-col="G" data-row="6" readonly></td>
+                        <td class="f3i-td special-cell" colspan="2"></td>
+                    </tr>
+
+                    <tr>
+                        <td class="f3i-td editable"><input type="text" class="f3i-input target-calc" data-col="B" data-row="7" readonly></td>
+                        <td class="f3i-td editable"><input type="text" class="f3i-input target-calc" data-col="C" data-row="7" readonly></td>
+                        <td class="f3i-td editable"><input type="text" class="f3i-input target-calc" data-col="D" data-row="7" readonly></td>
+                        <td class="f3i-td editable"><input type="text" class="f3i-input target-calc" data-col="E" data-row="7" readonly></td>
+                        <td class="f3i-td editable"><input type="text" class="f3i-input target-calc" data-col="F" data-row="7" readonly></td>
+                        <td class="f3i-td editable border-right-thick"><input type="text" class="f3i-input target-calc" data-col="G" data-row="7" readonly></td>
+                        <td class="f3i-td special-cell" colspan="2"></td>
+                    </tr>
+
+                    <tr class="border-top-thick">
+                        <th class="f3i-th row-title calc-row border-right-thick">사용 전 합계</th>
+                        <td class="f3i-td readonly"><input type="text" class="f3i-input fw-bold" data-col="B" data-row="8" readonly></td>
+                        <td class="f3i-td readonly"><input type="text" class="f3i-input fw-bold" data-col="C" data-row="8" readonly></td>
+                        <td class="f3i-td readonly"><input type="text" class="f3i-input fw-bold" data-col="D" data-row="8" readonly></td>
+                        <td class="f3i-td readonly"><input type="text" class="f3i-input fw-bold" data-col="E" data-row="8" readonly></td>
+                        <td class="f3i-td readonly"><input type="text" class="f3i-input fw-bold" data-col="F" data-row="8" readonly></td>
+                        <td class="f3i-td readonly border-right-thick"><input type="text" class="f3i-input fw-bold" data-col="G" data-row="8" readonly></td>
+                        <th class="f3i-th special-cell special-label">사용량 A (1576mm):</th>
+                        <td class="f3i-td special-cell"><input type="text" class="f3i-input" id="statUsageA" readonly></td>
+                    </tr>
+
+                    <tr>
+                        <th class="f3i-th row-title calc-row border-right-thick">사용량</th>
+                        <td class="f3i-td readonly"><input type="text" class="f3i-input fw-bold" data-col="B" data-row="9" readonly></td>
+                        <td class="f3i-td readonly"><input type="text" class="f3i-input fw-bold" data-col="C" data-row="9" readonly></td>
+                        <td class="f3i-td readonly"><input type="text" class="f3i-input fw-bold" data-col="D" data-row="9" readonly></td>
+                        <td class="f3i-td readonly"><input type="text" class="f3i-input fw-bold" data-col="E" data-row="9" readonly></td>
+                        <td class="f3i-td readonly"><input type="text" class="f3i-input fw-bold" data-col="F" data-row="9" readonly></td>
+                        <td class="f3i-td readonly border-right-thick"><input type="text" class="f3i-input fw-bold" data-col="G" data-row="9" readonly></td>
+                        <th class="f3i-th special-cell special-label">사용량 D (788mm):</th>
+                        <td class="f3i-td special-cell"><input type="text" class="f3i-input" id="statUsageD" readonly></td>
+                    </tr>
+
+                    <tr class="border-top-thick">
+                        <th class="f3i-th row-title border-right-thick">사용 후 잔량</th>
+                        <td class="f3i-td editable"><input type="text" class="f3i-input target-calc" data-col="B" data-row="10" readonly></td>
+                        <td class="f3i-td editable"><input type="text" class="f3i-input target-calc" data-col="C" data-row="10" readonly></td>
+                        <td class="f3i-td editable"><input type="text" class="f3i-input target-calc" data-col="D" data-row="10" readonly></td>
+                        <td class="f3i-td editable"><input type="text" class="f3i-input target-calc" data-col="E" data-row="10" readonly></td>
+                        <td class="f3i-td editable"><input type="text" class="f3i-input target-calc" data-col="F" data-row="10" readonly></td>
+                        <td class="f3i-td editable border-right-thick"><input type="text" class="f3i-input target-calc" data-col="G" data-row="10" readonly></td>
+                        <td class="f3i-td special-cell bottom-border" colspan="2"></td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <div class="f3i-side-panel">
+            <div class="f3i-box">
+                <div class="f3i-box-header">완롤 잔량</div>
+                <table class="f3i-table mini-table border-outer">
+                    <thead class="border-bottom-thick"><tr><th class="f3i-th">A</th><th class="f3i-th">D</th></tr></thead>
+                    <tbody>
+                        <tr>
+                            <td class="f3i-td editable"><input type="text" class="f3i-input" id="sideWanA" readonly></td>
+                            <td class="f3i-td editable"><input type="text" class="f3i-input" id="sideWanD" readonly></td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="f3i-box">
+                <div class="f3i-box-header">급지 재고</div>
+                <table class="f3i-table mini-table border-outer">
+                    <thead class="border-bottom-thick"><tr><th class="f3i-th">A</th><th class="f3i-th">D</th></tr></thead>
+                    <tbody>
+                        <tr>
+                            <td class="f3i-td readonly"><input type="text" class="f3i-input fw-bold" id="sideGeupA" readonly></td>
+                            <td class="f3i-td readonly"><input type="text" class="f3i-input fw-bold" id="sideGeupD" readonly></td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="f3i-box">
+                <div class="f3i-box-header">급지 출고</div>
+                <table class="f3i-table mini-table border-outer">
+                    <thead class="border-bottom-thick"><tr><th class="f3i-th">A</th><th class="f3i-th">D</th></tr></thead>
+                    <tbody>
+                        <tr>
+                            <td class="f3i-td readonly"><input type="text" class="f3i-input fw-bold" id="sideChulgoA" readonly></td>
+                            <td class="f3i-td readonly"><input type="text" class="f3i-input fw-bold" id="sideChulgoD" readonly></td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+    </div>
+</div>
+
+<script src="js/factory3_utils.js"></script>
+<script src="js/factory3_header.js"></script>
+<script src="js/factory3_ilji_constant.js"></script>
+<script src="js/factory3_ilji_api.js"></script>
+<script src="js/factory3_ilji_render.js"></script>
+<script src="js/factory3_ilji_main.js"></script>
+</body>
+</html>

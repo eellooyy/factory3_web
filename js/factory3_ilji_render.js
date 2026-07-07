@@ -1,126 +1,22 @@
-/* geupji_factory3_script.js */
+/* factory3_ilji_render.js */
 (function() {
     'use strict';
+    
+    const App = window.Factory3Ilji;
+    if (!App) return;
 
-    const supabaseUrl = 'https://npiflqoscsvnnauvqhrr.supabase.co';
-    const supabaseKey = 'sb_publishable_ir-mHSsX6SSIQwHerkLbfA_2qCOP3KW'; 
-    const supabase = window.supabase.createClient(supabaseUrl, supabaseKey);
-
-    let state = { prevWanA: 0, prevWanD: 0 };
-    let headerApi = null;
-
-    const FACTOR_788 = 571;
-    const FACTOR_1576 = 1143;
-
-    const utils = {
-        parseNum: (val) => {
-            if (!val) return 0;
-            return parseInt(String(val).replace(/[^0-9.-]+/g, "")) || 0;
-        },
-        formatKg: (num) => {
-            return num.toLocaleString() + " kg";
-        }
-    };
-
-    async function loadData(dateStr) {
-        if (headerApi && headerApi.isEditMode()) headerApi.toggleEditMode();
-        
-        try {
-            const { data, error } = await supabase
-                .from('factory3_geupji_real')
-                .select('*')
-                .eq('date', dateStr);
-
-            if (error) { console.error("Supabase 로드 에러:", error); return; }
-
-            document.querySelectorAll('.gf3-input').forEach(input => input.value = "");
-            const loadedStartBalCols = new Set(); 
-            state.prevWanA = 0; state.prevWanD = 0;
-
-            if (data && data.length > 0) {
-                data.forEach(item => {
-                    const typeTokens = item.item_type.split('_');
-                    const r = typeTokens[typeTokens.length - 1]; 
-                    const baseType = item.item_type.replace(`_${r}`, ''); 
-                    const c = item.col_id;
-                    const valNum = item.value ? Number(item.value) : 0;
-                    let val = "";
-                    
-                    if (valNum !== 0) {
-                        if (item.item_type === 'stat_total_usage') {
-                            val = valNum.toLocaleString() + " kg";
-                        } else if (item.item_type.startsWith('side_wan')) {
-                            val = valNum.toLocaleString() + " R/L";
-                        } else {
-                            const rInt = parseInt(r, 10);
-                            if (rInt >= 2 && rInt <= 7) {
-                                val = valNum >= 20 ? valNum.toLocaleString() + " kg" : valNum.toLocaleString() + " R/L";
-                            } else {
-                                val = valNum.toLocaleString();
-                            }
-                        }
-                    }
-
-                    if (item.item_type === 'start_bal_1') loadedStartBalCols.add(c);
-                    
-                    if (baseType === 'side_wan') {
-                        const el = document.getElementById(`sideWan${c}`);
-                        if (el) el.value = val;
-                    } else if (item.item_type === 'stat_total_usage') {
-                        const el = document.getElementById('statTotalUsage');
-                        if (el) el.value = val;
-                    } else {
-                        const el = document.querySelector(`.gf3-input[data-row="${r}"][data-col="${c}"]`);
-                        if (el) el.value = val;
-                        
-                        if (r === "1" && item.memo) {
-                            const memoEl = document.querySelector(`.gf3-input[data-row="1"][data-col="H"]`);
-                            if (memoEl) memoEl.value = item.memo;
-                        }
-                    }
-                });
-            }
-            
-            const cols = ['B', 'C', 'D', 'E', 'F', 'G'];
-            const missingStartBalCols = cols.filter(col => !loadedStartBalCols.has(col));
-            const prevDate = Factory3Utils.addDays(dateStr, -1);
-            const { data: prevData, error: prevError } = await supabase
-                .from('factory3_geupji_real')
-                .select('*')
-                .eq('date', prevDate);
-            
-            if (!prevError && prevData) {
-                prevData.forEach(item => {
-                    if (item.item_type === 'end_bal_10' && missingStartBalCols.includes(item.col_id)) {
-                        const valNum = item.value ? Number(item.value) : 0;
-                        if (valNum !== 0) {
-                            const el = document.querySelector(`.gf3-input[data-row="1"][data-col="${item.col_id}"]`);
-                            if (el) el.value = valNum.toLocaleString();
-                        }
-                    }
-                    if (item.item_type === 'side_wan_1') {
-                        if (item.col_id === 'A') state.prevWanA = item.value ? Number(item.value) : 0;
-                        if (item.col_id === 'D') state.prevWanD = item.value ? Number(item.value) : 0;
-                    }
-                });
-            }
-            calculateAutoFields();
-        } catch (err) {
-            console.error("시스템 에러:", err);
-        }
-    }
-
-    function calculateAutoFields() {
+    // 자동 수식 계산
+    App.calculateAutoFields = function() {
         let usageD = 0; let usageA = 0; let endBalD = 0; let endBalA = 0; 
         let sumTodayRollD = 0; let sumTodayRollA = 0;
 
         ['B','C','D','E','F','G'].forEach(col => {
-            const factor = (col === 'B') ? FACTOR_788 : FACTOR_1576;
-            const startBal = utils.parseNum(document.querySelector(`.target-calc[data-col="${col}"][data-row="1"]`)?.value);
+            const factor = (col === 'B') ? App.FACTOR_788 : App.FACTOR_1576;
+            const startBal = App.utils.parseNum(document.querySelector(`.target-calc[data-col="${col}"][data-row="1"]`)?.value);
             
             let wanKgSum = 0;
             for(let r=2; r<=7; r++) {
-                let cellVal = utils.parseNum(document.querySelector(`.target-calc[data-col="${col}"][data-row="${r}"]`)?.value);
+                let cellVal = App.utils.parseNum(document.querySelector(`.target-calc[data-col="${col}"][data-row="${r}"]`)?.value);
                 if (cellVal >= 20) {
                     wanKgSum += cellVal;
                 } else {
@@ -130,14 +26,13 @@
                         else sumTodayRollA += cellVal;
                     }
                 }
-
             }
             
             const beforeSum = startBal + wanKgSum;
             const beforeInput = document.querySelector(`.gf3-input[data-col="${col}"][data-row="8"]`);
             if (beforeInput) beforeInput.value = beforeSum > 0 ? beforeSum.toLocaleString() : "";
 
-            const endBal = utils.parseNum(document.querySelector(`.target-calc[data-col="${col}"][data-row="10"]`)?.value);
+            const endBal = App.utils.parseNum(document.querySelector(`.target-calc[data-col="${col}"][data-row="10"]`)?.value);
             if (col === 'B') endBalD = endBal;
             else endBalA += endBal;
 
@@ -161,24 +56,24 @@
         const elRealUsage = document.getElementById('statRealUsage');
         const elDiff = document.getElementById('statDiff');
 
-        if(elUsageD) elUsageD.value = usageD > 0 ? utils.formatKg(usageD) : "";
-        if(elUsageA) elUsageA.value = usageA > 0 ? utils.formatKg(usageA) : "";
+        if(elUsageD) elUsageD.value = usageD > 0 ? App.utils.formatKg(usageD) : "";
+        if(elUsageA) elUsageA.value = usageA > 0 ? App.utils.formatKg(usageA) : "";
         
         const realUsage = usageD + usageA;
-        if(elRealUsage) elRealUsage.value = realUsage > 0 ? utils.formatKg(realUsage) : "";
+        if(elRealUsage) elRealUsage.value = realUsage > 0 ? App.utils.formatKg(realUsage) : "";
 
-        let totalUsageVal = utils.parseNum(document.getElementById('statTotalUsage')?.value);
+        let totalUsageVal = App.utils.parseNum(document.getElementById('statTotalUsage')?.value);
         if (totalUsageVal > 0 && realUsage > 0) {
              const diff = totalUsageVal - realUsage;
-             elDiff.value = utils.formatKg(diff);
+             elDiff.value = App.utils.formatKg(diff);
         } else {
              if(elDiff) elDiff.value = "";
         }
 
-        const wanA = utils.parseNum(document.getElementById('sideWanA')?.value);
-        const wanD = utils.parseNum(document.getElementById('sideWanD')?.value);
-        const geupD = endBalD + (wanD * FACTOR_788);
-        const geupA = endBalA + (wanA * FACTOR_1576);
+        const wanA = App.utils.parseNum(document.getElementById('sideWanA')?.value);
+        const wanD = App.utils.parseNum(document.getElementById('sideWanD')?.value);
+        const geupD = endBalD + (wanD * App.FACTOR_788);
+        const geupA = endBalA + (wanA * App.FACTOR_1576);
 
         const elGeupA = document.getElementById('sideGeupA');
         const elGeupD = document.getElementById('sideGeupD');
@@ -186,8 +81,8 @@
         if(elGeupA) elGeupA.value = geupA > 0 ? geupA.toLocaleString() + " kg" : "0 kg";
         if(elGeupD) elGeupD.value = geupD > 0 ? geupD.toLocaleString() + " kg" : "0 kg";
 
-        const rawChulgoA = state.prevWanA - (sumTodayRollA + wanA);
-        const rawChulgoD = state.prevWanD - (sumTodayRollD + wanD);
+        const rawChulgoA = App.state.prevWanA - (sumTodayRollA + wanA);
+        const rawChulgoD = App.state.prevWanD - (sumTodayRollD + wanD);
         const chulgoA = Math.abs(rawChulgoA);
         const chulgoD = Math.abs(rawChulgoD);
 
@@ -196,18 +91,19 @@
 
         if(elChulgoA) elChulgoA.value = chulgoA.toLocaleString() + " R/L";
         if(elChulgoD) elChulgoD.value = chulgoD.toLocaleString() + " R/L";
-    }
+    };
 
-    function bindInputFormatters() {
-        headerApi.elements.wrapper.querySelectorAll('.target-calc, #sideWanA, #sideWanD, #statTotalUsage').forEach(input => {
+    // 포맷 변환기 바인딩
+    App.bindInputFormatters = function() {
+        App.headerApi.elements.wrapper.querySelectorAll('.target-calc, #sideWanA, #sideWanD, #statTotalUsage').forEach(input => {
             input.addEventListener('focus', function() {
                 if(this.readOnly) return;
-                let v = utils.parseNum(this.value);
+                let v = App.utils.parseNum(this.value);
                 this.value = v === 0 ? "" : v;
             });
             input.addEventListener('blur', function() {
                 if(this.readOnly) return;
-                let v = utils.parseNum(this.value);
+                let v = App.utils.parseNum(this.value);
                 if (v === 0) {
                     this.value = "";
                 } else {
@@ -224,13 +120,14 @@
                         }
                     }
                 }
-                calculateAutoFields();
+                App.calculateAutoFields();
             });
         });
-    }
+    };
 
-    function bindKeyboardNavigation() {
-        headerApi.elements.wrapper.addEventListener('keydown', function(e) {
+    // 키보드 이동 로직
+    App.bindKeyboardNavigation = function() {
+        App.headerApi.elements.wrapper.addEventListener('keydown', function(e) {
             const target = e.target;
             if (!target.classList.contains('gf3-input')) return;
 
@@ -256,22 +153,23 @@
                 }
                 if (nextRow >= 1 && nextRow <= 10 && nextColIdx >= 0 && nextColIdx < cols.length) {
                     const nextCol = cols[nextColIdx];
-                    const nextInput = headerApi.elements.wrapper.querySelector(`.gf3-input[data-row="${nextRow}"][data-col="${nextCol}"]`);
+                    const nextInput = App.headerApi.elements.wrapper.querySelector(`.gf3-input[data-row="${nextRow}"][data-col="${nextCol}"]`);
                     if (nextInput && !nextInput.readOnly) {
                         nextInput.focus(); nextInput.select();
                     }
                 }
             }
         });
-    }
+    };
 
-    function exportToExcel() {
+    // 엑셀 출력 내보내기
+    App.exportToExcel = function() {
         if (!window.XLSX) {
             alert("엑셀 모듈을 불러오는 데 실패했습니다. 잠시 후 다시 시도해주세요.");
             return;
         }
 
-        const excelBtn = headerApi.elements.excelBtn;
+        const excelBtn = App.headerApi.elements.excelBtn;
         const btnInner = excelBtn.innerHTML;
         excelBtn.innerHTML = '<span class="material-symbols-outlined" style="font-size: 16px; margin-right: 4px;">hourglass_empty</span>처리중...';
         excelBtn.disabled = true;
@@ -279,7 +177,7 @@
         setTimeout(() => {
             try {
                 const val = (selector) => { const el = document.querySelector(selector); return el ? el.value : ""; };
-                const currentDate = headerApi.getCurrentDate();
+                const currentDate = App.headerApi.getCurrentDate();
 
                 const dateObj = new Date(currentDate);
                 const dayNames = ['일요일','월요일','화요일','수요일','목요일','금요일','토요일'];
@@ -304,17 +202,13 @@
                 const wb = XLSX.utils.book_new();
                 const ws = XLSX.utils.aoa_to_sheet(ws_data);
 
+                // 시트 병합 규칙 및 셀 스타일 코드 (기존과 동일 처리)
                 ws['!merges'] = [
-                    { s: {r: 0, c: 7}, e: {r: 0, c: 11} },
-                    { s: {r: 2, c: 7}, e: {r: 2, c: 8} },
-                    { s: {r: 3, c: 7}, e: {r: 3, c: 8} },
-                    { s: {r: 4, c: 0}, e: {r: 9, c: 0} },
-                    { s: {r: 4, c: 7}, e: {r: 4, c: 8} },
-                    { s: {r: 8, c: 7}, e: {r: 8, c: 8} },
-                    { s: {r: 9, c: 7}, e: {r: 9, c: 8} },
-                    { s: {r: 12, c: 7}, e: {r: 12, c: 8} },
-                    { s: {r: 2, c: 10}, e: {r: 2, c: 11} },
-                    { s: {r: 6, c: 10}, e: {r: 6, c: 11} },
+                    { s: {r: 0, c: 7}, e: {r: 0, c: 11} }, { s: {r: 2, c: 7}, e: {r: 2, c: 8} },
+                    { s: {r: 3, c: 7}, e: {r: 3, c: 8} }, { s: {r: 4, c: 0}, e: {r: 9, c: 0} },
+                    { s: {r: 4, c: 7}, e: {r: 4, c: 8} }, { s: {r: 8, c: 7}, e: {r: 8, c: 8} },
+                    { s: {r: 9, c: 7}, e: {r: 9, c: 8} }, { s: {r: 12, c: 7}, e: {r: 12, c: 8} },
+                    { s: {r: 2, c: 10}, e: {r: 2, c: 11} }, { s: {r: 6, c: 10}, e: {r: 6, c: 11} },
                     { s: {r: 10, c: 10}, e: {r: 10, c: 11} }
                 ];
 
@@ -347,20 +241,15 @@
                         if (R === 0 && C >= 7 && C <= 11) {
                             style.font.sz = 14; style.font.bold = true; style.alignment.horizontal = "right";
                         }
-
-                        if (R === 1 || C === 9) {
-                            cell.s = style; continue;
-                        }
+                        if (R === 1 || C === 9) { cell.s = style; continue; }
 
                         if (C <= 8 && R >= 2) {
                             style.border = {
                                 top: {style: 'thin', color: {rgb: "8e8e93"}}, bottom: {style: 'thin', color: {rgb: "8e8e93"}},
                                 left: {style: 'thin', color: {rgb: "8e8e93"}}, right: {style: 'thin', color: {rgb: "8e8e93"}}
                             };
-
                             if (R === 2 || C === 0) style.fill = { fgColor: {rgb: "f5f5f7"} };
                             if (R === 10 || R === 11 || C === 0 || R === 2) style.font.bold = true;
-
                             if (R === 2) style.border.top = thickBorder;
                             if (R === 12) style.border.bottom = thickBorder;
                             if (C === 0) style.border.left = thickBorder;
@@ -371,12 +260,9 @@
                                 if (R === 5) style.border.bottom = {};
                                 if (R === 6) { style.border.top = {}; style.border.bottom = {}; }
                                 if (R === 7) style.border.top = {};
-
                                 if (R === 10) style.border.bottom = {};
                                 if (R === 11) style.border.top = {};
-
                                 if (C === 7 && R >= 5 && R <= 11) style.alignment.horizontal = "right";
-
                                 if (C === 7 && [4, 8, 9, 12].includes(R)) style.border.right = {};
                                 if (C === 8 && [4, 8, 9, 12].includes(R)) style.border.left = {};
                             }
@@ -392,18 +278,15 @@
                                     top: {style: 'thin', color: {rgb: "8e8e93"}}, bottom: {style: 'thin', color: {rgb: "8e8e93"}},
                                     left: {style: 'thin', color: {rgb: "8e8e93"}}, right: {style: 'thin', color: {rgb: "8e8e93"}}
                                 };
-
                                 if (R === 2 || R === 6 || R === 10) { style.fill = { fgColor: {rgb: "f5f5f7"} }; style.font.bold = true; }
                                 if (R === 3 || R === 7 || R === 11) { style.fill = { fgColor: {rgb: "fafafc"} }; }
                                 if ((inBlock2 || inBlock3) && (R === 8 || R === 12)) { style.font.bold = true; }
-
                                 if (R === 2 || R === 6 || R === 10) style.border.top = thickBorder;
                                 if (R === 4 || R === 8 || R === 12) style.border.bottom = thickBorder;
                                 if (C === 10) style.border.left = thickBorder;
                                 if (C === 11) style.border.right = thickBorder;
                             }
                         }
-
                         cell.s = style;
                     }
                 }
@@ -416,17 +299,13 @@
 
                 const exportThinBorder = { style: 'thin', color: { rgb: "8e8e93" } };
                 const exportThickBorder = { style: 'medium', color: { rgb: "000000" } };
-
                 const setAllThin = (cellRef) => {
                     applyExportBorder(cellRef, { top: exportThinBorder, bottom: exportThinBorder, left: exportThinBorder, right: exportThinBorder });
                 };
 
                 for (let r = 2; r <= 12; r++) {
-                    for (let c = 0; c <= 8; c++) {
-                        setAllThin(XLSX.utils.encode_cell({ c, r }));
-                    }
+                    for (let c = 0; c <= 8; c++) { setAllThin(XLSX.utils.encode_cell({ c, r })); }
                 }
-
                 for (let c = 0; c <= 8; c++) {
                     applyExportBorder(XLSX.utils.encode_cell({ c, r: 2 }), { top: exportThickBorder });
                     applyExportBorder(XLSX.utils.encode_cell({ c, r: 12 }), { bottom: exportThickBorder });
@@ -435,11 +314,7 @@
                     applyExportBorder(XLSX.utils.encode_cell({ c: 0, r }), { left: exportThickBorder });
                     applyExportBorder(XLSX.utils.encode_cell({ c: 8, r }), { right: exportThickBorder });
                 }
-
-                for (let c = 0; c <= 8; c++) {
-                    applyExportBorder(XLSX.utils.encode_cell({ c, r: 9 }), { bottom: exportThickBorder });
-                }
-
+                for (let c = 0; c <= 8; c++) { applyExportBorder(XLSX.utils.encode_cell({ c, r: 9 }), { bottom: exportThickBorder }); }
                 for (let r = 3; r <= 12; r++) {
                     applyExportBorder(XLSX.utils.encode_cell({ c: 7, r }), { left: exportThinBorder });
                     applyExportBorder(XLSX.utils.encode_cell({ c: 8, r }), { right: exportThinBorder });
@@ -455,16 +330,10 @@
                 applyExportBorder(XLSX.utils.encode_cell({ c: 7, r: 12 }), { bottom: exportThickBorder });
                 applyExportBorder(XLSX.utils.encode_cell({ c: 8, r: 12 }), { bottom: exportThickBorder });
 
-                const miniRanges = [
-                    { top: 2, bottom: 4 },
-                    { top: 6, bottom: 8 },
-                    { top: 10, bottom: 12 }
-                ];
+                const miniRanges = [{ top: 2, bottom: 4 }, { top: 6, bottom: 8 }, { top: 10, bottom: 12 }];
                 for (const range of miniRanges) {
                     for (let r = range.top; r <= range.bottom; r++) {
-                        for (let c = 10; c <= 11; c++) {
-                            setAllThin(XLSX.utils.encode_cell({ c, r }));
-                        }
+                        for (let c = 10; c <= 11; c++) { setAllThin(XLSX.utils.encode_cell({ c, r })); }
                     }
                     for (let c = 10; c <= 11; c++) {
                         applyExportBorder(XLSX.utils.encode_cell({ c, r: range.top }), { top: exportThickBorder });
@@ -477,17 +346,11 @@
                 }
 
                 [2, 3].forEach((r) => {
-                    for (let c = 0; c <= 8; c++) {
-                        applyExportBorder(XLSX.utils.encode_cell({ c, r }), { bottom: exportThickBorder });
-                    }
+                    for (let c = 0; c <= 8; c++) { applyExportBorder(XLSX.utils.encode_cell({ c, r }), { bottom: exportThickBorder }); }
                 });
-
                 [2, 6, 10].forEach((r) => {
-                    for (let c = 10; c <= 11; c++) {
-                        applyExportBorder(XLSX.utils.encode_cell({ c, r }), { bottom: exportThickBorder });
-                    }
+                    for (let c = 10; c <= 11; c++) { applyExportBorder(XLSX.utils.encode_cell({ c, r }), { bottom: exportThickBorder }); }
                 });
-
                 for (let r = 2; r <= 12; r++) {
                     applyExportBorder(XLSX.utils.encode_cell({ c: 0, r }), { right: exportThickBorder });
                     applyExportBorder(XLSX.utils.encode_cell({ c: 6, r }), { right: exportThickBorder });
@@ -496,9 +359,7 @@
 
                 const setNoBorder = (c, r, side) => {
                     const cellRef = XLSX.utils.encode_cell({ c, r });
-                    if (ws[cellRef] && ws[cellRef].s && ws[cellRef].s.border) {
-                        delete ws[cellRef].s.border[side];
-                    }
+                    if (ws[cellRef] && ws[cellRef].s && ws[cellRef].s.border) delete ws[cellRef].s.border[side];
                     if (side === 'bottom') {
                         const adjRef = XLSX.utils.encode_cell({ c, r: r + 1 });
                         if (ws[adjRef] && ws[adjRef].s && ws[adjRef].s.border) delete ws[adjRef].s.border.top;
@@ -508,39 +369,17 @@
                     }
                 };
 
-                setNoBorder(7, 4, 'bottom');
-                setNoBorder(8, 4, 'bottom');
-                setNoBorder(7, 5, 'right');
-                setNoBorder(8, 5, 'bottom');
-                setNoBorder(7, 6, 'bottom');
-                setNoBorder(7, 6, 'right');
-                setNoBorder(8, 6, 'bottom');
-                setNoBorder(7, 7, 'bottom');
-                setNoBorder(7, 7, 'right');
-                setNoBorder(8, 7, 'bottom');
-                setNoBorder(7, 8, 'bottom');
-                setNoBorder(8, 8, 'bottom');
-                setNoBorder(7, 10, 'bottom');
-                setNoBorder(7, 10, 'right');
-                setNoBorder(8, 10, 'bottom');
-                setNoBorder(7, 11, 'bottom');
-                setNoBorder(7, 11, 'right');
-                setNoBorder(8, 11, 'bottom');
+                setNoBorder(7, 4, 'bottom'); setNoBorder(8, 4, 'bottom'); setNoBorder(7, 5, 'right'); setNoBorder(8, 5, 'bottom');
+                setNoBorder(7, 6, 'bottom'); setNoBorder(7, 6, 'right'); setNoBorder(8, 6, 'bottom'); setNoBorder(7, 7, 'bottom');
+                setNoBorder(7, 7, 'right'); setNoBorder(8, 7, 'bottom'); setNoBorder(7, 8, 'bottom'); setNoBorder(8, 8, 'bottom');
+                setNoBorder(7, 10, 'bottom'); setNoBorder(7, 10, 'right'); setNoBorder(8, 10, 'bottom'); setNoBorder(7, 11, 'bottom');
+                setNoBorder(7, 11, 'right'); setNoBorder(8, 11, 'bottom');
 
-                ws['!pageSetup'] = {
-                    orientation: 'landscape', 
-                    fitToWidth: 1,           
-                    fitToHeight: 1,
-                    paperSize: 9,            
-                    horizontalCentered: true 
-                };
-
+                ws['!pageSetup'] = { orientation: 'landscape', fitToWidth: 1, fitToHeight: 1, paperSize: 9, horizontalCentered: true };
                 ws['!margins'] = { left: 0.5, right: 0.5, top: 0.5, bottom: 0.5, header: 0.3, footer: 0.3 };
 
                 XLSX.utils.book_append_sheet(wb, ws, "일지");
-
-                const fileName = `3공장_급지일지_${currentDate}.xlsx`;
-                XLSX.writeFile(wb, fileName);
+                XLSX.writeFile(wb, `3공장_급지일지_${currentDate}.xlsx`);
                 
             } catch (err) {
                 alert("엑셀 생성 중 오류가 발생했습니다: " + err.message);
@@ -549,81 +388,5 @@
                 excelBtn.disabled = false;
             }
         }, 100); 
-    }
-
-    async function handleSave() {
-        const currentDate = headerApi.getCurrentDate();
-        const rawPayloadData = [];
-        const cols = ['B', 'C', 'D', 'E', 'F', 'G'];
-        const extractVal = (el) => el ? el.value.replace(/,/g, '').replace(/kg/g, '').replace(/R\/L/g, '').trim() : "";
-
-        cols.forEach(col => {
-            const startEl = document.querySelector(`.gf3-input[data-row="1"][data-col="${col}"]`);
-            const memoEl = document.querySelector(`.gf3-input[data-row="1"][data-col="H"]`);
-            rawPayloadData.push({ item_type: 'start_bal_1', col_id: col, value: extractVal(startEl), memo: memoEl ? memoEl.value : "" });
-
-            for (let r = 2; r <= 7; r++) {
-                const wanEl = document.querySelector(`.gf3-input[data-row="${r}"][data-col="${col}"]`);
-                rawPayloadData.push({ item_type: `wan_roll_${r}`, col_id: col, value: extractVal(wanEl), memo: "" });
-            }
-
-            const endEl = document.querySelector(`.gf3-input[data-row="10"][data-col="${col}"]`);
-            rawPayloadData.push({ item_type: 'end_bal_10', col_id: col, value: extractVal(endEl), memo: "" });
-        });
-
-        rawPayloadData.push({ item_type: 'side_wan_1', col_id: 'A', value: extractVal(document.getElementById('sideWanA')), memo: "" });
-        rawPayloadData.push({ item_type: 'side_wan_1', col_id: 'D', value: extractVal(document.getElementById('sideWanD')), memo: "" });
-        rawPayloadData.push({ item_type: 'geup_real', col_id: 'A', value: extractVal(document.getElementById('sideGeupA')), memo: "" });
-        rawPayloadData.push({ item_type: 'geup_real', col_id: 'D', value: extractVal(document.getElementById('sideGeupD')), memo: "" });
-        rawPayloadData.push({ item_type: 'geup_out', col_id: 'A', value: extractVal(document.getElementById('sideChulgoA')), memo: "" });
-        rawPayloadData.push({ item_type: 'geup_out', col_id: 'D', value: extractVal(document.getElementById('sideChulgoD')), memo: "" });
-        rawPayloadData.push({ item_type: 'stat_total_usage', col_id: 'H', value: extractVal(document.getElementById('statTotalUsage')), memo: "" });
-
-        const finalInsertData = rawPayloadData
-            .map(item => ({
-                date: currentDate, item_type: item.item_type, col_id: item.col_id,
-                value: parseInt(item.value, 10) || 0, memo: item.memo || ""
-            }))
-            .filter(item => item.value !== 0 || item.memo.trim() !== "");
-
-        try {
-            const { error: deleteError } = await supabase.from('factory3_geupji_real').delete().eq('date', currentDate);
-            if (deleteError) { alert('기존 데이터 초기화 실패: ' + deleteError.message); return; }
-
-            if (finalInsertData.length > 0) {
-                const { error: insertError } = await supabase.from('factory3_geupji_real').insert(finalInsertData);
-                if (insertError) { alert('저장 실패: ' + insertError.message); }
-                else { alert('저장 완료되었습니다.'); headerApi.toggleEditMode(); loadData(currentDate); }
-            } else {
-                alert('저장 완료되었습니다. (모든 값이 지워져 해당 날짜의 데이터가 초기화되었습니다.)');
-                headerApi.toggleEditMode(); loadData(currentDate);
-            }
-        } catch (err) {
-            alert('네트워크 오류가 발생했습니다: ' + err.message);
-        }
-    }
-
-    const GeupjiFactory3Module = {
-        init: function() {
-            headerApi = Factory3Header.init({
-                idPrefix: '',
-                onDateChange: loadData,
-                onSave: handleSave,
-                onExportExcel: exportToExcel
-            });
-            if (!headerApi) return;
-
-            bindInputFormatters();
-            bindKeyboardNavigation();
-            loadData(headerApi.getCurrentDate());
-        },
-        destroy: function() {
-            if (headerApi) headerApi.destroy();
-        }
     };
-    window.GeupjiFactory3Module = GeupjiFactory3Module;
-
-    document.addEventListener('DOMContentLoaded', function() {
-        GeupjiFactory3Module.init();
-    });
 })();

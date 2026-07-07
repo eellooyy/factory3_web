@@ -1,0 +1,186 @@
+/* factory3_ilji.css — 3공장 일지 전용 스타일 */
+
+/* 기본 문서 초기화 및 배경설정 */
+body {
+    margin: 0;
+    padding: 20px;
+    background-color: #f5f5f7;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    box-sizing: border-box;
+    zoom: 115%;
+}
+*, *:before, *:after {
+    box-sizing: inherit;
+}
+
+/* PC 컨테이너 너비 지정 및 중앙 정렬 */
+.f3i-wrapper {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    padding: 10px 0;
+    width: 100%;
+    max-width: 1200px;
+    margin: 0 auto;
+}
+
+/* 헤더 영역 */
+.f3i-header { 
+    display: flex; 
+    justify-content: space-between; 
+    align-items: center; 
+    background: #fff; 
+    padding: 12px 20px; 
+    border-radius: 14px; 
+    box-shadow: 0 2px 8px rgba(0,0,0,0.03); 
+    z-index: 100; 
+    position: relative; 
+}
+.f3i-main-title { 
+    font-size: 20px; 
+    font-weight: 700; 
+    color: #1d1d1f; 
+    letter-spacing: -0.5px; 
+}
+
+.f3i-title-wrap {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    cursor: pointer;
+    position: relative;
+    padding: 4px 8px;
+    margin-left: -8px;
+    border-radius: 8px;
+    transition: background-color 0.2s;
+}
+.f3i-title-wrap:hover {
+    background-color: #f5f5f7;
+}
+.f3i-hamburger {
+    font-size: 24px;
+    color: #1d1d1f;
+}
+
+/* 상단 드롭다운 메뉴 스타일 */
+.f3i-dropdown {
+    position: absolute;
+    top: 45px;
+    left: 0;
+    background: #fff;
+    border-radius: 10px;
+    box-shadow: 0 4px 16px rgba(0,0,0,0.15);
+    width: 260px;
+    display: none;
+    flex-direction: column;
+    overflow: hidden;
+    z-index: 1000;
+    border: 1px solid #e5e5ea;
+}
+.f3i-dropdown.show {
+    display: flex;
+}
+.f3i-dropdown a {
+    padding: 14px 20px;
+    text-decoration: none;
+    color: #515154;
+    font-size: 15px;
+    font-weight: 600;
+    border-bottom: 1px solid #f2f2f7;
+    transition: all 0.2s;
+}
+.f3i-dropdown a:last-child {
+    border-bottom: none;
+}
+.f3i-dropdown a:hover {
+    background: #f5f5f7;
+    color: #1d1d1f;
+}
+.f3i-dropdown a.active {
+    color: #007AFF;
+    background: #e8f4fd;
+}
+
+/* 컨트롤러 및 탐색 버튼군 */
+.f3i-controls { display: flex; align-items: center; gap: 8px; }
+.f3i-nav-group { display: flex; align-items: center; background: #f5f5f7; border-radius: 20px; padding: 4px; }
+.f3i-icon-btn { background: #fff; border: none; border-radius: 50%; width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; color: #1d1d1f; box-shadow: 0 1px 3px rgba(0,0,0,0.1); cursor: pointer; transition: transform 0.1s; }
+.f3i-icon-btn:hover { transform: scale(1.05); }
+.f3i-icon-btn span { font-size: 18px; }
+.f3i-cal-wrap { position: relative; margin: 0 12px; }
+.f3i-date-text { font-size: 18px; font-weight: 700; color: #1d1d1f; min-width: 140px; text-align: center; display: inline-block; cursor: pointer; }
+
+/* 액션 버튼 공통 및 개별 색상 설정 */
+.f3i-action-btn { display: flex; align-items: center; border: none; padding: 6px 16px; border-radius: 8px; font-size: 13px; font-weight: 600; cursor: pointer; transition: all 0.2s; }
+.today-btn { background: #e8f4fd; color: #007AFF; }
+.today-btn:hover { background: #d0e7fa; }
+.edit-btn { background: #f2f2f7; color: #1d1d1f; }
+.edit-btn:not(:disabled):hover { background: #e5e5ea; }
+.save-btn { background: #007AFF; color: #fff; }
+.save-btn:not(:disabled):hover { opacity: 0.85; }
+.edit-btn:disabled, .save-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+
+.excel-btn { background: #217346; color: #fff; }
+.excel-btn:hover { background: #1e6b40; opacity: 0.9; }
+.excel-btn:disabled { opacity: 0.6; cursor: not-allowed; }
+
+/* 메인 테이블 레이아웃 구조 */
+.f3i-layout { display: flex; align-items: flex-start; gap: 16px; width: 100%; }
+
+.f3i-main-table-box {
+    flex: 1 1 0;
+    min-width: 0;
+    background: #fff;
+    border-radius: 12px;
+    padding: 16px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.03);
+    border: 1px solid #e5e5ea;
+}
+
+.f3i-table { width: 100%; border-collapse: collapse; table-layout: fixed; }
+.f3i-th, .f3i-td { border: 1px solid #d2d2d7; height: 38px; vertical-align: middle; padding: 0; }
+.f3i-th { background: #f5f5f7; font-size: 13px; font-weight: 600; color: #1d1d1f; text-align: center; }
+.row-title { background: #fafafc; color: #1d1d1f; }
+.calc-row { color: #1d1d1f; }
+
+/* 외곽선 및 주요 구분선 굵기 보정 */
+.border-outer { border: 2px solid #8e8e93 !important; }
+.border-right-thick { border-right: 2px solid #8e8e93 !important; }
+.border-top-thick th, .border-top-thick td { border-top: 2px solid #8e8e93 !important; }
+.border-bottom-thick th, .border-bottom-thick td { border-bottom: 2px solid #8e8e93 !important; }
+
+/* 우측 특집 연산용 투명 테두리 처리 셀 */
+.special-cell { border-top: none !important; border-bottom: none !important; border-left: none !important; background: #ffffff; }
+.special-cell.bottom-border { border-bottom: 1px solid #d2d2d7 !important; }
+.special-label { text-align: right; padding-right: 8px; font-size: 13px; font-weight: 600; color: #1d1d1f; background: transparent; border-right: none !important; }
+
+/* 테이블 입력 필드(인풋 박스) */
+.f3i-input { width: 100%; height: 100%; border: none; outline: none; background: transparent; text-align: center; padding: 0 8px; font-size: 14px; color: #1d1d1f; box-sizing: border-box; }
+.f3i-input::-webkit-outer-spin-button, .f3i-input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+.fw-bold { font-weight: bold; }
+
+/* 읽기전용 상태 및 수정 활성화 모드 배경 효과 */
+.f3i-td.readonly { background: #fbfbfd; }
+.f3i-td.editable { background: #ffffff; transition: background-color 0.3s; }
+.f3i-wrapper.edit-mode .f3i-td.editable { background-color: #fff9e6 !important; }
+.f3i-wrapper.edit-mode .f3i-td.editable .f3i-input:focus { background-color: #fff2cc !important; }
+
+/* 우측 사이드 요약 대장 패널 */
+.f3i-side-panel { width: 180px; flex-shrink: 0; display: flex; flex-direction: column; gap: 16px; }
+.f3i-box { background: #fff; border-radius: 12px; padding: 16px; box-shadow: 0 2px 8px rgba(0,0,0,0.03); border: 1px solid #e5e5ea; }
+.f3i-box-header { font-size: 14px; font-weight: 700; color: #1d1d1f; text-align: center; margin-bottom: 12px; padding-bottom: 8px; border-bottom: 1px solid #f2f2f7; }
+
+/* 미니 테이블 내부 간격 미세 조정 */
+.mini-table { min-width: 0 !important; width: 100%; }
+.mini-table th { font-size: 12px; height: 30px; }
+.mini-table td { height: 34px; }
+
+/* 태블릿 및 모바일 반응형 처리 */
+@media (max-width: 1050px) {
+    .f3i-layout { flex-direction: column; }
+    .f3i-side-panel { width: 100%; flex-direction: row; gap: 10px; }
+    .f3i-box { flex: 1; }
+}
+
+/* 달력 출력 오프셋 교정 */
+.flatpickr-calendar { margin-top: 5px; margin-left: -120px; }
