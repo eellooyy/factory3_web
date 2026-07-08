@@ -5,6 +5,8 @@
     // 전역 공유 객체 초기화
     window.Factory3Ilji = window.Factory3Ilji || {};
     
+    // Supabase 설정은 Factory3Utils 공통 설정을 사용합니다.
+    
     // 연산용 상수
     Factory3Ilji.FACTOR_788 = 571;
     Factory3Ilji.FACTOR_1576 = 1143;
@@ -20,12 +22,7 @@
         }
     };
 
-    // 전역 상태 및 헤더 API 플레이스홀더 확장
-    Factory3Ilji.state = { 
-        prevWanA: 0, 
-        prevWanD: 0,
-        sessions: [],        // 동적 가변 세션 데이터 리스트
-        isLegacyMode: true   // 과거 데이터 호환을 위한 플래그 (기본값 true)
-    };
+    // 전역 상태 및 헤더 API 플레이스홀더
+    Factory3Ilji.state = { prevWanA: 0, prevWanD: 0 };
     Factory3Ilji.headerApi = null;
 })();
