@@ -1,0 +1,21 @@
+/* factory1_ft_style.css */
+/* body, wrapper, header 관련 CSS는 모두 삭제하고 하위 레이아웃만 남깁니다. */
+
+.f1ft-layout {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    width: 100%;
+}
+
+.f1ft-main-table-box {
+    width: 100%;
+    min-width: 0;
+    background: #fff;
+    border-radius: 12px;
+    padding: 16px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.03);
+    border: 1px solid #e5e5ea;
+}
+
+/* --- (이하 기존 factory1_ft_style.css 의 .f1ft-table, grid 설정, input 컬러 내용들 그대로 유지) --- */

@@ -3,10 +3,90 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta http-equiv="refresh" content="0; url=factory3_ilji.html">
-    <title>3공장 일지</title>
+    <title>종합 모니터링 일지</title>
+    
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0,0" />
+    
+    <link rel="stylesheet" href="css/factory3.css">
+    <link rel="stylesheet" href="css/factory1_ft_style.css">
+
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+    <script src="https://cdn.jsdelivr.net/npm/flatpickr/dist/l10n/ko.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/xlsx-js-style@1.2.0/dist/xlsx.bundle.js"></script>
 </head>
 <body>
-    <p>3공장 일지로 이동 중입니다.</p>
+
+<div class="gf3-app-container">
+    
+    <div class="gf3-header">
+        <div class="gf3-title-wrap">
+            <span class="material-symbols-outlined gf3-hamburger">menu</span>
+            <span class="gf3-main-title" id="globalMainTitle">3공장 일지</span>
+            
+            <div class="gf3-dropdown">
+                <a href="#" data-target="f3i-container" class="nav-link active">3공장 일지</a>
+                <a href="#" data-target="f1ft-container" class="nav-link">1공장 FT 일지</a>
+            </div>
+        </div>
+        
+        <div class="gf3-controls">
+            <div class="gf3-nav-group">
+                <button id="gf3PrevBtn" class="gf3-icon-btn" title="이전 날짜"><span class="material-symbols-outlined">chevron_left</span></button>
+                <div class="gf3-cal-wrap" id="gf3CalendarWrap">
+                    <span id="gf3DateText" class="gf3-date-text cursor-pointer"></span>
+                    <input type="text" id="gf3Flatpickr" style="display: none;">
+                </div>
+                <button id="gf3NextBtn" class="gf3-icon-btn" title="다음 날짜"><span class="material-symbols-outlined">chevron_right</span></button>
+            </div>
+            
+            <button id="gf3TodayBtn" class="gf3-action-btn today-btn">오늘</button>
+            <button id="gf3EditBtn" class="gf3-action-btn edit-btn" disabled>수정</button>
+            <button id="gf3SaveBtn" class="gf3-action-btn save-btn" disabled>저장</button>
+            <button id="gf3ExcelBtn" class="gf3-action-btn excel-btn">
+                <span class="material-symbols-outlined" style="font-size: 16px; margin-right: 4px;">table_view</span>엑셀 저장
+            </button>
+        </div>
+    </div>
+
+    <div id="f3i-container" class="page-container active">
+        <div class="f3i-wrapper">
+            <div class="f3i-layout">
+                <div class="f3i-main-table-box">
+                    </div>
+                <div class="f3i-side-panel">
+                    </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="f1ft-container" class="page-container" style="display: none;">
+        <div class="f1ft-wrapper">
+            <div class="f1ft-layout">
+                <div class="f1ft-main-table-box">
+                     </div>
+                <div class="f1ft-summary-row">
+                     </div>
+            </div>
+        </div>
+    </div>
+
+</div>
+
+<script src="js/factory3_utils.js"></script>
+<script src="js/factory3_header.js"></script>
+<script src="js/common_ui.js"></script>
+
+<script src="js/factory3_ilji_constant.js"></script>
+<script src="js/factory3_ilji_api.js"></script>
+<script src="js/factory3_ilji_render.js"></script>
+<script src="js/factory3_ilji_main.js"></script>
+
+<script src="js/factory1_ft_constant.js"></script>
+<script src="js/factory1_ft_api.js"></script>
+<script src="js/factory1_ft_render.js"></script>
+<script src="js/factory1_ft_main.js"></script>
+
 </body>
 </html>
