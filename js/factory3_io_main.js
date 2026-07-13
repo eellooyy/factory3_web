@@ -83,7 +83,8 @@ window.Factory3Io = window.Factory3Io || {};
             await Promise.all([
                 API.loadIoTableRange(start, end),
                 API.loadOutgoingRange(start, end),
-                API.loadUsageDataRange(start, end)
+                API.loadUsageDataRange(start, end),
+                API.loadMemoRange(start, end)
             ]);
             
             const dates = Utils.getDatesRange(start, end);
@@ -127,7 +128,8 @@ window.Factory3Io = window.Factory3Io || {};
             await Promise.all([
                 API.loadIoTableRange(start, end),
                 API.loadOutgoingRange(start, end),
-                API.loadUsageDataRange(start, end)
+                API.loadUsageDataRange(start, end),
+                API.loadMemoRange(start, end)
             ]);
 
             const dates = Utils.getDatesRange(start, end);

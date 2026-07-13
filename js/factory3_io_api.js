@@ -75,9 +75,10 @@ Factory3Io.API = {
     },
 
     loadIoTableRange: async function (start, end) {
+        /* memo 컬럼은 factory3_io 테이블에 존재하지 않으므로 제거 (별도 factory3_io_memo 테이블 사용) */
         const { data, error } = await Factory3Io.supabase
             .from('factory3_io')
-            .select('date, in_a, in_d, stock_a, stock_d, memo') /* 메모 컬럼 추가 */
+            .select('date, in_a, in_d, stock_a, stock_d')
             .gte('date', start)
             .lte('date', end);
 
@@ -89,7 +90,6 @@ Factory3Io.API = {
                 Factory3Io.dataCache[row.date].in_d = row.in_d || 0;
                 Factory3Io.dataCache[row.date].db_stock_a = row.stock_a || 0;
                 Factory3Io.dataCache[row.date].db_stock_d = row.stock_d || 0;
-                Factory3Io.dataCache[row.date].memo = row.memo || null;
             });
         }
     },
@@ -141,6 +141,26 @@ Factory3Io.API = {
     },
 
     /* ─────────────────────────────────────────
+       메모 데이터 로드 (factory3_io_memo 별도 테이블 사용)
+       - col_id는 날짜 단위 메모를 나타내는 고정값 'ALL' 사용
+    ───────────────────────────────────────── */
+    loadMemoRange: async function (start, end) {
+        const { data, error } = await Factory3Io.supabase
+            .from('factory3_io_memo')
+            .select('date, col_id, memo_text')
+            .eq('col_id', 'ALL')
+            .gte('date', start)
+            .lte('date', end);
+
+        if (!error && data) {
+            data.forEach(row => {
+                if (!Factory3Io.dataCache[row.date]) Factory3Io.dataCache[row.date] = {};
+                Factory3Io.dataCache[row.date].memo = row.memo_text || null;
+            });
+        }
+    },
+
+    /* ─────────────────────────────────────────
        최근 7일치 입고 및 연산재고 일괄 Upsert 함수
     ───────────────────────────────────────── */
     saveIncomingBatch: async function (batchRows) {
@@ -156,21 +176,17 @@ Factory3Io.API = {
     },
 
     /* ─────────────────────────────────────────
-       메모 단건 저장 함수
+       메모 단건 저장 함수 (factory3_io_memo 테이블 upsert)
+       ※ factory3_io_memo 테이블에 UNIQUE (date, col_id) 제약이 있어야 정상 동작합니다.
     ───────────────────────────────────────── */
     saveMemo: async function (date, memoText) {
-        const d = Factory3Io.dataCache[date] || {};
-        
         const { error } = await Factory3Io.supabase
-            .from('factory3_io')
+            .from('factory3_io_memo')
             .upsert({
                 date: date,
-                in_a: d.in_a || 0,
-                in_d: d.in_d || 0,
-                stock_a: d.stock_a || 0,
-                stock_d: d.stock_d || 0,
-                memo: memoText
-            }, { onConflict: 'date' });
+                col_id: 'ALL',
+                memo_text: memoText
+            }, { onConflict: 'date,col_id' });
 
         if (error) {
             alert('메모 저장 실패: ' + error.message);
