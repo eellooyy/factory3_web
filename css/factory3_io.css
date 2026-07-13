@@ -394,7 +394,9 @@ td.f3io-sum-col.f3io-sum-mismatch {
    ================================================= */
 .f3io-has-memo {
     position: relative;
+    background-color: rgba(255, 59, 48, 0.05) !important; /* 이 줄을 추가하세요 */
 }
+
 .f3io-has-memo::after {
     content: '';
     position: absolute;
