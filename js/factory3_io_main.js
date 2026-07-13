@@ -196,8 +196,8 @@ window.Factory3Io = window.Factory3Io || {};
                 in_a: cacheData.in_a || 0,
                 in_d: cacheData.in_d || 0,
                 stock_a: cacheData.stock_a || 0,
-                stock_d: cacheData.stock_d || 0,
-                memo: cacheData.memo || null /* 기존 메모가 날아가지 않도록 보존 */
+                stock_d: cacheData.stock_d || 0
+                /* memo는 factory3_io_memo 별도 테이블에서 관리하므로 여기서 제외 */
             };
         });
 
