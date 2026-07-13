@@ -75,7 +75,6 @@ Factory3Io.API = {
     },
 
     loadIoTableRange: async function (start, end) {
-        /* memo 컬럼은 factory3_io 테이블에 존재하지 않으므로 제거 (별도 factory3_io_memo 테이블 사용) */
         const { data, error } = await Factory3Io.supabase
             .from('factory3_io')
             .select('date, in_a, in_d, stock_a, stock_d')
@@ -141,21 +140,20 @@ Factory3Io.API = {
     },
 
     /* ─────────────────────────────────────────
-       메모 데이터 로드 (factory3_io_memo 별도 테이블 사용)
-       - col_id는 날짜 단위 메모를 나타내는 고정값 'ALL' 사용
+       메모 데이터 로드 (특정 col_id 제한 해제하여 전체 셀 로드)
     ───────────────────────────────────────── */
     loadMemoRange: async function (start, end) {
         const { data, error } = await Factory3Io.supabase
             .from('factory3_io_memo')
             .select('date, col_id, memo_text')
-            .eq('col_id', 'ALL')
             .gte('date', start)
             .lte('date', end);
 
         if (!error && data) {
             data.forEach(row => {
                 if (!Factory3Io.dataCache[row.date]) Factory3Io.dataCache[row.date] = {};
-                Factory3Io.dataCache[row.date].memo = row.memo_text || null;
+                if (!Factory3Io.dataCache[row.date].memos) Factory3Io.dataCache[row.date].memos = {};
+                Factory3Io.dataCache[row.date].memos[row.col_id] = row.memo_text || null;
             });
         }
     },
@@ -176,15 +174,14 @@ Factory3Io.API = {
     },
 
     /* ─────────────────────────────────────────
-       메모 단건 저장 함수 (factory3_io_memo 테이블 upsert)
-       ※ factory3_io_memo 테이블에 UNIQUE (date, col_id) 제약이 있어야 정상 동작합니다.
+       메모 단건 저장 함수 (col_id 매개변수 유동화 적용)
     ───────────────────────────────────────── */
-    saveMemo: async function (date, memoText) {
+    saveMemo: async function (date, colId, memoText) {
         const { error } = await Factory3Io.supabase
             .from('factory3_io_memo')
             .upsert({
                 date: date,
-                col_id: 'ALL',
+                col_id: colId,
                 memo_text: memoText
             }, { onConflict: 'date,col_id' });
 

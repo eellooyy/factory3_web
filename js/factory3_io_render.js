@@ -24,30 +24,32 @@ Factory3Io.Render = {
     },
 
     /* ─────────────────────────────────────────
-       DOM 전체 리랜더링 및 합계 유효성 검증
+       DOM 전체 리랜더링 및 합계 유효성 검증 (셀별 메모 구현)
     ───────────────────────────────────────── */
     rerenderAllRows: function (forceClear = false) {
         document.querySelectorAll('#f3ioBody1 tr[data-date]').forEach(tr => {
             const ds = tr.getAttribute('data-date');
             const d  = Factory3Io.dataCache[ds] || {};
+            const memos = d.memos || {};
             
-            // 날짜 셀 메모 상태 및 툴팁 갱신
+            // 날짜 셀 메모 갱신
             const dateTd = tr.querySelector('.f3io-date-td');
             if (dateTd) {
-                if (d.memo) {
-                    dateTd.classList.add('f3io-has-memo');
-                    dateTd.setAttribute('title', d.memo);
-                } else {
-                    dateTd.classList.remove('f3io-has-memo');
-                    dateTd.removeAttribute('title');
-                }
+                const mText = memos['ALL'];
+                if (mText) { dateTd.classList.add('f3io-has-memo'); dateTd.setAttribute('title', mText); } 
+                else { dateTd.classList.remove('f3io-has-memo'); dateTd.removeAttribute('title'); }
             }
 
+            // 일반 데이터 셀 메모 갱신
             tr.querySelectorAll('td[data-col]').forEach(td => {
-                // 수정 취소 및 저장 시 인풋창을 완전히 비우고 일반 텍스트로 복귀시킵니다.
+                const col = td.getAttribute('data-col');
+                const cellKey = `p1_c${col}`;
+                const mText = memos[cellKey];
+                if (mText) { td.classList.add('f3io-has-memo'); td.setAttribute('title', mText); } 
+                else { td.classList.remove('f3io-has-memo'); td.removeAttribute('title'); }
+
                 if (!forceClear && td.querySelector('.f3io-in-input')) return;
                 
-                const col = td.getAttribute('data-col');
                 if      (col === '1') td.innerHTML = this.fmtNum(d.in_a,    ds, true);
                 else if (col === '2') td.innerHTML = this.fmtNum(d.in_d,    ds, true);
                 else if (col === '3') td.innerHTML = this.fmtNum(d.out_a,   ds, false);
@@ -60,13 +62,14 @@ Factory3Io.Render = {
         document.querySelectorAll('#f3ioBody2 tr[data-date]').forEach(tr => {
             const ds = tr.getAttribute('data-date');
             const d  = Factory3Io.dataCache[ds] || {};
+            const memos = d.memos || {};
             const usageMedia = d.usage_media || { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0, 6: 0 };
             const usagePaper = d.usage_paper || { A: 0, D: 0 };
             
-            // 날짜 셀 메모 갱신
             const dateTd = tr.querySelector('.f3io-date-td');
             if (dateTd) {
-                if (d.memo) { dateTd.classList.add('f3io-has-memo'); dateTd.setAttribute('title', d.memo); } 
+                const mText = memos['ALL'];
+                if (mText) { dateTd.classList.add('f3io-has-memo'); dateTd.setAttribute('title', mText); } 
                 else { dateTd.classList.remove('f3io-has-memo'); dateTd.removeAttribute('title'); }
             }
 
@@ -75,6 +78,11 @@ Factory3Io.Render = {
             
             tr.querySelectorAll('td[data-col]').forEach(td => {
                 const col = Number(td.getAttribute('data-col'));
+                const cellKey = `p2_c${col}`;
+                const mText = memos[cellKey];
+                if (mText) { td.classList.add('f3io-has-memo'); td.setAttribute('title', mText); } 
+                else { td.classList.remove('f3io-has-memo'); td.removeAttribute('title'); }
+
                 if (col >= 1 && col <= 6) {
                     const val = usageMedia[col] || 0;
                     td.innerHTML = this.fmtNum(val, ds, false);
@@ -93,17 +101,23 @@ Factory3Io.Render = {
         document.querySelectorAll('#f3ioBody3 tr[data-date]').forEach(tr => {
             const ds = tr.getAttribute('data-date');
             const d  = Factory3Io.dataCache[ds] || {};
+            const memos = d.memos || {};
             const usagePaper = d.usage_paper || { A: 0, D: 0 };
             
-            // 날짜 셀 메모 갱신
             const dateTd = tr.querySelector('.f3io-date-td');
             if (dateTd) {
-                if (d.memo) { dateTd.classList.add('f3io-has-memo'); dateTd.setAttribute('title', d.memo); } 
+                const mText = memos['ALL'];
+                if (mText) { dateTd.classList.add('f3io-has-memo'); dateTd.setAttribute('title', mText); } 
                 else { dateTd.classList.remove('f3io-has-memo'); dateTd.removeAttribute('title'); }
             }
 
             tr.querySelectorAll('td[data-col]').forEach(td => {
                 const col = td.getAttribute('data-col');
+                const cellKey = `p3_c${col}`;
+                const mText = memos[cellKey];
+                if (mText) { td.classList.add('f3io-has-memo'); td.setAttribute('title', mText); } 
+                else { td.classList.remove('f3io-has-memo'); td.removeAttribute('title'); }
+
                 if (col === '1') td.innerHTML = this.fmtNum(usagePaper.A || 0, ds, false);
                 if (col === '2') td.innerHTML = this.fmtNum(usagePaper.D || 0, ds, false);
             });
@@ -117,7 +131,6 @@ Factory3Io.Render = {
             in_a:d.in_a||0, in_d:d.in_d||0, 
             out_a:d.out_a||0, out_d:d.out_d||0, 
             stock_a:d.stock_a||0, stock_d:d.stock_d||0,
-            memo: d.memo || '',
             usage_media: d.usage_media || { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0, 6: 0 },
             usage_paper: d.usage_paper || { A: 0, D: 0 }
         };
@@ -135,21 +148,35 @@ Factory3Io.Render = {
             const dy  = Factory3Io.Utils.pad(d.getDate());
             const wn  = Factory3Io.WD_KR[wd];
 
-            // 메모 표시용 클래스 및 툴팁
-            const memoClass = row.memo ? 'f3io-has-memo' : '';
-            const tooltip = row.memo ? ` title="${row.memo.replace(/"/g, '&quot;')}"` : '';
+            const cacheData = Factory3Io.dataCache[row.date] || {};
+            const memos = cacheData.memos || {};
 
-            const dateTd    = `<td class="f3io-date-td ${wdC} ${memoClass}" data-date="${row.date}"${tooltip}>${m}/${dy} (${wn})</td>`;
-            const resDateTd = `<td class="f3io-date-td f3io-responsive-date ${wdC} ${memoClass}" data-date="${row.date}"${tooltip}>${m}/${dy} (${wn})</td>`;
+            // 날짜 메모 속성 추출
+            const memoAll = memos['ALL'] || '';
+            const memoClassAll = memoAll ? 'f3io-has-memo' : '';
+            const tooltipAll = memoAll ? ` title="${memoAll.replace(/"/g, '&quot;')}"` : '';
+
+            const dateTd    = `<td class="f3io-date-td ${wdC} ${memoClassAll}" data-date="${row.date}"${tooltipAll}>${m}/${dy} (${wn})</td>`;
+            const resDateTd = `<td class="f3io-date-td f3io-responsive-date ${wdC} ${memoClassAll}" data-date="${row.date}"${tooltipAll}>${m}/${dy} (${wn})</td>`;
+
+            // HTML 데이터 셀 생성 유틸
+            const cellAttr = (panel, col, extraClasses = '') => {
+                const cellKey = `p${panel}_c${col}`;
+                const mText = memos[cellKey] || '';
+                let cls = `f3io-data-cell ${extraClasses}`;
+                if (mText) cls += ' f3io-has-memo';
+                const titleAttr = mText ? ` title="${mText.replace(/"/g, '&quot;')}"` : '';
+                return `class="${cls.trim()}" data-col="${col}"${titleAttr}`;
+            };
 
             html1 += `<tr class="${trC}" data-date="${row.date}">
                 ${dateTd}
-                <td class="f3io-data-cell f3io-editable-cell" data-col="1">${this.fmtNum(row.in_a,    row.date, true)}</td>
-                <td class="f3io-data-cell f3io-editable-cell" data-col="2">${this.fmtNum(row.in_d,    row.date, true)}</td>
-                <td class="f3io-data-cell f3io-sep"           data-col="3">${this.fmtNum(row.out_a,   row.date, false)}</td>
-                <td class="f3io-data-cell"                    data-col="4">${this.fmtNum(row.out_d,   row.date, false)}</td>
-                <td class="f3io-data-cell f3io-sep"           data-col="5">${this.fmtNum(row.stock_a, row.date, false)}</td>
-                <td class="f3io-data-cell"                    data-col="6">${this.fmtNum(row.stock_d, row.date, false)}</td>
+                <td ${cellAttr(1, '1', 'f3io-editable-cell')}>${this.fmtNum(row.in_a,    row.date, true)}</td>
+                <td ${cellAttr(1, '2', 'f3io-editable-cell')}>${this.fmtNum(row.in_d,    row.date, true)}</td>
+                <td ${cellAttr(1, '3', 'f3io-sep')}>${this.fmtNum(row.out_a,   row.date, false)}</td>
+                <td ${cellAttr(1, '4')}>${this.fmtNum(row.out_d,   row.date, false)}</td>
+                <td ${cellAttr(1, '5', 'f3io-sep')}>${this.fmtNum(row.stock_a, row.date, false)}</td>
+                <td ${cellAttr(1, '6')}>${this.fmtNum(row.stock_d, row.date, false)}</td>
             </tr>`;
 
             let mediaHtml = '';
@@ -160,7 +187,7 @@ Factory3Io.Render = {
 
             for (let col = 1; col <= 6; col++) {
                 const val = usageMedia[col] || 0;
-                mediaHtml += `<td class="f3io-data-cell" data-col="${col}">${this.fmtNum(val, row.date, false)}</td>`;
+                mediaHtml += `<td ${cellAttr(2, col)}>${this.fmtNum(val, row.date, false)}</td>`;
                 mediaSum += val;
             }
 
@@ -168,13 +195,13 @@ Factory3Io.Render = {
             html2 += `<tr class="${trC}" data-date="${row.date}">
                 ${resDateTd}
                 ${mediaHtml}
-                <td class="f3io-data-cell f3io-sum-col${mismatchClass}" data-col="7">${this.fmtNum(mediaSum, row.date, false)}</td>
+                <td ${cellAttr(2, '7', 'f3io-sum-col' + mismatchClass)}>${this.fmtNum(mediaSum, row.date, false)}</td>
             </tr>`;
 
             html3 += `<tr class="${trC}" data-date="${row.date}">
                 ${resDateTd}
-                <td class="f3io-data-cell" data-col="1">${this.fmtNum(usagePaper.A, row.date, false)}</td>
-                <td class="f3io-data-cell" data-col="2">${this.fmtNum(usagePaper.D, row.date, false)}</td>
+                <td ${cellAttr(3, '1')}>${this.fmtNum(usagePaper.A, row.date, false)}</td>
+                <td ${cellAttr(3, '2')}>${this.fmtNum(usagePaper.D, row.date, false)}</td>
             </tr>`;
         });
         return { html1, html2, html3 };

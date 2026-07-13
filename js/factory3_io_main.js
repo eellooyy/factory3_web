@@ -15,7 +15,7 @@ window.Factory3Io = window.Factory3Io || {};
             // 초기 구동 시 스크롤, 클릭, 키보드 네비게이션 이벤트를 선행 바인딩합니다.
             bindScrollSync();
             bindBodyClicks();
-            bindBodyDoubleClicks(); /* 더블클릭 이벤트(메모용) 연동 추가 */
+            bindBodyDoubleClicks(); /* 더블클릭 이벤트(모든 셀 확장) 연동 */
             bindKeyboardNav();
 
             // 공통 헤더 모듈 연동 정의
@@ -197,7 +197,6 @@ window.Factory3Io = window.Factory3Io || {};
                 in_d: cacheData.in_d || 0,
                 stock_a: cacheData.stock_a || 0,
                 stock_d: cacheData.stock_d || 0
-                /* memo는 factory3_io_memo 별도 테이블에서 관리하므로 여기서 제외 */
             };
         });
 
@@ -432,51 +431,88 @@ window.Factory3Io = window.Factory3Io || {};
             if (!body) return;
             body.addEventListener('click', e => {
                 const td = e.target.closest('td');
-                if (!td || td.classList.contains('f3io-date-td')) return;
-                const tr = td.closest('tr[data-date]');
-                if (!tr) return;
-                applyHighlight(i+1, tr.getAttribute('data-date'), td.getAttribute('data-col'));
+                if (!td) return;
+                // 1회 클릭 시 기존 하이라이팅 및 인풋 컴포넌트(입고 DB 입력) 제어 로직 보존
+                if (td.classList.contains('f3io-date-td')) {
+                    const tr = td.closest('tr[data-date]');
+                    if (tr) applyHighlight(i+1, tr.getAttribute('data-date'), null);
+                } else {
+                    const tr = td.closest('tr[data-date]');
+                    if (tr) applyHighlight(i+1, tr.getAttribute('data-date'), td.getAttribute('data-col'));
+                }
             });
         });
     }
 
-    /* ─ 날짜 셀 더블 클릭 시 메모 입력 처리 ─ */
+    /* ─ 모든 데이터 셀 더블 클릭 시 엑셀형 메모 입력 처리 ─ */
     function bindBodyDoubleClicks() {
         Factory3Io.PANEL_IDS.forEach((id, i) => {
             const body = document.getElementById(`f3ioBody${i+1}`);
             if (!body) return;
             
             body.addEventListener('dblclick', async (e) => {
-                // 더블 클릭 이벤트는 날짜 셀(f3io-date-td)에서만 반응하도록 설정합니다.
-                const td = e.target.closest('.f3io-date-td');
+                const td = e.target.closest('td');
                 if (!td) return;
                 const tr = td.closest('tr[data-date]');
                 if (!tr) return;
                 
                 const ds = tr.getAttribute('data-date');
-                const d = Factory3Io.dataCache[ds] || {};
-                const currentMemo = d.memo || '';
+                if (!Factory3Io.dataCache[ds]) Factory3Io.dataCache[ds] = {};
+                if (!Factory3Io.dataCache[ds].memos) Factory3Io.dataCache[ds].memos = {};
                 
-                const dateKo = Utils.fmtKo(ds); // YYYY년 MM월 DD일 등 표시용
-                const newMemo = prompt(`${dateKo} 메모를 입력하세요 (내용을 모두 지우면 메모가 삭제됩니다):`, currentMemo);
+                const d = Factory3Io.dataCache[ds];
                 
-                // 취소 버튼을 누르지 않았고(null 아님), 내용이 변경되었다면
+                let colId = 'ALL';
+                let cellLabel = '날짜';
+                
+                // 날짜 컬럼 분기 파악
+                if (td.classList.contains('f3io-date-td')) {
+                    colId = 'ALL';
+                    cellLabel = '날짜';
+                } else {
+                    const colAttr = td.getAttribute('data-col');
+                    if (!colAttr) return; 
+                    colId = `p${i+1}_c${colAttr}`; // 예시: p1_c1 (패널1의 1번째 열 = 입고 A)
+                    
+                    // 프롬프트 가이드용 텍스트 매핑
+                    if (i === 0) {
+                        const labels = { '1': '입고 A', '2': '입고 D', '3': '출고 A', '4': '출고 D', '5': '재고 A', '6': '재고 D' };
+                        cellLabel = labels[colAttr] || `입출고 열 ${colAttr}`;
+                    } else if (i === 1) {
+                        const labels = { '1': '본지', '2': '별쇄', '3': '경인일보', '4': '기독교타임즈', '5': '대학신문', '6': '평화신문', '7': '매체합계' };
+                        cellLabel = labels[colAttr] || `매체 열 ${colAttr}`;
+                    } else if (i === 2) {
+                        const labels = { '1': '용지 A', '2': '용지 D' };
+                        cellLabel = labels[colAttr] || `용지 열 ${colAttr}`;
+                    }
+                }
+                
+                const currentMemo = d.memos[colId] || '';
+                const dateKo = Utils.fmtKo(ds);
+                const newMemo = prompt(`${dateKo} [${cellLabel}] 셀의 메모를 입력하세요 (내용을 비우면 메모가 삭제됩니다):`, currentMemo);
+                
                 if (newMemo !== null && newMemo !== currentMemo) {
                     const finalMemo = newMemo.trim() === '' ? null : newMemo.trim();
                     
                     // 1. 캐시 선 반영
-                    d.memo = finalMemo;
-                    Factory3Io.dataCache[ds] = d;
+                    if (finalMemo) {
+                        d.memos[colId] = finalMemo;
+                    } else {
+                        delete d.memos[colId];
+                    }
                     
-                    // 2. 화면 즉시 리랜더링 적용 (빨간 삼각형 노출)
+                    // 2. 화면 즉시 리랜더링 적용 (빨간 삼각형 실시간 반영)
                     Render.rerenderAllRows(true);
                     
                     // 3. 백그라운드 DB 갱신
-                    const ok = await API.saveMemo(ds, finalMemo);
+                    const ok = await API.saveMemo(ds, colId, finalMemo);
                     if (!ok) {
                         // 저장 실패 시 캐시 및 화면 원상 복구
-                        d.memo = currentMemo;
-                        Factory3Io.dataCache[ds] = d;
+                        if (currentMemo) {
+                            d.memos[colId] = currentMemo;
+                        } else {
+                            delete d.memos[colId];
+                        }
                         Render.rerenderAllRows(true);
                     }
                 }
