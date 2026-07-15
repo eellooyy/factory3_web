@@ -20,6 +20,9 @@
 
             App.bindInputFormatters();
             App.bindKeyboardNavigation();
+            if (typeof App.bindSwapFeature === 'function') {
+                App.bindSwapFeature();
+            }
             
             // 초기 로드 시점 데이터 조회 실행
             App.loadData(App.headerApi.getCurrentDate());

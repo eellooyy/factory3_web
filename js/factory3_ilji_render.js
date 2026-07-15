@@ -389,4 +389,136 @@
             }
         }, 100); 
     };
+
+    // 위치 변경 (맞교환) 기능 구현
+    App.swapState = {
+        active: false,
+        firstSelectedCell: null
+    };
+
+    App.disableSwapMode = function() {
+        App.swapState.active = false;
+        App.swapState.firstSelectedCell = null;
+        
+        const infoBar = document.getElementById('f3iSwapInfoBar');
+        if (infoBar) {
+            infoBar.style.display = 'none';
+            infoBar.textContent = '';
+        }
+        
+        document.querySelectorAll('.f3i-td.editable').forEach(td => {
+            td.classList.remove('swap-candidate', 'swap-selected');
+        });
+        
+        const swapBtn = document.getElementById('f3iSwapBtn');
+        if (swapBtn) {
+            swapBtn.style.backgroundColor = '#007AFF';
+            swapBtn.textContent = '위치 변경';
+        }
+    };
+
+    App.bindSwapFeature = function() {
+        const swapBtn = document.getElementById('f3iSwapBtn');
+        const infoBar = document.getElementById('f3iSwapInfoBar');
+        
+        if (!swapBtn) return;
+        
+        swapBtn.addEventListener('click', function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            
+            if (App.swapState.active) {
+                App.disableSwapMode();
+            } else {
+                App.swapState.active = true;
+                App.swapState.firstSelectedCell = null;
+                
+                swapBtn.style.backgroundColor = '#ff9500';
+                swapBtn.textContent = '변경 취소';
+                
+                if (infoBar) {
+                    infoBar.textContent = '변경하려는 잔량을 선택해 주세요';
+                    infoBar.style.display = 'block';
+                }
+                
+                // data-row="1" 인 (사용 전 잔량) 편집가능 셀들만 후보로 지정
+                document.querySelectorAll('.f3i-td.editable').forEach(td => {
+                    const inp = td.querySelector('input.target-calc[data-row="1"]');
+                    if (inp) {
+                        td.classList.add('swap-candidate');
+                    }
+                });
+            }
+        });
+        
+        // 이벤트 위임을 통해 셀 클릭 제어
+        const wrapper = document.querySelector('.f3i-wrapper');
+        if (wrapper) {
+            wrapper.addEventListener('click', function(e) {
+                if (!App.swapState.active) return;
+                
+                const td = e.target.closest('td.swap-candidate');
+                if (!td) return;
+                
+                e.preventDefault();
+                e.stopPropagation();
+                
+                const input = td.querySelector('input');
+                if (!input) return;
+                
+                if (!App.swapState.firstSelectedCell) {
+                    // 1단계 선택
+                    App.swapState.firstSelectedCell = td;
+                    td.classList.add('swap-selected');
+                    if (infoBar) {
+                        infoBar.textContent = '변경할 잔량 대상을 선택해 주세요';
+                    }
+                } else {
+                    // 2단계 선택 (동일 셀 선택 시 취소)
+                    if (App.swapState.firstSelectedCell === td) {
+                        td.classList.remove('swap-selected');
+                        App.swapState.firstSelectedCell = null;
+                        if (infoBar) {
+                            infoBar.textContent = '변경하려는 잔량을 선택해 주세요';
+                        }
+                    } else {
+                        // 스왑 진행
+                        const input1 = App.swapState.firstSelectedCell.querySelector('input');
+                        const input2 = input;
+                        
+                        const tempVal = input1.value;
+                        input1.value = input2.value;
+                        input2.value = tempVal;
+                        
+                        // 자동 연산 트리거
+                        App.calculateAutoFields();
+                        
+                        // 스왑 모드 비활성화
+                        App.disableSwapMode();
+                    }
+                }
+            });
+        }
+        
+        // 수정 모드가 꺼지거나 날짜가 변경될 때 스왑 모드 자동 초기화
+        const editBtn = document.getElementById('f3iEditBtn');
+        if (editBtn) {
+            editBtn.addEventListener('click', () => {
+                setTimeout(() => {
+                    if (App.headerApi && !App.headerApi.isEditMode()) {
+                        App.disableSwapMode();
+                    }
+                }, 100);
+            });
+        }
+        
+        const saveBtn = document.getElementById('f3iSaveBtn');
+        if (saveBtn) {
+            saveBtn.addEventListener('click', () => {
+                setTimeout(() => {
+                    App.disableSwapMode();
+                }, 100);
+            });
+        }
+    };
 })();

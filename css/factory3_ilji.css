@@ -184,3 +184,56 @@ body {
 
 /* 달력 출력 오프셋 교정 */
 .flatpickr-calendar { margin-top: 5px; margin-left: -120px; }
+
+/* 위치 변경 스왑 관련 스타일 */
+.f3i-swap-btn {
+    background: #007AFF;
+    color: #fff;
+    border: none;
+    border-radius: 4px;
+    padding: 3px 8px;
+    font-size: 11px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background-color 0.2s;
+}
+.f3i-swap-btn:hover {
+    background: #0056b3;
+}
+.f3i-wrapper.edit-mode .f3i-swap-btn {
+    display: inline-block !important;
+}
+.f3i-swap-info-bar {
+    background: #e8f4fd;
+    color: #007AFF;
+    border: 1px solid #d0e7fa;
+    border-radius: 8px;
+    padding: 10px 16px;
+    font-size: 13px;
+    font-weight: 600;
+    text-align: center;
+    margin-bottom: 12px;
+    animation: f3iFadeIn 0.2s;
+}
+@keyframes f3iFadeIn {
+    from { opacity: 0; transform: translateY(-5px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+/* 스왑 대상 후보 및 선택 상태 */
+.f3i-wrapper.edit-mode .f3i-td.editable.swap-candidate {
+    border: 2px dashed #007AFF !important;
+    background-color: #f0f7ff !important;
+    cursor: pointer !important;
+}
+.f3i-wrapper.edit-mode .f3i-td.editable.swap-candidate .f3i-input {
+    cursor: pointer !important;
+}
+.f3i-wrapper.edit-mode .f3i-td.editable.swap-selected {
+    border: 2px solid #ff9500 !important;
+    background-color: #ffeccf !important;
+    animation: f3iWiggle 0.15s infinite alternate;
+}
+@keyframes f3iWiggle {
+    0% { transform: rotate(-0.5deg); }
+    100% { transform: rotate(0.5deg); }
+}
