@@ -93,6 +93,18 @@ body {
 .gf3-dropdown-item:last-child {
     border-bottom: none;
 }
+
+/* hover 판정 가교 — margin-left 6px 갭에서 마우스가 벗어나도 hover 유지 */
+.gf3-dropdown-item::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 100%;
+    width: 14px;   /* 갭(6px)보다 여유 있게 */
+    height: 100%;
+    background: transparent;
+}
+
 .gf3-dropdown-item > .gf3-dropdown-label {
     display: flex;
     align-items: center;
