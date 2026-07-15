@@ -73,7 +73,7 @@ body {
     width: 260px;
     display: none;
     flex-direction: column;
-    overflow: hidden;
+    overflow: visible;
     z-index: 1000;
     border: 1px solid #e5e5ea;
 }
