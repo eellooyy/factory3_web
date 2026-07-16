@@ -10,6 +10,9 @@ window.Factory3Io = window.Factory3Io || {};
 
     Factory3Io.CHUNK_DAYS = 21;
 
+    // DB 원본 데이터 캐시 백업용 객체
+    Factory3Io.originalDbCache = {};
+
     Factory3Io.Main = {
         init: async function () {
             // 초기 구동 시 스크롤, 클릭, 키보드 네비게이션 이벤트를 선행 바인딩합니다.
@@ -54,6 +57,26 @@ window.Factory3Io = window.Factory3Io || {};
                 });
             }
 
+            // 마스터(비밀번호 0000) 권한 여부 감지 및 새로고침 동기화 버튼 활성화 처리
+            const role = sessionStorage.getItem('gf3_role');
+            const syncBtn = document.getElementById('gf3IoTitleSyncBtn');
+            if (role === 'master' && syncBtn) {
+                syncBtn.style.display = 'inline-flex';
+                
+                syncBtn.addEventListener('click', async (e) => {
+                    e.stopPropagation(); // 클릭 이벤트가 부모 랩으로 버블링되어 드롭다운 메뉴가 열리는 현상 방지
+                    await handleSyncStocks();
+                });
+
+                // 마우스 오버 효과 추가
+                syncBtn.addEventListener('mouseover', () => {
+                    syncBtn.style.backgroundColor = 'rgba(0, 0, 0, 0.08)';
+                });
+                syncBtn.addEventListener('mouseout', () => {
+                    syncBtn.style.backgroundColor = 'transparent';
+                });
+            }
+
             // 불필요한 컨트롤 일시 비활성화 처리
             ['gf3IoPrevBtn', 'gf3IoNextBtn', 'gf3IoExcelBtn'].forEach(id => {
                 const btn = document.getElementById(id);
@@ -92,6 +115,18 @@ window.Factory3Io = window.Factory3Io || {};
                 if (!Factory3Io.dataCache[ds]) {
                     Factory3Io.dataCache[ds] = {};
                 }
+            });
+
+            // --- [추가] 재고 연산 전 DB 원본 데이터를 안전하게 백업 및 복제합니다. ---
+            Factory3Io.originalDbCache = {};
+            dates.forEach(ds => {
+                const cacheVal = Factory3Io.dataCache[ds] || {};
+                Factory3Io.originalDbCache[ds] = {
+                    in_a: cacheVal.in_a || 0,
+                    in_d: cacheVal.in_d || 0,
+                    stock_a: cacheVal.stock_a || 0,
+                    stock_d: cacheVal.stock_d || 0
+                };
             });
 
             API.recalcAllStocks();
@@ -135,6 +170,18 @@ window.Factory3Io = window.Factory3Io || {};
             const dates = Utils.getDatesRange(start, end);
             dates.forEach(ds => {
                 if (!Factory3Io.dataCache[ds]) Factory3Io.dataCache[ds] = {};
+            });
+
+            // --- [추가] 과거 청크 로드 시에도 DB 원본 값을 원본 백업 캐시에 병합(Merge)합니다. ---
+            if (!Factory3Io.originalDbCache) Factory3Io.originalDbCache = {};
+            dates.forEach(ds => {
+                const cacheVal = Factory3Io.dataCache[ds] || {};
+                Factory3Io.originalDbCache[ds] = {
+                    in_a: cacheVal.in_a || 0,
+                    in_d: cacheVal.in_d || 0,
+                    stock_a: cacheVal.stock_a || 0,
+                    stock_d: cacheVal.stock_d || 0
+                };
             });
 
             API.recalcAllStocks();
@@ -203,11 +250,105 @@ window.Factory3Io = window.Factory3Io || {};
         const ok = await API.saveIncomingBatch(batchRows);
         if (!ok) return;
 
+        // --- [추가] 일괄 저장 성공 시 백업용 originalDbCache 역시 최신 DB 상태로 함께 갱신 처리합니다. ---
+        if (!Factory3Io.originalDbCache) Factory3Io.originalDbCache = {};
+        batchRows.forEach(row => {
+            const ds = row.date;
+            Factory3Io.originalDbCache[ds] = {
+                in_a: row.in_a,
+                in_d: row.in_d,
+                stock_a: row.stock_a,
+                stock_d: row.stock_d
+            };
+        });
+
         if (Factory3Io.state.headerApi && Factory3Io.state.headerApi.isEditMode()) {
             Factory3Io.state.headerApi.toggleEditMode();
         }
         onEditModeExit();
         alert('최근 7일치 입고 실적 및 연산 재고가 실시간으로 일괄 저장되었습니다.');
+    }
+
+    /* ─────────────────────────────────────────
+       [추가] 마스터 전용: 재고 실시간 동기화/재계산 처리
+    ───────────────────────────────────────── */
+    async function handleSyncStocks() {
+        if (Factory3Io.state.loading) return;
+
+        // 1. 최신 계산 상태 보장
+        API.recalcAllStocks();
+
+        // 2. 변동 사항 검지 (Dirty Checking)
+        const allDates = Object.keys(Factory3Io.dataCache);
+        const batchRows = [];
+
+        allDates.forEach(ds => {
+            const current = Factory3Io.dataCache[ds] || {};
+            const original = (Factory3Io.originalDbCache && Factory3Io.originalDbCache[ds]) || {};
+
+            const isChanged = (
+                (current.in_a || 0) !== (original.in_a || 0) ||
+                (current.in_d || 0) !== (original.in_d || 0) ||
+                (current.stock_a || 0) !== (original.stock_a || 0) ||
+                (current.stock_d || 0) !== (original.stock_d || 0)
+            );
+
+            if (isChanged) {
+                batchRows.push({
+                    date: ds,
+                    in_a: current.in_a || 0,
+                    in_d: current.in_d || 0,
+                    stock_a: current.stock_a || 0,
+                    stock_d: current.stock_d || 0
+                });
+            }
+        });
+
+        if (batchRows.length === 0) {
+            alert('갱신할 재고 변동 사항이 없습니다. 현재 데이터베이스가 최신 상태입니다.');
+            return;
+        }
+
+        if (!confirm(`재고 변동 사항이 발견된 ${batchRows.length}일치의 데이터를 DB에 최종 저장하시겠습니까?`)) {
+            return;
+        }
+
+        // 3. 아이콘 360도 회전 애니메이션 시작 및 DB 전송
+        const syncBtn = document.getElementById('gf3IoTitleSyncBtn');
+        const iconSpan = syncBtn ? syncBtn.querySelector('.material-symbols-outlined') : null;
+
+        if (iconSpan) {
+            iconSpan.style.transition = 'transform 1s ease-in-out';
+            iconSpan.style.transform = 'rotate(720deg)';
+        }
+
+        const ok = await API.saveIncomingBatch(batchRows);
+        if (ok) {
+            // 성공 시 캐시 백업 업데이트
+            if (!Factory3Io.originalDbCache) Factory3Io.originalDbCache = {};
+            batchRows.forEach(row => {
+                const ds = row.date;
+                Factory3Io.originalDbCache[ds] = {
+                    in_a: row.in_a,
+                    in_d: row.in_d,
+                    stock_a: row.stock_a,
+                    stock_d: row.stock_d
+                };
+            });
+
+            Render.rerenderAllRows(true);
+            alert('재고가 실시간으로 성공적으로 재계산 및 연동 저장되었습니다.');
+        } else {
+            alert('재고 데이터베이스 동기화에 실패했습니다.');
+        }
+
+        // 애니메이션 효과 정상 초기화
+        if (iconSpan) {
+            setTimeout(() => {
+                iconSpan.style.transition = 'none';
+                iconSpan.style.transform = 'rotate(0deg)';
+            }, 1000);
+        }
     }
 
     function onEditModeEnter() {
