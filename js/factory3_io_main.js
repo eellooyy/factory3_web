@@ -10,7 +10,7 @@ window.Factory3Io = window.Factory3Io || {};
 
     Factory3Io.CHUNK_DAYS = 21;
 
-    // DB 원본 데이터 캐시 백업용 객체
+    // DB 원본 데이터 캐시 백업용 객체 (안정 상태 스냅샷)
     Factory3Io.originalDbCache = {};
 
     Factory3Io.Main = {
@@ -117,19 +117,21 @@ window.Factory3Io = window.Factory3Io || {};
                 }
             });
 
-            // --- [추가] 재고 연산 전 DB 원본 데이터를 안전하게 백업 및 복제합니다. ---
+            // [수정] 최초 계산을 먼저 실행하여 프로그램의 기본 연산 상태를 정립합니다.
+            API.recalcAllStocks();
+
+            // [수정] 연산이 완료된 시점의 무결한 상태를 원본 스냅샷(Clean State)으로 등록합니다.
+            // 데이터 타입 불일치 방지를 위해 Number 처리를 명시합니다.
             Factory3Io.originalDbCache = {};
             dates.forEach(ds => {
                 const cacheVal = Factory3Io.dataCache[ds] || {};
                 Factory3Io.originalDbCache[ds] = {
-                    in_a: cacheVal.in_a || 0,
-                    in_d: cacheVal.in_d || 0,
-                    stock_a: cacheVal.stock_a || 0,
-                    stock_d: cacheVal.stock_d || 0
+                    in_a: Number(cacheVal.in_a) || 0,
+                    in_d: Number(cacheVal.in_d) || 0,
+                    stock_a: Number(cacheVal.stock_a) || 0,
+                    stock_d: Number(cacheVal.stock_d) || 0
                 };
             });
-
-            API.recalcAllStocks();
 
             const rows = dates.map(ds => Render.buildRow(ds));
             Render.renderInitial(rows);
@@ -172,19 +174,20 @@ window.Factory3Io = window.Factory3Io || {};
                 if (!Factory3Io.dataCache[ds]) Factory3Io.dataCache[ds] = {};
             });
 
-            // --- [추가] 과거 청크 로드 시에도 DB 원본 값을 원본 백업 캐시에 병합(Merge)합니다. ---
+            // [수정] 과거 데이터 추가 후 전체 재계산을 먼저 진행합니다.
+            API.recalcAllStocks();
+
+            // [수정] 계산이 정상 완료된 상태의 값을 원본 캐시 백업 스냅샷에 병합(Merge)합니다.
             if (!Factory3Io.originalDbCache) Factory3Io.originalDbCache = {};
             dates.forEach(ds => {
                 const cacheVal = Factory3Io.dataCache[ds] || {};
                 Factory3Io.originalDbCache[ds] = {
-                    in_a: cacheVal.in_a || 0,
-                    in_d: cacheVal.in_d || 0,
-                    stock_a: cacheVal.stock_a || 0,
-                    stock_d: cacheVal.stock_d || 0
+                    in_a: Number(cacheVal.in_a) || 0,
+                    in_d: Number(cacheVal.in_d) || 0,
+                    stock_a: Number(cacheVal.stock_a) || 0,
+                    stock_d: Number(cacheVal.stock_d) || 0
                 };
             });
-
-            API.recalcAllStocks();
 
             const rows = dates.map(ds => Render.buildRow(ds));
             const htmls = Render.generateRowsHTML(rows);
@@ -250,15 +253,15 @@ window.Factory3Io = window.Factory3Io || {};
         const ok = await API.saveIncomingBatch(batchRows);
         if (!ok) return;
 
-        // --- [추가] 일괄 저장 성공 시 백업용 originalDbCache 역시 최신 DB 상태로 함께 갱신 처리합니다. ---
+        // 일괄 저장 성공 시 백업용 originalDbCache 역시 최신 DB 상태로 함께 갱신 처리합니다.
         if (!Factory3Io.originalDbCache) Factory3Io.originalDbCache = {};
         batchRows.forEach(row => {
             const ds = row.date;
             Factory3Io.originalDbCache[ds] = {
-                in_a: row.in_a,
-                in_d: row.in_d,
-                stock_a: row.stock_a,
-                stock_d: row.stock_d
+                in_a: Number(row.in_a),
+                in_d: Number(row.in_d),
+                stock_a: Number(row.stock_a),
+                stock_d: Number(row.stock_d)
             };
         });
 
@@ -270,7 +273,7 @@ window.Factory3Io = window.Factory3Io || {};
     }
 
     /* ─────────────────────────────────────────
-       [수정] 마스터 전용: 재고 실시간 동기화/재계산 처리 (어제까지만 반영)
+       마스터 전용: 재고 실시간 동기화/재계산 처리 (어제까지만 검증 및 저장)
     ───────────────────────────────────────── */
     async function handleSyncStocks() {
         if (Factory3Io.state.loading) return;
@@ -281,20 +284,21 @@ window.Factory3Io = window.Factory3Io || {};
         // 2. 변동 사항 검지 (Dirty Checking)
         const allDates = Object.keys(Factory3Io.dataCache);
         const batchRows = [];
-        const todayStr = Utils.todayStr(); // 오늘 날짜 문자열 가져오기
+        const todayStr = Utils.todayStr();
 
         allDates.forEach(ds => {
-            // [수정] 오늘을 포함한 미래 날짜는 계산 및 DB 동기화 대상에서 제외 (어제 날짜까지만 처리)
+            // 오늘을 포함한 미래 날짜는 저장 대상에서 제외 (어제 날짜까지만 처리)
             if (ds >= todayStr) return;
 
             const current = Factory3Io.dataCache[ds] || {};
             const original = (Factory3Io.originalDbCache && Factory3Io.originalDbCache[ds]) || {};
 
+            // [수정] 데이터 타입(String vs Number)으로 인한 오작동을 막기 위해 엄격한 Number 변환 대조 적용
             const isChanged = (
-                (current.in_a || 0) !== (original.in_a || 0) ||
-                (current.in_d || 0) !== (original.in_d || 0) ||
-                (current.stock_a || 0) !== (original.stock_a || 0) ||
-                (current.stock_d || 0) !== (original.stock_d || 0)
+                (Number(current.in_a) || 0) !== (Number(original.in_a) || 0) ||
+                (Number(current.in_d) || 0) !== (Number(original.in_d) || 0) ||
+                (Number(current.stock_a) || 0) !== (Number(original.stock_a) || 0) ||
+                (Number(current.stock_d) || 0) !== (Number(original.stock_d) || 0)
             );
 
             if (isChanged) {
@@ -308,6 +312,7 @@ window.Factory3Io = window.Factory3Io || {};
             }
         });
 
+        // [정상 작동] 변동 사항이 없는 경우 저장을 시도하지 않고 알림창을 띄웁니다.
         if (batchRows.length === 0) {
             alert('갱신할 재고 변동 사항이 없습니다. 현재 데이터베이스가 최신 상태입니다.');
             return;
@@ -333,10 +338,10 @@ window.Factory3Io = window.Factory3Io || {};
             batchRows.forEach(row => {
                 const ds = row.date;
                 Factory3Io.originalDbCache[ds] = {
-                    in_a: row.in_a,
-                    in_d: row.in_d,
-                    stock_a: row.stock_a,
-                    stock_d: row.stock_d
+                    in_a: Number(row.in_a),
+                    in_d: Number(row.in_d),
+                    stock_a: Number(row.stock_a),
+                    stock_d: Number(row.stock_d)
                 };
             });
 
