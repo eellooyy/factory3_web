@@ -43,6 +43,13 @@
                 <a href="https://eellooyy.github.io/factory1/" target="_blank">1공장으로 이동</a>
             </div>
         </div>
+
+        <!-- [추가] 제목과 날짜 사이의 한줄 롤링 공지사항 바 -->
+        <div class="f3i-notice-ticker" id="f3iNoticeTicker" title="클릭하시면 전체 공지를 확인하실 수 있습니다.">
+            <div class="f3i-ticker-wrapper" id="f3iTickerWrapper">
+                <!-- 자바스크립트에서 공지 목록을 실시간 렌더링합니다 -->
+            </div>
+        </div>
         
         <div class="f3i-controls">
             <div class="f3i-nav-group">
@@ -249,6 +256,25 @@
             </div>
         </div>
 
+    </div>
+</div>
+
+<!-- [추가] 공지사항 상세 조회/수정용 통합형 모달창 구조 -->
+<div id="f3iNoticeModal" class="f3i-nmodal-overlay">
+    <div class="f3i-nmodal-box">
+        <div class="f3i-nmodal-header">
+            <button id="f3iNoticeBackBtn" class="f3i-nmodal-back-btn" style="display: none;">
+                <span class="material-symbols-outlined">arrow_back</span> 뒤로가기
+            </button>
+            <span id="f3iNoticeModalTitle" class="f3i-nmodal-title">전체 공지사항 목록</span>
+            <span id="f3iNoticeCloseBtn" class="material-symbols-outlined f3i-nmodal-close">close</span>
+        </div>
+        <div class="f3i-nmodal-body" id="f3iNoticeModalBody">
+            <!-- 목록 및 상세 내용이 동적으로 교체 구현됩니다 -->
+        </div>
+        <div class="f3i-nmodal-footer-info" id="f3iMasterNoticeInfo" style="display: none;">
+            ⚠️ 마스터 모드: 글이나 HTML 태그를 편집한 후 상단 [저장] 버튼을 누르면 확정됩니다.
+        </div>
     </div>
 </div>
 

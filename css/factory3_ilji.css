@@ -1,7 +1,5 @@
-/* factory3_ilji.css — 3공장 일지 전용 스타일 */
-/* 공통 스타일(body, 헤더, 버튼, 서브메뉴 등)은 factory3.css 에서 로드합니다. */
+/* factory3_ilji.css — 3공장 일지 전용 스타일 추가본 통합 */
 
-/* PC 컨테이너 너비 지정 및 중앙 정렬 */
 .f3i-wrapper {
     display: flex;
     flex-direction: column;
@@ -41,6 +39,7 @@
     margin-left: -8px;
     border-radius: 8px;
     transition: background-color 0.2s;
+    flex-shrink: 0;
 }
 .f3i-title-wrap:hover {
     background-color: #f5f5f7;
@@ -48,6 +47,51 @@
 .f3i-hamburger {
     font-size: 24px;
     color: #1d1d1f;
+}
+
+/* [추가] 헤더 중간 공지사항 롤링 바 스타일 */
+.f3i-notice-ticker {
+    flex: 1;
+    margin: 0 24px;
+    height: 32px;
+    overflow: hidden;
+    position: relative;
+    background: #f5f5f7;
+    border-radius: 8px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    padding: 0 16px;
+    border: 1px solid #e5e5ea;
+    transition: background-color 0.2s;
+}
+.f3i-notice-ticker:hover {
+    background: #e8f4fd;
+}
+.f3i-ticker-wrapper {
+    width: 100%;
+    position: relative;
+    height: 100%;
+}
+.f3i-ticker-item {
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    font-size: 12.5px;
+    font-weight: 600;
+    color: #007AFF;
+    opacity: 0;
+    transform: translateY(10px);
+    transition: opacity 0.4s ease, transform 0.4s ease;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+    overflow: hidden;
+}
+.f3i-ticker-item.active {
+    opacity: 1;
+    transform: translateY(0);
 }
 
 /* 상단 드롭다운 메뉴 */
@@ -90,7 +134,7 @@
 }
 
 /* 컨트롤러 및 탐색 버튼군 */
-.f3i-controls { display: flex; align-items: center; gap: 8px; }
+.f3i-controls { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
 .f3i-nav-group { display: flex; align-items: center; background: #f5f5f7; border-radius: 20px; padding: 4px; }
 .f3i-icon-btn { background: #fff; border: none; border-radius: 50%; width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; color: #1d1d1f; box-shadow: 0 1px 3px rgba(0,0,0,0.1); cursor: pointer; transition: transform 0.1s; }
 .f3i-icon-btn:hover { transform: scale(1.05); }
@@ -98,119 +142,144 @@
 .f3i-cal-wrap { position: relative; margin: 0 12px; }
 .f3i-date-text { font-size: 18px; font-weight: 700; color: #1d1d1f; min-width: 140px; text-align: center; display: inline-block; cursor: pointer; }
 
-/* 액션 버튼 (일지 전용 prefix — 공통 색상은 factory3.css 에서 상속) */
+/* 액션 버튼 */
 .f3i-action-btn { display: flex; align-items: center; border: none; padding: 6px 16px; border-radius: 8px; font-size: 13px; font-weight: 600; cursor: pointer; transition: all 0.2s; }
 
 /* 메인 테이블 레이아웃 구조 */
 .f3i-layout { display: flex; align-items: flex-start; gap: 16px; width: 100%; }
-
-.f3i-main-table-box {
-    flex: 1 1 0;
-    min-width: 0;
-    background: #fff;
-    border-radius: 12px;
-    padding: 16px;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.03);
-    border: 1px solid #e5e5ea;
-}
-
+.f3i-main-table-box { flex: 1 1 0; min-width: 0; background: #fff; border-radius: 12px; padding: 16px; box-shadow: 0 2px 8px rgba(0,0,0,0.03); border: 1px solid #e5e5ea; }
 .f3i-table { width: 100%; border-collapse: collapse; table-layout: fixed; }
 .f3i-th, .f3i-td { border: 1px solid #d2d2d7; height: 38px; vertical-align: middle; padding: 0; }
 .f3i-th { background: #f5f5f7; font-size: 13px; font-weight: 600; color: #1d1d1f; text-align: center; }
 .row-title { background: #fafafc; color: #1d1d1f; }
 .calc-row { color: #1d1d1f; }
 
-/* 외곽선 및 주요 구분선 굵기 보정 */
 .border-outer { border: 2px solid #8e8e93 !important; }
 .border-right-thick { border-right: 2px solid #8e8e93 !important; }
 .border-top-thick th, .border-top-thick td { border-top: 2px solid #8e8e93 !important; }
 .border-bottom-thick th, .border-bottom-thick td { border-bottom: 2px solid #8e8e93 !important; }
-
-/* 우측 특집 연산용 투명 테두리 처리 셀 */
 .special-cell { border-top: none !important; border-bottom: none !important; border-left: none !important; background: #ffffff; }
 .special-cell.bottom-border { border-bottom: 1px solid #d2d2d7 !important; }
 .special-label { text-align: right; padding-right: 8px; font-size: 13px; font-weight: 600; color: #1d1d1f; background: transparent; border-right: none !important; }
-
-/* 테이블 입력 필드(인풋 박스) */
 .f3i-input { width: 100%; height: 100%; border: none; outline: none; background: transparent; text-align: center; padding: 0 8px; font-size: 14px; color: #1d1d1f; box-sizing: border-box; }
 .f3i-input::-webkit-outer-spin-button, .f3i-input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
 .fw-bold { font-weight: bold; }
 
-/* 읽기전용 상태 및 수정 활성화 모드 배경 효과 */
 .f3i-td.readonly { background: #fbfbfd; }
 .f3i-td.editable { background: #ffffff; transition: background-color 0.3s; }
 .f3i-wrapper.edit-mode .f3i-td.editable { background-color: #fff9e6 !important; }
 .f3i-wrapper.edit-mode .f3i-td.editable .f3i-input:focus { background-color: #fff2cc !important; }
 
-/* 우측 사이드 요약 대장 패널 */
 .f3i-side-panel { width: 180px; flex-shrink: 0; display: flex; flex-direction: column; gap: 16px; }
 .f3i-box { background: #fff; border-radius: 12px; padding: 16px; box-shadow: 0 2px 8px rgba(0,0,0,0.03); border: 1px solid #e5e5ea; }
 .f3i-box-header { font-size: 14px; font-weight: 700; color: #1d1d1f; text-align: center; margin-bottom: 12px; padding-bottom: 8px; border-bottom: 1px solid #f2f2f7; }
-
-/* 미니 테이블 내부 간격 미세 조정 */
 .mini-table { min-width: 0 !important; width: 100%; }
 .mini-table th { font-size: 12px; height: 30px; }
 .mini-table td { height: 34px; }
 
-/* 태블릿 및 모바일 반응형 처리 */
 @media (max-width: 1050px) {
     .f3i-layout { flex-direction: column; }
     .f3i-side-panel { width: 100%; flex-direction: row; gap: 10px; }
     .f3i-box { flex: 1; }
+    .f3i-notice-ticker { margin: 8px 0; width: 100%; order: 3; }
+    .f3i-header { flex-wrap: wrap; gap: 12px; }
 }
 
-/* 달력 출력 오프셋 교정 */
 .flatpickr-calendar { margin-top: 5px; margin-left: -120px; }
+.f3i-swap-btn { background: #007AFF; color: #fff; border: none; border-radius: 4px; padding: 3px 8px; font-size: 11px; font-weight: 600; cursor: pointer; transition: background-color 0.2s; }
+.f3i-swap-btn:hover { background: #0056b3; }
+.f3i-wrapper.edit-mode .f3i-swap-btn { display: inline-block !important; }
+.f3i-swap-info-bar { background: #e8f4fd; color: #007AFF; border: 1px solid #d0e7fa; border-radius: 8px; padding: 10px 16px; font-size: 13px; font-weight: 600; text-align: center; margin-bottom: 12px; animation: f3iFadeIn 0.2s; }
 
-/* 위치 변경 스왑 관련 스타일 */
-.f3i-swap-btn {
-    background: #007AFF;
-    color: #fff;
-    border: none;
-    border-radius: 4px;
-    padding: 3px 8px;
-    font-size: 11px;
-    font-weight: 600;
-    cursor: pointer;
-    transition: background-color 0.2s;
-}
-.f3i-swap-btn:hover {
-    background: #0056b3;
-}
-.f3i-wrapper.edit-mode .f3i-swap-btn {
-    display: inline-block !important;
-}
-.f3i-swap-info-bar {
-    background: #e8f4fd;
-    color: #007AFF;
-    border: 1px solid #d0e7fa;
-    border-radius: 8px;
-    padding: 10px 16px;
-    font-size: 13px;
-    font-weight: 600;
-    text-align: center;
-    margin-bottom: 12px;
-    animation: f3iFadeIn 0.2s;
-}
 @keyframes f3iFadeIn {
     from { opacity: 0; transform: translateY(-5px); }
     to { opacity: 1; transform: translateY(0); }
 }
-/* 스왑 대상 후보 및 선택 상태 */
-.f3i-wrapper.edit-mode .f3i-td.editable.swap-candidate {
-    border: 2px dashed #007AFF !important;
-    background-color: #f0f7ff !important;
-    cursor: pointer !important;
-}
-.f3i-wrapper.edit-mode .f3i-td.editable.swap-candidate .f3i-input {
-    cursor: pointer !important;
-}
-.f3i-wrapper.edit-mode .f3i-td.editable.swap-selected {
-    border: 2px solid #ff9500 !important;
-    background-color: #ffeccf !important;
-    animation: f3iWiggle 0.15s infinite alternate;
-}
+
+.f3i-wrapper.edit-mode .f3i-td.editable.swap-candidate { border: 2px dashed #007AFF !important; background-color: #f0f7ff !important; cursor: pointer !important; }
+.f3i-wrapper.edit-mode .f3i-td.editable.swap-candidate .f3i-input { cursor: pointer !important; }
+.f3i-wrapper.edit-mode .f3i-td.editable.swap-selected { border: 2px solid #ff9500 !important; background-color: #ffeccf !important; animation: f3iWiggle 0.15s infinite alternate; }
+
 @keyframes f3iWiggle {
     0% { transform: rotate(-0.5deg); }
     100% { transform: rotate(0.5deg); }
+}
+
+/* [추가] 공지사항 모달 전용 레이아웃 CSS 스타일 */
+.f3i-nmodal-overlay {
+    position: fixed;
+    top: 0; left: 0; width: 100%; height: 100%;
+    background: rgba(0,0,0,0.4);
+    backdrop-filter: blur(4px);
+    z-index: 2000;
+    display: none;
+    align-items: center;
+    justify-content: center;
+}
+.f3i-nmodal-overlay.show { display: flex; }
+.f3i-nmodal-box {
+    background: #fff;
+    width: 90%;
+    max-width: 550px;
+    border-radius: 16px;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    max-height: 80vh;
+    animation: f3iModalUp 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+@keyframes f3iModalUp {
+    from { transform: translateY(20px); opacity: 0; }
+    to { transform: translateY(0); opacity: 1; }
+}
+.f3i-nmodal-header {
+    padding: 16px 20px;
+    border-bottom: 1px solid #f2f2f7;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: #fafafc;
+}
+.f3i-nmodal-title { font-size: 16px; font-weight: 700; color: #1d1d1f; }
+.f3i-nmodal-close { font-size: 22px; color: #8e8e93; cursor: pointer; transition: color 0.2s; user-select: none; }
+.f3i-nmodal-close:hover { color: #1d1d1f; }
+.f3i-nmodal-back-btn {
+    display: flex; align-items: center; gap: 4px;
+    background: #e8f4fd; color: #007AFF; border: none;
+    padding: 4px 10px; border-radius: 6px; font-size: 12px; font-weight: 600; cursor: pointer;
+}
+.f3i-nmodal-body { padding: 20px; overflow-y: auto; font-size: 14px; line-height: 1.6; color: #333; }
+
+/* 공지 목록 리스트 아이템 디자인 */
+.f3i-nlist-item {
+    padding: 12px 14px;
+    border-bottom: 1px solid #f2f2f7;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    font-weight: 600;
+    color: #3a3a3c;
+    transition: background 0.2s;
+}
+.f3i-nlist-item:hover { background: #f5f5f7; color: #007AFF; }
+.f3i-nlist-item .arrow { color: #c7c7cc; font-size: 18px; }
+
+/* 공지 상세 영역 및 에디터 서식 */
+.f3i-ndetail-content { width: 100%; min-height: 120px; }
+.f3i-ndetail-content img { max-width: 100%; height: auto; border-radius: 8px; margin-top: 10px; display: block; }
+.f3i-ndetail-content a { color: #007AFF; text-decoration: underline; }
+
+/* 마스터 에디터 모드 전용 효과 */
+.f3i-wrapper.master-mode-active .f3i-nedit-target {
+    border: 2px dashed #ff9500 !important;
+    background: #fffcf0;
+    padding: 8px;
+    border-radius: 6px;
+    outline: none;
+}
+.f3i-nmodal-footer-info {
+    background: #fff3cd; color: #856404; font-size: 11px;
+    padding: 8px 20px; font-weight: 600; text-align: center; border-top: 1px solid #ffeeba;
 }
