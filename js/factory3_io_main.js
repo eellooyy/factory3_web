@@ -270,7 +270,7 @@ window.Factory3Io = window.Factory3Io || {};
     }
 
     /* ─────────────────────────────────────────
-       [추가] 마스터 전용: 재고 실시간 동기화/재계산 처리
+       [수정] 마스터 전용: 재고 실시간 동기화/재계산 처리 (어제까지만 반영)
     ───────────────────────────────────────── */
     async function handleSyncStocks() {
         if (Factory3Io.state.loading) return;
@@ -281,8 +281,12 @@ window.Factory3Io = window.Factory3Io || {};
         // 2. 변동 사항 검지 (Dirty Checking)
         const allDates = Object.keys(Factory3Io.dataCache);
         const batchRows = [];
+        const todayStr = Utils.todayStr(); // 오늘 날짜 문자열 가져오기
 
         allDates.forEach(ds => {
+            // [수정] 오늘을 포함한 미래 날짜는 계산 및 DB 동기화 대상에서 제외 (어제 날짜까지만 처리)
+            if (ds >= todayStr) return;
+
             const current = Factory3Io.dataCache[ds] || {};
             const original = (Factory3Io.originalDbCache && Factory3Io.originalDbCache[ds]) || {};
 
@@ -309,7 +313,7 @@ window.Factory3Io = window.Factory3Io || {};
             return;
         }
 
-        if (!confirm(`재고 변동 사항이 발견된 ${batchRows.length}일치의 데이터를 DB에 최종 저장하시겠습니까?`)) {
+        if (!confirm(`어제까지의 재고 변동 사항이 발견된 ${batchRows.length}일치의 데이터를 DB에 최종 저장하시겠습니까?`)) {
             return;
         }
 
