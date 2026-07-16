@@ -128,11 +128,11 @@ window.Factory3Header = (function() {
                 elements.wrapper.querySelectorAll(inputSelector).forEach(input => {
                     input.readOnly = true;
                 });
-                
-                // 보기 모드로 전환 시 공지사항 목록 화면으로 리셋
-                if (window.NoticeManager) {
-                    window.NoticeManager.renderList();
-                }
+            }
+
+            // 모드 전환에 맞춰 공지사항 목록 실시간 갱신 (추가/삭제 버튼 활성/비활성화 연동)
+            if (window.NoticeManager) {
+                window.NoticeManager.renderList();
             }
         }
 

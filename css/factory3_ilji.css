@@ -320,3 +320,36 @@
 .f3i-nbtn-secondary:hover {
     background: #e5e5ea;
 }
+
+/* [추가] 공지사항 추가 및 삭제 조작 UI 전용 스타일 */
+.f3i-ndelete-btn {
+    color: #ff3b30;
+    cursor: pointer;
+    font-size: 20px !important;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 4px;
+    border-radius: 6px;
+    transition: background-color 0.2s, transform 0.1s;
+}
+.f3i-ndelete-btn:hover {
+    background-color: #ffe5e5;
+    transform: scale(1.1);
+}
+.f3i-nadd-wrap {
+    padding: 16px 20px;
+    border-top: 1px solid #f2f2f7;
+    background: #fafafc;
+    display: flex;
+    justify-content: center;
+}
+.f3i-nbtn-add {
+    background: #34c759;
+    color: #fff;
+    width: 100%;
+    justify-content: center;
+}
+.f3i-nbtn-add:hover {
+    background: #28a745;
+}

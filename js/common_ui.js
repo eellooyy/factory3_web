@@ -66,6 +66,11 @@ document.addEventListener('DOMContentLoaded', () => {
             const wrapper = document.getElementById('f3iTickerWrapper');
             if (!wrapper) return;
             
+            if (this.notices.length === 0) {
+                wrapper.innerHTML = `<div class="f3i-ticker-item active" style="color: #8e8e93;">📢 등록된 공지사항이 없습니다.</div>`;
+                return;
+            }
+
             wrapper.innerHTML = this.notices.map((n, idx) => `
                 <div class="f3i-ticker-item ${idx === 0 ? 'active' : ''}" data-idx="${idx}">${n.title}</div>
             `).join('');
@@ -114,7 +119,7 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         },
 
-        // 목록형 화면 렌더링
+        // 목록형 화면 렌더링 (추가/삭제 동적 처리 포함)
         renderList: function() {
             const body = document.getElementById('f3iNoticeModalBody');
             const title = document.getElementById('f3iNoticeModalTitle');
@@ -125,25 +130,108 @@ document.addEventListener('DOMContentLoaded', () => {
             if (backBtn) backBtn.style.display = "none";
             this.activeDetailIdx = null;
 
-            let html = '<div class="f3i-nlist-container">';
-            this.notices.forEach((n, idx) => {
+            // 마스터 권한 및 모드 확인
+            const wrapper = document.querySelector('.f3i-wrapper');
+            const isMasterMode = wrapper && wrapper.classList.contains('master-mode-active');
+
+            let html = '<div class="f3i-nlist-container" style="display: flex; flex-direction: column; height: 100%; justify-content: space-between;">';
+            
+            // 공지 목록 리스트 바디 영역 (스크롤 설정)
+            html += '<div style="flex: 1; overflow-y: auto;">';
+            if (this.notices.length === 0) {
+                html += '<div style="text-align: center; color: #8e8e93; padding: 40px 0; font-size: 13px;">등록된 공지사항이 없습니다.</div>';
+            } else {
+                this.notices.forEach((n, idx) => {
+                    html += `
+                        <div class="f3i-nlist-item" data-idx="${idx}">
+                            <span style="flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; padding-right: 12px;">${n.title}</span>
+                            <div style="display: flex; align-items: center; gap: 8px;">
+                                ${isMasterMode ? `<span class="material-symbols-outlined f3i-ndelete-btn" data-delete-idx="${idx}">delete</span>` : ''}
+                                <span class="material-symbols-outlined arrow">chevron_right</span>
+                            </div>
+                        </div>
+                    `;
+                });
+            }
+            html += '</div>';
+
+            // 마스터 모드일 경우 하단에 '새 공지사항 추가' 바 렌더링
+            if (isMasterMode) {
                 html += `
-                    <div class="f3i-nlist-item" data-idx="${idx}">
-                        <span>${n.title}</span>
-                        <span class="material-symbols-outlined arrow">chevron_right</span>
+                    <div class="f3i-nadd-wrap">
+                        <button type="button" id="f3iNoticeAddBtn" class="f3i-nbtn f3i-nbtn-add">
+                            <span class="material-symbols-outlined" style="font-size: 16px;">add</span> 새 공지사항 추가
+                        </button>
                     </div>
                 `;
-            });
+            }
+
             html += '</div>';
             body.innerHTML = html;
 
-            // 목록 아이템 클릭 시 주소 이동 대용 상세 보기 전환
+            // 상세 보기 전환 이벤트 연결
             body.querySelectorAll('.f3i-nlist-item').forEach(item => {
                 item.addEventListener('click', (e) => {
+                    // 삭제 버튼 클릭이 전파되어 상세보기로 넘어가지 않도록 방지
+                    if (e.target.classList.contains('f3i-ndelete-btn')) return;
+                    
                     const idx = parseInt(item.getAttribute('data-idx'));
                     this.renderDetail(idx);
                 });
             });
+
+            // 마스터 모드 조작 이벤트 리스너 연결
+            if (isMasterMode) {
+                // 개별 공지 삭제 처리
+                body.querySelectorAll('.f3i-ndelete-btn').forEach(btn => {
+                    btn.addEventListener('click', (e) => {
+                        e.stopPropagation(); // 목록 클릭 버블링 방지
+                        const idx = parseInt(btn.getAttribute('data-delete-idx'));
+                        if (confirm('이 공지사항을 정말로 삭제하시겠습니까?')) {
+                            this.deleteNotice(idx);
+                        }
+                    });
+                });
+
+                // 새 공지사항 추가 처리
+                const addBtn = document.getElementById('f3iNoticeAddBtn');
+                if (addBtn) {
+                    addBtn.addEventListener('click', () => {
+                        this.addNotice();
+                    });
+                }
+            }
+        },
+
+        // 새 공지사항 데이터 추가 로직
+        addNotice: function() {
+            const newNotice = {
+                title: "📢 [새 공지] 공지사항 제목을 입력하세요",
+                content: "여기에 새로운 공지사항 세부 내용을 입력하세요."
+            };
+            this.notices.push(newNotice);
+            localStorage.setItem('f3_static_notices', JSON.stringify(this.notices));
+            
+            this.renderTicker();
+            this.startTicker();
+            
+            // 추가 완료 직후 새로 만든 공지사항의 상세 편집 화면으로 즉시 전환하여 편의성 증대
+            this.renderDetail(this.notices.length - 1);
+        },
+
+        // 공지사항 삭제 로직
+        deleteNotice: function(idx) {
+            this.notices.splice(idx, 1);
+            localStorage.setItem('f3_static_notices', JSON.stringify(this.notices));
+            
+            // 삭제 후 현재 롤링 중인 인덱스가 범위 밖을 벗어나지 않도록 보정
+            if (this.currentIdx >= this.notices.length) {
+                this.currentIdx = 0;
+            }
+            
+            this.renderTicker();
+            this.startTicker();
+            this.renderList(); // 목록 갱신
         },
 
         // 상세 화면 렌더링 및 에디팅 기능 연결
