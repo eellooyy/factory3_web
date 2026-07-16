@@ -219,14 +219,15 @@
 .f3i-nmodal-overlay.show { display: flex; }
 .f3i-nmodal-box {
     background: #fff;
-    width: 90%;
-    max-width: 550px;
+    width: 95%;
+    max-width: 850px; /*기존 550px에서 더 확장*/
     border-radius: 16px;
     box-shadow: 0 10px 30px rgba(0,0,0,0.2);
     overflow: hidden;
     display: flex;
     flex-direction: column;
-    max-height: 80vh;
+    height: 75vh; /*시원한 스크롤 환경을 위한 높이 확보*/
+    max-height: 85vh;
     animation: f3iModalUp 0.3s cubic-bezier(0.16, 1, 0.3, 1);
 }
 @keyframes f3iModalUp {
@@ -249,7 +250,7 @@
     background: #e8f4fd; color: #007AFF; border: none;
     padding: 4px 10px; border-radius: 6px; font-size: 12px; font-weight: 600; cursor: pointer;
 }
-.f3i-nmodal-body { padding: 20px; overflow-y: auto; font-size: 14px; line-height: 1.6; color: #333; }
+.f3i-nmodal-body { padding: 20px; overflow-y: auto; font-size: 14px; line-height: 1.6; color: #333; height: 100%; }
 
 /* 공지 목록 리스트 아이템 디자인 */
 .f3i-nlist-item {
@@ -282,4 +283,40 @@
 .f3i-nmodal-footer-info {
     background: #fff3cd; color: #856404; font-size: 11px;
     padding: 8px 20px; font-weight: 600; text-align: center; border-top: 1px solid #ffeeba;
+}
+
+/* [추가] 모달 내 공지사항 개별 조작 에디터 영역 전용 버튼 패키지 */
+.f3i-nedit-actions {
+    display: flex;
+    gap: 10px;
+    margin-top: 16px;
+    justify-content: flex-end;
+    padding-top: 12px;
+    border-top: 1px solid #f2f2f7;
+}
+.f3i-nbtn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    border: none;
+    padding: 8px 16px;
+    border-radius: 8px;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+.f3i-nbtn-primary {
+    background: #007AFF;
+    color: #fff;
+}
+.f3i-nbtn-primary:hover {
+    background: #0056b3;
+}
+.f3i-nbtn-secondary {
+    background: #f2f2f7;
+    color: #1d1d1f;
+}
+.f3i-nbtn-secondary:hover {
+    background: #e5e5ea;
 }

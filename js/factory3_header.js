@@ -23,7 +23,7 @@ window.Factory3Header = (function() {
         }, 400);
     }
 
-    // [수정] 0000 마스터 비밀번호 로직 연동
+    // 0000 마스터 비밀번호 로직 연동
     function authenticate() {
         const savedRole = sessionStorage.getItem('gf3_role');
 
@@ -96,7 +96,7 @@ window.Factory3Header = (function() {
             }
         }
 
-        // [수정] 수정 모드 토글 시 마스터 모드 연동 클래스 부여
+        // 수정 모드 토글 시 마스터 모드 연동 클래스 부여
         function toggleEditMode() {
             if (!state.isAdmin) return;
             state.isEditMode = !state.isEditMode;
@@ -221,14 +221,9 @@ window.Factory3Header = (function() {
         elements.editBtn.addEventListener('click', toggleEditMode);
         elements.excelBtn.addEventListener('click', () => onExportExcel());
 
-        // [수정] 저장 버튼 클릭 시 마스터 권한일 경우 수정된 공지사항도 함께 반영하여 영구저장
+        // 저장 버튼 클릭 시 일지 데이터 저장만 실행 (공지사항은 팝업창 내 별도 저장 버튼을 통해 독립 저장)
         elements.saveBtn.addEventListener('click', () => {
             if (!state.isEditMode) return;
-            
-            if (state.role === 'master' && window.NoticeManager) {
-                window.NoticeManager.saveChanges();
-            }
-            
             onSave();
         });
 
