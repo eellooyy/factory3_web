@@ -120,7 +120,7 @@
     background: #ffffff;
     text-align: center; width: 82px; min-width: 82px; max-width: 82px;
     border-right: 1px solid #e5e5ea !important; border-bottom: 1px solid #f2f2f7;
-    font-size: 12px; font-weight: 700; padding: 5px 0; white-space: nowrap;
+    font-size: 12px; font-weight: 600; padding: 5px 0; white-space: nowrap;
 }
 
 .f3ct-data-cell {
