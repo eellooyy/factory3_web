@@ -142,10 +142,12 @@
                     top += el.offsetTop; 
                     el = el.offsetParent; 
                 }
-                const targetScrollTop = top - (pan.clientHeight / 3.5); 
+                // 선택한 날짜가 스크롤 영역의 제일 아래줄에 오도록 위치 계산
+                const rowBottom = top + row.offsetHeight;
+                const targetScrollTop = rowBottom - pan.clientHeight + 10;
                 Factory3Contrast.constant.PIDS.forEach(id => { 
                     const p = document.getElementById(id); 
-                    if (p) p.scrollTop = targetScrollTop; 
+                    if (p) p.scrollTop = Math.max(0, targetScrollTop); 
                 });
             }
         }), 120);

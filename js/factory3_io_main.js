@@ -496,11 +496,12 @@ window.Factory3Io = window.Factory3Io || {};
             const target = targetDateStr || Utils.yesterdayStr();
             const row = document.querySelector(`#f3ioBody1 tr[data-date="${target}"]`);
             if (!row) return;
-            
-            const topPos = row.offsetTop;
-            Factory3Io.PANEL_IDS.forEach(id => { 
-                const p = document.getElementById(id); 
-                if (p) p.scrollTop = topPos - 44; 
+
+            // 선택한 날짜가 스크롤 영역의 제일 아래줄에 오도록 위치 계산
+            const rowBottom = row.offsetTop + row.offsetHeight;
+            Factory3Io.PANEL_IDS.forEach(id => {
+                const p = document.getElementById(id);
+                if (p) p.scrollTop = Math.max(0, rowBottom - p.clientHeight + 10);
             });
         }), 50);
     }
