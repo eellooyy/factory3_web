@@ -703,7 +703,7 @@ td.f3io-sum-col.f3io-sum-mismatch {
 
 .f3ct-scroll-area {
     position: relative;
-    height: 334px; /* 5일치로 높이 설정 */
+    height: 294px; /* 헤더(74px) + 5줄(44px x 5) = 1층과 동일하게 5일치로 높이 설정 */
     overflow-y: auto;
     overflow-x: hidden;
     scrollbar-width: none;
