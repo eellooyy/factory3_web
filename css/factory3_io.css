@@ -7,7 +7,7 @@
     /* 
       [제목 좌측 여백 옵션]
       '입출고 대장', '실재고 및 ERP 대조' 제목의 좌측 여백을 조절합니다.
-      추후 원하는 간격으로 px 값을 변경해 사용하세요. (예: 8px, 16px, 20px 등)
+      추후 원하는 간격으로 px 값을 변경해 사용하세요. (예: 4px, 12px, 20px 등)
     */
     --panel-title-left-offset: 12px;
 }
@@ -584,7 +584,7 @@ td.f3io-sum-col.f3io-sum-mismatch {
     height: 100%;
 }
 
-/* 좌측 영역에 여백 옵션 변수 적용 */
+/* 좌측 영역에 설정한 여백 옵션 변수 적용 */
 .panel-header-grid .header-left {
     justify-content: flex-start;
     padding-left: var(--panel-title-left-offset);
@@ -599,18 +599,13 @@ td.f3io-sum-col.f3io-sum-mismatch {
     gap: 8px;
 }
 
-/* 
-  [제목 스타일 & 좌측 정렬 옵션 적용]
-  - HTML 구성 방식(header-left 내부 / 독립 배치)과 상관없이
-    항상 지정된 옵션 변수만큼 여백을 두고 좌측 정렬됩니다.
-*/
+/* 제목 텍스트 스타일 */
 .panel-title {
     font-size: 18px;
     font-weight: 700;
     color: #000000 !important;
     letter-spacing: -0.3px;
-    text-align: left;
-    margin-left: var(--panel-title-left-offset);
+    margin: 0;
 }
 
 /* 스크롤 ON/OFF 토글 스위치 디자인 */
