@@ -1,6 +1,18 @@
 /* static/css/factory3_io_style.css */
 
 /* ================================================
+   [옵션 설정] 글로벌 CSS 변수
+   ================================================ */
+:root {
+    /* 
+      [제목 좌측 여백 옵션]
+      '입출고 대장', '실재고 및 ERP 대조' 제목의 좌측 여백을 조절합니다.
+      추후 원하는 간격으로 px 값을 변경해 사용하세요. (예: 8px, 16px, 20px 등)
+    */
+    --panel-title-left-offset: 12px;
+}
+
+/* ================================================
    전체 래퍼
    ================================================ */
 .f3io-wrapper {
@@ -254,7 +266,7 @@
     min-width: 80px !important;
     width: 80px !important;
     box-sizing: border-box;
-    cursor: pointer; /* 메모 입력을 위해 커서 변경 */
+    cursor: pointer;
 }
 
 .f3io-responsive-date {
@@ -331,29 +343,26 @@ td.f3io-sum-col.f3io-sum-mismatch {
    편집 가능 셀 & 인라인 편집 input
    ================================================ */
 
-/* 편집 가능 열(입고 A, D) 배경 힌트 */
 .f3io-editable-cell {
     background: transparent;
     transition: background 0.15s;
 }
 
-/* 편집 모드 진입 시 input 스타일 */
 .f3io-in-input {
     display: block;
     width: 100%;
     height: 100%;
-    border: none !important; /* 밑줄 해제 처리 */
+    border: none !important;
     border-radius: 0;
     background: #eef4ff;
     text-align: center;
     font-size: 13px;
     font-family: inherit;
     font-weight: 600;
-    color: #1d1d1f !important; /* 커서색 및 글자색 변동 없도록 일반 텍스트 칼라 고정 */
+    color: #1d1d1f !important;
     outline: none;
     padding: 4px 2px;
     box-sizing: border-box;
-    /* number input 스피너 숨김 */
     -moz-appearance: textfield;
     appearance: textfield;
 }
@@ -364,29 +373,26 @@ td.f3io-sum-col.f3io-sum-mismatch {
 }
 .f3io-in-input:focus {
     background: #ddeaff;
-    border: none !important; /* 포커스 상태에서도 밑줄 제거 */
+    border: none !important;
 }
 
 /* =================================================
    [요구사항 반영 디자인 수정 세션]
    ================================================= */
 
-/* 1. 편집 모드일 때 해당 열 전체가 아닌, 1주일 전 범위에 속해 활성화된 셀(f3io-active-edit-cell)만 노란 배경 적용 */
 .f3io-wrapper.edit-mode #f3ioBody1 td.f3io-active-edit-cell {
     background: #fff9e6 !important;
 }
 
-/* 2. 편집 모드 진입 시 내부에 생성되는 input 기본 배경 정의 및 불필요한 스타일(밑줄, 커서색) 변경 처리 방지 */
 .f3io-wrapper.edit-mode .f3io-in-input {
     background: #fff9e6 !important;
-    color: #1d1d1f !important; /* 임의의 텍스트/커서 색상 변경 주석 처리 (기본 유지) */
-    border: none !important;   /* 활성화 셀 밑줄 완전 제거 */
+    color: #1d1d1f !important;
+    border: none !important;
 }
 
-/* 3. 편집 모드에서 실제 input에 마우스나 키보드 포커스가 갔을 때의 강조 색상 (밑줄 비활성 유지) */
 .f3io-wrapper.edit-mode .f3io-in-input:focus {
     background: #fff2cc !important;
-    border: none !important;   /* 포커스 밑줄 제거 유지 */
+    border: none !important;
 }
 
 /* =================================================
@@ -394,7 +400,7 @@ td.f3io-sum-col.f3io-sum-mismatch {
    ================================================= */
 .f3io-has-memo {
     position: relative;
-    background-color: rgba(255, 59, 48, 0.05) !important; /* 이 줄을 추가하세요 */
+    background-color: rgba(255, 59, 48, 0.05) !important;
 }
 
 .f3io-has-memo::after {
@@ -408,11 +414,7 @@ td.f3io-sum-col.f3io-sum-mismatch {
 }
 
 /* =================================================================
-   모바일(좁은 스마트폰) 반응형 — factory3_io.html 전용 테스트 적용분
-   ※ factory3.css(공통) 는 건드리지 않고, 이 파일이 <head>에서
-     factory3.css 뒤에 로드되는 점을 이용해 이 페이지에서만
-     헤더/테이블 스타일을 재정의합니다. 다른 3공장 페이지는
-     factory3_io.css를 로드하지 않으므로 영향이 없습니다.
+   모바일(좁은 스마트폰) 반응형
    ================================================================= */
 @media (max-width: 640px) {
     body {
@@ -425,7 +427,6 @@ td.f3io-sum-col.f3io-sum-mismatch {
         padding: 8px 0;
     }
 
-    /* ── 공통 헤더 내부 구성물 적층(세로 배치) ── */
     .gf3-header {
         flex-direction: column;
         align-items: stretch;
@@ -447,7 +448,6 @@ td.f3io-sum-col.f3io-sum-mismatch {
         font-size: 22px;
     }
 
-    /* 드롭다운 메뉴가 화면 밖으로 나가지 않도록 중앙 정렬 */
     .gf3-dropdown {
         left: 50%;
         transform: translateX(-50%);
@@ -466,7 +466,6 @@ td.f3io-sum-col.f3io-sum-mismatch {
         width: 100%;
     }
 
-    /* 날짜 이동 그룹은 한 줄 전체를 차지하도록 먼저 배치 */
     .gf3-nav-group {
         order: 1;
         flex: 1 1 100%;
@@ -482,7 +481,6 @@ td.f3io-sum-col.f3io-sum-mismatch {
         min-width: 120px;
     }
 
-    /* 오늘/수정/저장/엑셀 버튼은 두 번째 줄에서 균등 배치 */
     .gf3-action-btn {
         order: 2;
         flex: 1 1 auto;
@@ -498,7 +496,6 @@ td.f3io-sum-col.f3io-sum-mismatch {
         transform: translateX(-50%);
     }
 
-    /* ── 입출고 테이블 3패널: 폭을 줄여 스마트폰에서 가독성 확보 ── */
     .f3io-panels-outer {
         gap: 10px;
     }
@@ -533,7 +530,6 @@ td.f3io-sum-col.f3io-sum-mismatch {
     }
 }
 
-/* 아주 좁은 화면(구형 소형 스마트폰)에서는 엑셀 저장 버튼을 아이콘만 표시 */
 @media (max-width: 400px) {
     .gf3-action-btn {
         padding: 8px;
@@ -571,6 +567,7 @@ td.f3io-sum-col.f3io-sum-mismatch {
     margin-bottom: 0;
 }
 
+/* 패널 헤더 그리드 */
 .panel-header-grid {
     display: grid;
     grid-template-columns: 1fr auto 1fr;
@@ -587,8 +584,10 @@ td.f3io-sum-col.f3io-sum-mismatch {
     height: 100%;
 }
 
+/* 좌측 영역에 여백 옵션 변수 적용 */
 .panel-header-grid .header-left {
     justify-content: flex-start;
+    padding-left: var(--panel-title-left-offset);
 }
 
 .panel-header-grid .header-center {
@@ -600,11 +599,18 @@ td.f3io-sum-col.f3io-sum-mismatch {
     gap: 8px;
 }
 
+/* 
+  [제목 스타일 & 좌측 정렬 옵션 적용]
+  - HTML 구성 방식(header-left 내부 / 독립 배치)과 상관없이
+    항상 지정된 옵션 변수만큼 여백을 두고 좌측 정렬됩니다.
+*/
 .panel-title {
     font-size: 18px;
     font-weight: 700;
     color: #000000 !important;
     letter-spacing: -0.3px;
+    text-align: left;
+    margin-left: var(--panel-title-left-offset);
 }
 
 /* 스크롤 ON/OFF 토글 스위치 디자인 */
@@ -687,25 +693,25 @@ td.f3io-sum-col.f3io-sum-mismatch {
     box-shadow: 0 2px 10px rgba(0,0,0,0.03);
 }
 
-/* 1번 패널: 1.0에서 1.3으로 확대 */
+/* 1번 패널 */
 .f3ct-panel-1 { flex: 1.3; min-width: 240px; }
 
-/* 2번 패널: 기존 유지 (0.9) */
+/* 2번 패널 */
 .f3ct-panel-2 { flex: 0.9; min-width: 160px; }
 
-/* 3, 4번 패널: 1.2에서 1.05로 축소 (동일 크기 유지) */
+/* 3, 4번 패널 */
 .f3ct-panel-3 { flex: 1.05; min-width: 160px; }
 .f3ct-panel-4 { flex: 1.05; min-width: 160px; }
 
-/* 5번 패널: 기존 유지 (0.8) */
+/* 5번 패널 */
 .f3ct-panel-5 { flex: 0.8; min-width: 140px; }
 
-/* 6번 패널: 기존 유지 (0.33) */
+/* 6번 패널 */
 .f3ct-panel-6 { flex: 0.33; min-width: 80px; }
 
 .f3ct-scroll-area {
     position: relative;
-    height: 294px; /* 헤더(74px) + 5줄(44px x 5) = 1층과 동일하게 5일치로 높이 설정 */
+    height: 294px;
     overflow-y: auto;
     overflow-x: hidden;
     scrollbar-width: none;
