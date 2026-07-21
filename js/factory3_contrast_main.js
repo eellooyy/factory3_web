@@ -22,13 +22,6 @@
             const el = document.getElementById(id);
             if (!el) return;
 
-            // 스크롤 잠금 상태 시 마우스 휠 동작 차단
-            el.addEventListener('wheel', (e) => {
-                if (!state.isScrollUnlocked) {
-                    e.preventDefault();
-                }
-            }, { passive: false });
-
             el.addEventListener('scroll', () => {
                 if (!state.isScrollUnlocked) return; // 잠금 상태 시 동기화 및 로드 차단
                 if (_syncLock) return;

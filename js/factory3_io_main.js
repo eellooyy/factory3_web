@@ -446,13 +446,6 @@ window.Factory3Io = window.Factory3Io || {};
             const el = document.getElementById(id);
             if (!el) return;
 
-            // 스크롤 잠금 상태 시 마우스 휠 동작 차단
-            el.addEventListener('wheel', (e) => {
-                if (!Factory3Io.state.isScrollUnlocked) {
-                    e.preventDefault();
-                }
-            }, { passive: false });
-
             el.addEventListener('scroll', () => {
                 if (!Factory3Io.state.isScrollUnlocked) return; // 잠금 상태 시 동기화 및 로드 차단
                 if (_syncLock) return;

@@ -568,20 +568,19 @@ td.f3io-sum-col.f3io-sum-mismatch {
     padding: 18px 20px;
     box-shadow: 0 4px 18px rgba(0, 0, 0, 0.04);
     border: 1px solid #dcdce4;
-    margin-bottom: 20px;
+    margin-bottom: 0;
 }
 
 .panel-header-grid {
     display: grid;
     grid-template-columns: 1fr auto 1fr;
     align-items: center;
-    border-bottom: 1.5px solid #e5e5ea;
-    padding-bottom: 12px;
+    padding-bottom: 6px;
 }
 
 .panel-title {
-    font-size: 16px;
-    font-weight: 800;
+    font-size: 18px;
+    font-weight: 700;
     color: #000000 !important;
     letter-spacing: -0.3px;
 }
@@ -635,6 +634,7 @@ td.f3io-sum-col.f3io-sum-mismatch {
 
 .f3io-scroll-area.locked, .f3ct-scroll-area.locked {
     touch-action: none;
+    overflow-y: hidden !important;
 }
 
 /* ================================================
