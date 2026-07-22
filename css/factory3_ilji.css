@@ -202,8 +202,8 @@
     display: none;
 }
 
-/* 추가 집계 행 (1차/2차 사용량 및 사용 후 잔량) 전용 배경색 */
-.f3i-mid-row th,
+/* 추가 집계 행 (1차/2차 사용량 및 사용 후 잔량) 전용 배경색 (완롤 종이 열만 적용) */
+.f3i-mid-row th:not(.special-cell),
 .f3i-mid-row td:not(.special-cell) {
     background-color: #f2f5f8 !important; /* [집계 셀 배경색] 이 색상 코드를 변경하시면 1, 2차 집계 영역 배경색이 바뀝니다 */
 }
@@ -225,9 +225,9 @@
 .border-right-thick { border-right: 2px solid #8e8e93 !important; }
 .border-top-thick th, .border-top-thick td:not(.special-cell) { border-top: 2px solid #8e8e93 !important; }
 .border-bottom-thick th, .border-bottom-thick td:not(.special-cell) { border-bottom: 2px solid #8e8e93 !important; }
-.special-cell { border-top: none !important; border-bottom: none !important; border-left: none !important; background: #ffffff !important; }
-.special-cell.bottom-border { border-bottom: 1px solid #d2d2d7 !important; }
-.special-label { text-align: right; padding-right: 8px; font-size: 13px; font-weight: 600; color: #1d1d1f; background: transparent; border-right: none !important; }
+.special-cell, .special-label { border-top: none !important; border-bottom: none !important; border-left: none !important; background-color: #ffffff !important; }
+.special-label { text-align: right; padding-right: 8px; font-size: 13px; font-weight: 600; color: #1d1d1f; border-right: none !important; }
+.f3i-wrapper.edit-mode .f3i-td.editable.special-cell { background-color: #fff9e6 !important; }
 .f3i-input { width: 100%; height: 100%; border: none; outline: none; background: transparent; text-align: center; padding: 0 8px; font-size: 14px; color: #1d1d1f; box-sizing: border-box; }
 .f3i-input::-webkit-outer-spin-button, .f3i-input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
 .fw-bold { font-weight: bold; }

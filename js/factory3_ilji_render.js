@@ -66,6 +66,11 @@
         const th2 = document.getElementById('f3iWanTh2');
         const th3 = document.getElementById('f3iWanTh3');
 
+        const btnGroup = document.querySelector('.f3i-mid-btn-group');
+        const box1 = th1?.querySelector('.f3i-wan-title-box');
+        const box2 = th2?.querySelector('.f3i-wan-title-box');
+        const box3 = th3?.querySelector('.f3i-wan-title-box');
+
         const addBtn = document.getElementById('f3iAddMidBtn');
         const remBtn = document.getElementById('f3iRemoveMidBtn');
 
@@ -79,6 +84,10 @@
             if (th2) { th2.style.display = "none"; }
             if (th3) { th3.style.display = "none"; }
 
+            if (btnGroup && box1 && btnGroup.parentElement !== box1) {
+                box1.appendChild(btnGroup);
+            }
+
             if (addBtn) { addBtn.style.display = ""; addBtn.title = "1차 집계 추가"; }
             if (remBtn) { remBtn.style.display = "none"; }
         } else if (App.midLevel === 1) {
@@ -91,6 +100,10 @@
             if (th2) { th2.rowSpan = 4; th2.style.display = ""; }
             if (th3) { th3.style.display = "none"; }
 
+            if (btnGroup && box2 && btnGroup.parentElement !== box2) {
+                box2.appendChild(btnGroup);
+            }
+
             if (addBtn) { addBtn.style.display = ""; addBtn.title = "2차 집계 추가"; }
             if (remBtn) { remBtn.style.display = ""; remBtn.title = "1차 집계 삭제"; }
         } else if (App.midLevel === 2) {
@@ -102,6 +115,10 @@
             if (th1) { th1.rowSpan = 2; th1.style.display = ""; }
             if (th2) { th2.rowSpan = 2; th2.style.display = ""; }
             if (th3) { th3.rowSpan = 2; th3.style.display = ""; }
+
+            if (btnGroup && box3 && btnGroup.parentElement !== box3) {
+                box3.appendChild(btnGroup);
+            }
 
             if (addBtn) { addBtn.style.display = "none"; }
             if (remBtn) { remBtn.style.display = ""; remBtn.title = "2차 집계 삭제"; }
