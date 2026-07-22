@@ -154,7 +154,7 @@
             for(let r=2; r<=7; r++) {
                 let cellVal = App.utils.parseNum(document.querySelector(`.target-calc[data-col="${col}"][data-row="${r}"]`)?.value);
                 let rowKg = 0;
-                if (cellVal >= 13) {
+                if (cellVal >= 20) {
                     rowKg = cellVal;
                 } else {
                     rowKg = (cellVal * factor);
@@ -318,7 +318,7 @@
                     } else {
                         const row = parseInt(this.dataset.row, 10);
                         if (row >= 2 && row <= 7) {
-                            this.value = v >= 13 ? v.toLocaleString() + " kg" : v.toLocaleString() + " R/L";
+                            this.value = v >= 20 ? v.toLocaleString() + " kg" : v.toLocaleString() + " R/L";
                         } else {
                             this.value = v.toLocaleString();
                         }
