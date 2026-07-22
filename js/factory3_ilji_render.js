@@ -366,116 +366,65 @@
         });
     };
 
-    // 엑셀 출력 내보내기
-    App.exportToExcel = function() {
-        if (!window.XLSX) {
-            alert("엑셀 모듈을 불러오는 데 실패했습니다. 잠시 후 다시 시도해주세요.");
+    // PDF 출력 내보내기 (현재 화면 레이아웃을 그대로 캡처하여 PDF로 저장)
+    App.exportToPDF = function() {
+        if (!window.html2canvas || !window.jspdf) {
+            alert("PDF 모듈을 불러오는 데 실패했습니다. 잠시 후 다시 시도해주세요.");
             return;
         }
 
-        const excelBtn = App.headerApi.elements.excelBtn;
-        const btnInner = excelBtn.innerHTML;
-        excelBtn.innerHTML = '<span class="material-symbols-outlined" style="font-size: 16px; margin-right: 4px;">hourglass_empty</span>처리중...';
-        excelBtn.disabled = true;
+        const pdfBtn = App.headerApi.elements.excelBtn;
+        const btnInner = pdfBtn.innerHTML;
+        pdfBtn.innerHTML = '<span class="material-symbols-outlined" style="font-size: 16px; margin-right: 4px;">hourglass_empty</span>처리중...';
+        pdfBtn.disabled = true;
 
+        const wrapper = App.headerApi.elements.wrapper;
+        const currentDate = App.headerApi.getCurrentDate();
+
+        // PDF에는 불필요한 조작 버튼들(오늘/수정/저장/PDF 저장 버튼 자체)을 캡처 직전에만 숨김
+        const todayBtn = App.headerApi.elements.todayBtn;
+        const editBtn = App.headerApi.elements.editBtn;
+        const saveBtn = App.headerApi.elements.saveBtn;
+        const hideTargets = [todayBtn, editBtn, saveBtn, pdfBtn].filter(Boolean);
+        const prevDisplay = hideTargets.map(el => el.style.display);
+        hideTargets.forEach(el => { el.style.display = 'none'; });
+
+        const restore = () => {
+            hideTargets.forEach((el, i) => { el.style.display = prevDisplay[i]; });
+            pdfBtn.innerHTML = btnInner;
+            pdfBtn.disabled = false;
+        };
+
+        // 버튼 숨김에 따른 레이아웃 재계산을 기다린 뒤 캡처
         setTimeout(() => {
-            try {
-                const val = (selector) => { const el = document.querySelector(selector); return el ? el.value : ""; };
-                const currentDate = App.headerApi.getCurrentDate();
+            const rect = wrapper.getBoundingClientRect();
+            const pxToMm = 25.4 / 96;
+            const pageWidthMm = rect.width * pxToMm;
+            const pageHeightMm = rect.height * pxToMm;
 
-                const dateObj = new Date(currentDate);
-                const dayNames = ['일요일','월요일','화요일','수요일','목요일','금요일','토요일'];
-                const formattedExcelDate = `${dateObj.getFullYear()}년 ${dateObj.getMonth()+1}월 ${dateObj.getDate()}일 ${dayNames[dateObj.getDay()]}`;
+            html2canvas(wrapper, {
+                scale: 2,
+                useCORS: true,
+                backgroundColor: '#f5f5f7'
+            }).then(canvas => {
+                restore();
 
-                const midLevel = App.getMidLevel();
+                const { jsPDF } = window.jspdf;
+                const imgData = canvas.toDataURL('image/png');
 
-                const ws_data = [
-                    ["", "", "", "", "", "", "", formattedExcelDate, "", "", "", ""],
-                    [],
-                    ["", "788", "R51", "R52", "R53", "R54", "R55", "특집", "", "", "완롤 잔량", ""],
-                    ["사용 전 잔량", val('[data-row="1"][data-col="B"]'), val('[data-row="1"][data-col="C"]'), val('[data-row="1"][data-col="D"]'), val('[data-row="1"][data-col="E"]'), val('[data-row="1"][data-col="F"]'), val('[data-row="1"][data-col="G"]'), val('[data-row="1"][data-col="H"]'), "", "", "A", "D"],
-                    ["완 롤", val('[data-row="2"][data-col="B"]'), val('[data-row="2"][data-col="C"]'), val('[data-row="2"][data-col="D"]'), val('[data-row="2"][data-col="E"]'), val('[data-row="2"][data-col="F"]'), val('[data-row="2"][data-col="G"]'), "", "", "", val('#sideWanA'), val('#sideWanD')],
-                    ["", val('[data-row="3"][data-col="B"]'), val('[data-row="3"][data-col="C"]'), val('[data-row="3"][data-col="D"]'), val('[data-row="3"][data-col="E"]'), val('[data-row="3"][data-col="F"]'), val('[data-row="3"][data-col="G"]'), "사용량 총계:", val('#statTotalUsage'), "", "", ""]
-                ];
+                const pdf = new jsPDF({
+                    orientation: pageWidthMm >= pageHeightMm ? 'landscape' : 'portrait',
+                    unit: 'mm',
+                    format: [pageWidthMm, pageHeightMm]
+                });
 
-                const merges = [
-                    { s: {r: 0, c: 7}, e: {r: 0, c: 11} },
-                    { s: {r: 2, c: 7}, e: {r: 2, c: 8} },
-                    { s: {r: 3, c: 7}, e: {r: 3, c: 8} },
-                    { s: {r: 5, c: 7}, e: {r: 5, c: 8} },
-                    { s: {r: 2, c: 10}, e: {r: 2, c: 11} },
-                    { s: {r: 6, c: 10}, e: {r: 6, c: 11} },
-                    { s: {r: 10, c: 10}, e: {r: 10, c: 11} }
-                ];
-
-                if (midLevel >= 1) {
-                    ws_data.push(["1차 사용량", val('[data-type="mid_usage_1"][data-col="B"]'), val('[data-type="mid_usage_1"][data-col="C"]'), val('[data-type="mid_usage_1"][data-col="D"]'), val('[data-type="mid_usage_1"][data-col="E"]'), val('[data-type="mid_usage_1"][data-col="F"]'), val('[data-type="mid_usage_1"][data-col="G"]'), "", "", "", "", ""]);
-                    ws_data.push(["1차 사용 후 잔량", val('[data-type="mid_bal_1"][data-col="B"]'), val('[data-type="mid_bal_1"][data-col="C"]'), val('[data-type="mid_bal_1"][data-col="D"]'), val('[data-type="mid_bal_1"][data-col="E"]'), val('[data-type="mid_bal_1"][data-col="F"]'), val('[data-type="mid_bal_1"][data-col="G"]'), "", "", "", "", ""]);
-                    merges.push({ s: {r: 4, c: 0}, e: {r: 5, c: 0} });
-                }
-
-                const wan3RowIdx = ws_data.length;
-                ws_data.push(["완 롤", val('[data-row="4"][data-col="B"]'), val('[data-row="4"][data-col="C"]'), val('[data-row="4"][data-col="D"]'), val('[data-row="4"][data-col="E"]'), val('[data-row="4"][data-col="F"]'), val('[data-row="4"][data-col="G"]'), "실사용량:", val('#statRealUsage'), "", "급지 재고", ""]);
-                merges.push({ s: {r: wan3RowIdx, c: 7}, e: {r: wan3RowIdx, c: 8} });
-
-                const wan4RowIdx = ws_data.length;
-                ws_data.push(["", val('[data-row="5"][data-col="B"]'), val('[data-row="5"][data-col="C"]'), val('[data-row="5"][data-col="D"]'), val('[data-row="5"][data-col="E"]'), val('[data-row="5"][data-col="F"]'), val('[data-row="5"][data-col="G"]'), "증감:", val('#statDiff'), "", "A", "D"]);
-                merges.push({ s: {r: wan4RowIdx, c: 7}, e: {r: wan4RowIdx, c: 8} });
-
-                if (midLevel >= 2) {
-                    ws_data.push(["2차 사용량", val('[data-type="mid_usage_2"][data-col="B"]'), val('[data-type="mid_usage_2"][data-col="C"]'), val('[data-type="mid_usage_2"][data-col="D"]'), val('[data-type="mid_usage_2"][data-col="E"]'), val('[data-type="mid_usage_2"][data-col="F"]'), val('[data-type="mid_usage_2"][data-col="G"]'), "", "", "", "", ""]);
-                    ws_data.push(["2차 사용 후 잔량", val('[data-type="mid_bal_2"][data-col="B"]'), val('[data-type="mid_bal_2"][data-col="C"]'), val('[data-type="mid_bal_2"][data-col="D"]'), val('[data-type="mid_bal_2"][data-col="E"]'), val('[data-type="mid_bal_2"][data-col="F"]'), val('[data-type="mid_bal_2"][data-col="G"]'), "", "", "", "", ""]);
-                    merges.push({ s: {r: wan3RowIdx, c: 0}, e: {r: wan4RowIdx, c: 0} });
-                }
-
-                const wan5RowIdx = ws_data.length;
-                ws_data.push(["완 롤", val('[data-row="6"][data-col="B"]'), val('[data-row="6"][data-col="C"]'), val('[data-row="6"][data-col="D"]'), val('[data-row="6"][data-col="E"]'), val('[data-row="6"][data-col="F"]'), val('[data-row="6"][data-col="G"]'), "", "", "", val('#sideGeupA'), val('#sideGeupD')]);
-
-                const wan6RowIdx = ws_data.length;
-                ws_data.push(["", val('[data-row="7"][data-col="B"]'), val('[data-row="7"][data-col="C"]'), val('[data-row="7"][data-col="D"]'), val('[data-row="7"][data-col="E"]'), val('[data-row="7"][data-col="F"]'), val('[data-row="7"][data-col="G"]'), "", "", "", "", ""]);
-
-                if (midLevel === 0) {
-                    merges.push({ s: {r: 4, c: 0}, e: {r: wan6RowIdx, c: 0} });
-                } else if (midLevel === 1) {
-                    merges.push({ s: {r: wan3RowIdx, c: 0}, e: {r: wan6RowIdx, c: 0} });
-                } else if (midLevel === 2) {
-                    merges.push({ s: {r: wan5RowIdx, c: 0}, e: {r: wan6RowIdx, c: 0} });
-                }
-
-                const sumBeforeRowIdx = ws_data.length;
-                ws_data.push(["사용 전 합계", val('[data-row="8"][data-col="B"]'), val('[data-row="8"][data-col="C"]'), val('[data-row="8"][data-col="D"]'), val('[data-row="8"][data-col="E"]'), val('[data-row="8"][data-col="F"]'), val('[data-row="8"][data-col="G"]'), "사용량 A (1576mm):", val('#statUsageA'), "", "급지 출고", ""]);
-                merges.push({ s: {r: sumBeforeRowIdx, c: 7}, e: {r: sumBeforeRowIdx, c: 8} });
-
-                const usageRowIdx = ws_data.length;
-                ws_data.push(["사용량", val('[data-row="9"][data-col="B"]'), val('[data-row="9"][data-col="C"]'), val('[data-row="9"][data-col="D"]'), val('[data-row="9"][data-col="E"]'), val('[data-row="9"][data-col="F"]'), val('[data-row="9"][data-col="G"]'), "사용량 D (788mm):", val('#statUsageD'), "", "A", "D"]);
-                merges.push({ s: {r: usageRowIdx, c: 7}, e: {r: usageRowIdx, c: 8} });
-
-                const endBalRowIdx = ws_data.length;
-                ws_data.push(["사용 후 잔량", val('[data-row="10"][data-col="B"]'), val('[data-row="10"][data-col="C"]'), val('[data-row="10"][data-col="D"]'), val('[data-row="10"][data-col="E"]'), val('[data-row="10"][data-col="F"]'), val('[data-row="10"][data-col="G"]'), "", "", "", val('#sideChulgoA'), val('#sideChulgoD')]);
-
-                const wb = XLSX.utils.book_new();
-                const ws = XLSX.utils.aoa_to_sheet(ws_data);
-                ws['!merges'] = merges;
-
-                ws['!cols'] = [
-                    {wch: 15}, {wch: 9}, {wch: 9}, {wch: 9}, {wch: 9}, 
-                    {wch: 9}, {wch: 9}, {wch: 20}, {wch: 17}, {wch: 1.3}, 
-                    {wch: 10}, {wch: 10}
-                ];
-
-                ws['!pageSetup'] = { orientation: 'landscape', fitToWidth: 1, fitToHeight: 1, paperSize: 9, horizontalCentered: true };
-                ws['!margins'] = { left: 0.5, right: 0.5, top: 0.5, bottom: 0.5, header: 0.3, footer: 0.3 };
-
-                XLSX.utils.book_append_sheet(wb, ws, "일지");
-                XLSX.writeFile(wb, `3공장_급지일지_${currentDate}.xlsx`);
-                
-            } catch (err) {
-                alert("엑셀 생성 중 오류가 발생했습니다: " + err.message);
-            } finally {
-                excelBtn.innerHTML = btnInner;
-                excelBtn.disabled = false;
-            }
-        }, 100); 
+                pdf.addImage(imgData, 'PNG', 0, 0, pageWidthMm, pageHeightMm);
+                pdf.save(`3공장_급지일지_${currentDate}.pdf`);
+            }).catch(err => {
+                restore();
+                alert("PDF 생성 중 오류가 발생했습니다: " + err.message);
+            });
+        }, 100);
     };
 
     // 위치 변경 (맞교환) 기능 구현

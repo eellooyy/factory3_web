@@ -14,7 +14,7 @@
                 inputSelector: '.f3i-td.editable .f3i-input',
                 onDateChange: App.loadData,
                 onSave: App.handleSave,
-                onExportExcel: App.exportToExcel
+                onExportExcel: App.exportToPDF
             });
             if (!App.headerApi) return;
 

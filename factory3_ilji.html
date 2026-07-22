@@ -14,7 +14,8 @@
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
     <script src="https://cdn.jsdelivr.net/npm/flatpickr/dist/l10n/ko.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/xlsx-js-style@1.2.0/dist/xlsx.bundle.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
     
     <script src="js/common_ui.js" defer></script>
 </head>
@@ -63,8 +64,8 @@
             <button id="f3iTodayBtn" class="f3i-action-btn today-btn">오늘</button>
             <button id="f3iEditBtn" class="f3i-action-btn edit-btn" disabled>수정</button>
             <button id="f3iSaveBtn" class="f3i-action-btn save-btn" disabled>저장</button>
-            <button id="f3iExcelBtn" class="f3i-action-btn excel-btn">
-                <span class="material-symbols-outlined" style="font-size: 16px; margin-right: 4px;">table_view</span>엑셀 저장
+            <button id="f3iExcelBtn" class="f3i-action-btn f3i-pdf-btn">
+                <span class="material-symbols-outlined" style="font-size: 16px; margin-right: 4px;">picture_as_pdf</span>PDF 저장
             </button>
         </div>
     </div>
