@@ -223,8 +223,8 @@
 
 .border-outer { border: 2px solid #8e8e93 !important; }
 .border-right-thick { border-right: 2px solid #8e8e93 !important; }
-.border-top-thick th, .border-top-thick td:not(.special-cell) { border-top: 2px solid #8e8e93 !important; }
-.border-bottom-thick th, .border-bottom-thick td:not(.special-cell) { border-bottom: 2px solid #8e8e93 !important; }
+.border-top-thick th:not(.special-cell), .border-top-thick td:not(.special-cell) { border-top: 2px solid #8e8e93 !important; }
+.border-bottom-thick th:not(.special-cell), .border-bottom-thick td:not(.special-cell) { border-bottom: 2px solid #8e8e93 !important; }
 .special-cell, .special-label { border-top: none !important; border-bottom: none !important; border-left: none !important; border-right: none !important; background-color: #ffffff !important; }
 .special-label { text-align: right; padding-right: 8px; font-size: 13px; font-weight: 600; color: #1d1d1f; }
 .f3i-wrapper.edit-mode .f3i-td.editable.special-cell { background-color: #fff9e6 !important; }
