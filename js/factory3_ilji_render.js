@@ -366,7 +366,7 @@
         });
     };
 
-    // PDF 출력 내보내기 (경량화 압축 및 수직 가운데 정렬 보정 적용)
+    // PDF 출력 내보내기 (경량화 압축 적용)
     App.exportToPDF = function() {
         if (!window.html2canvas || !window.jspdf) {
             alert("PDF 모듈을 불러오는 데 실패했습니다. 잠시 후 다시 시도해주세요.");
@@ -389,40 +389,13 @@
         const prevDisplay = hideTargets.map(el => el.style.display);
         hideTargets.forEach(el => { el.style.display = 'none'; });
 
-        // html2canvas 캡처 시 셀 및 input 입력창 내부 텍스트 수직 가운데 정렬 보정 스타일 추가
-        const alignStyle = document.createElement('style');
-        alignStyle.id = 'f3i-pdf-align-fix';
-        alignStyle.innerHTML = `
-            .f3i-wrapper td, 
-            .f3i-wrapper th {
-                vertical-align: middle !important;
-                text-align: center !important;
-            }
-            .f3i-wrapper input,
-            .f3i-wrapper .f3i-input {
-                display: flex !important;
-                align-items: center !important;
-                justify-content: center !important;
-                text-align: center !important;
-                padding-top: 0 !important;
-                padding-bottom: 0 !important;
-                margin: 0 !important;
-                vertical-align: middle !important;
-                box-sizing: border-box !important;
-            }
-        `;
-        document.head.appendChild(alignStyle);
-
         const restore = () => {
-            const addedStyle = document.getElementById('f3i-pdf-align-fix');
-            if (addedStyle) addedStyle.remove();
-
             hideTargets.forEach((el, i) => { el.style.display = prevDisplay[i]; });
             pdfBtn.innerHTML = btnInner;
             pdfBtn.disabled = false;
         };
 
-        // 버튼 숨김 및 스타일 적용에 따른 레이아웃 재계산을 기다린 뒤 캡처
+        // 버튼 숨김에 따른 레이아웃 재계산을 기다린 뒤 캡처
         setTimeout(() => {
             const rect = wrapper.getBoundingClientRect();
             const pxToMm = 25.4 / 96;
