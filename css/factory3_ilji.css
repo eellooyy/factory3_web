@@ -429,3 +429,28 @@
 .f3i-nbtn-add:hover {
     background: #28a745;
 }
+
+/* 셀 및 input 수직/수평 중앙 정렬 강력 적용 */
+.f3i-wrapper td,
+.f3i-wrapper th,
+.f3i-td,
+.f3i-th {
+    vertical-align: middle !important;
+    text-align: center !important;
+}
+
+.f3i-wrapper input.f3i-input {
+    text-align: center !important;
+    vertical-align: middle !important;
+    height: 100% !important;
+    width: 100% !important;
+    box-sizing: border-box !important;
+    margin: 0 !important;
+    padding: 0 2px !important;
+    line-height: normal !important; /* html2canvas가 line-height 치우침 현상을 방지 */
+}
+
+/* 특수 라벨만 우측 정렬 */
+.f3i-th.special-label {
+    text-align: right !important;
+}
