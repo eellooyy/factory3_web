@@ -12,6 +12,49 @@
         return App.midLevel || 0;
     };
 
+    App.updateRightSideSummaryRows = function(level) {
+        const valTotal = document.getElementById('statTotalUsage')?.value || '';
+        const valReal = document.getElementById('statRealUsage')?.value || '';
+        const valDiff = document.getElementById('statDiff')?.value || '';
+
+        const r2 = document.querySelector('.target-calc[data-row="2"]')?.closest('tr');
+        const r3 = document.querySelector('.target-calc[data-row="3"]')?.closest('tr');
+        const m1_1 = document.getElementById('f3iMidUsageRow1');
+        const m1_2 = document.getElementById('f3iMidBalRow1');
+        const r4 = document.querySelector('.target-calc[data-row="4"]')?.closest('tr');
+        const r5 = document.querySelector('.target-calc[data-row="5"]')?.closest('tr');
+        const m2_1 = document.getElementById('f3iMidUsageRow2');
+        const m2_2 = document.getElementById('f3iMidBalRow2');
+        const r6 = document.querySelector('.target-calc[data-row="6"]')?.closest('tr');
+        const r7 = document.querySelector('.target-calc[data-row="7"]')?.closest('tr');
+
+        const allRows = [r2, r3, m1_1, m1_2, r4, r5, m2_1, m2_2, r6, r7].filter(Boolean);
+
+        let targetRows = [r3, r4, r5];
+        if (level === 1) targetRows = [m1_1, m1_2, r4];
+        else if (level === 2) targetRows = [m1_2, r4, r5];
+
+        allRows.forEach(row => {
+            row.querySelectorAll('.special-cell').forEach(el => el.remove());
+        });
+
+        allRows.forEach(row => {
+            if (row === targetRows[0]) {
+                row.insertAdjacentHTML('beforeend', '<th class="f3i-th special-cell special-label">사용량 총계:</th><td class="f3i-td editable special-cell"><input type="text" class="f3i-input" id="statTotalUsage" readonly></td>');
+            } else if (row === targetRows[1]) {
+                row.insertAdjacentHTML('beforeend', '<th class="f3i-th special-cell special-label">실사용량:</th><td class="f3i-td special-cell"><input type="text" class="f3i-input" id="statRealUsage" readonly></td>');
+            } else if (row === targetRows[2]) {
+                row.insertAdjacentHTML('beforeend', '<th class="f3i-th special-cell special-label">증감:</th><td class="f3i-td special-cell"><input type="text" class="f3i-input" id="statDiff" readonly></td>');
+            } else {
+                row.insertAdjacentHTML('beforeend', '<td class="f3i-td special-cell" colspan="2"></td>');
+            }
+        });
+
+        if (document.getElementById('statTotalUsage')) document.getElementById('statTotalUsage').value = valTotal;
+        if (document.getElementById('statRealUsage')) document.getElementById('statRealUsage').value = valReal;
+        if (document.getElementById('statDiff')) document.getElementById('statDiff').value = valDiff;
+    };
+
     App.setMidLevel = function(level) {
         App.midLevel = Math.max(0, Math.min(2, parseInt(level, 10) || 0));
         const uRow1 = document.getElementById('f3iMidUsageRow1');
@@ -63,6 +106,8 @@
             if (addBtn) { addBtn.style.display = "none"; }
             if (remBtn) { remBtn.style.display = ""; remBtn.title = "2차 집계 삭제"; }
         }
+
+        App.updateRightSideSummaryRows(App.midLevel);
     };
 
     // 하위 호환성 헬퍼
@@ -118,15 +163,16 @@
             const paperBeforeMid1 = startBal + wanKgSum2_3;
 
             if (midLevel >= 1) {
-                if (midBalVal1 > 0 && paperBeforeMid1 > 0) {
+                if (midUsageInput1 && midUsageInput1.dataset.fixedUsage !== undefined && midUsageInput1.dataset.fixedUsage !== "") {
+                    // 고정된 계산값이 있으면 우선 적용 (스왑 시 재계산 방지)
+                    const fixedVal = Number(midUsageInput1.dataset.fixedUsage);
+                    midUsageInput1.value = fixedVal > 0 ? fixedVal.toLocaleString() : "0";
+                } else if (midBalVal1 > 0 && paperBeforeMid1 > 0) {
                     const computedMidUsage1 = paperBeforeMid1 - midBalVal1;
                     if (midUsageInput1) {
                         midUsageInput1.dataset.fixedUsage = computedMidUsage1;
                         midUsageInput1.value = computedMidUsage1 > 0 ? computedMidUsage1.toLocaleString() : "0";
                     }
-                } else if (midUsageInput1 && midUsageInput1.dataset.fixedUsage) {
-                    const fixedVal = Number(midUsageInput1.dataset.fixedUsage);
-                    midUsageInput1.value = fixedVal > 0 ? fixedVal.toLocaleString() : "0";
                 } else if (midUsageInput1) {
                     midUsageInput1.value = "";
                 }
@@ -143,15 +189,16 @@
             const paperBeforeMid2 = startingPaperForMid2 + wanKgSum4_5;
 
             if (midLevel >= 2) {
-                if (midBalVal2 > 0 && paperBeforeMid2 > 0) {
+                if (midUsageInput2 && midUsageInput2.dataset.fixedUsage !== undefined && midUsageInput2.dataset.fixedUsage !== "") {
+                    // 고정된 계산값이 있으면 우선 적용 (스왑 시 재계산 방지)
+                    const fixedVal = Number(midUsageInput2.dataset.fixedUsage);
+                    midUsageInput2.value = fixedVal > 0 ? fixedVal.toLocaleString() : "0";
+                } else if (midBalVal2 > 0 && paperBeforeMid2 > 0) {
                     const computedMidUsage2 = paperBeforeMid2 - midBalVal2;
                     if (midUsageInput2) {
                         midUsageInput2.dataset.fixedUsage = computedMidUsage2;
                         midUsageInput2.value = computedMidUsage2 > 0 ? computedMidUsage2.toLocaleString() : "0";
                     }
-                } else if (midUsageInput2 && midUsageInput2.dataset.fixedUsage) {
-                    const fixedVal = Number(midUsageInput2.dataset.fixedUsage);
-                    midUsageInput2.value = fixedVal > 0 ? fixedVal.toLocaleString() : "0";
                 } else if (midUsageInput2) {
                     midUsageInput2.value = "";
                 }
@@ -228,6 +275,18 @@
                 if(this.readOnly) return;
                 let v = App.utils.parseNum(this.value);
                 this.value = v === 0 ? "" : v;
+            });
+            input.addEventListener('input', function() {
+                if (App.swapState && App.swapState.active) return;
+                const type = this.dataset.type;
+                const col = this.dataset.col;
+                if (type === 'mid_bal_1') {
+                    const uInp = document.querySelector(`.f3i-input[data-col="${col}"][data-type="mid_usage_1"]`);
+                    if (uInp) delete uInp.dataset.fixedUsage;
+                } else if (type === 'mid_bal_2') {
+                    const uInp = document.querySelector(`.f3i-input[data-col="${col}"][data-type="mid_usage_2"]`);
+                    if (uInp) delete uInp.dataset.fixedUsage;
+                }
             });
             input.addEventListener('blur', function() {
                 if(this.readOnly) return;
