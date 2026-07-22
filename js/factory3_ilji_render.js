@@ -5,48 +5,106 @@
     const App = window.Factory3Ilji;
     if (!App) return;
 
-    // 1차 집계 행 표시 여부 관리
+    // 집계 레벨 (0, 1, 2) 관리
+    App.midLevel = 0;
+
+    App.getMidLevel = function() {
+        return App.midLevel || 0;
+    };
+
+    App.setMidLevel = function(level) {
+        App.midLevel = Math.max(0, Math.min(2, parseInt(level, 10) || 0));
+        const uRow1 = document.getElementById('f3iMidUsageRow1');
+        const bRow1 = document.getElementById('f3iMidBalRow1');
+        const uRow2 = document.getElementById('f3iMidUsageRow2');
+        const bRow2 = document.getElementById('f3iMidBalRow2');
+
+        const th1 = document.getElementById('f3iWanTh1');
+        const th2 = document.getElementById('f3iWanTh2');
+        const th3 = document.getElementById('f3iWanTh3');
+
+        const addBtn = document.getElementById('f3iAddMidBtn');
+        const remBtn = document.getElementById('f3iRemoveMidBtn');
+
+        if (App.midLevel === 0) {
+            if (uRow1) uRow1.classList.remove('show');
+            if (bRow1) bRow1.classList.remove('show');
+            if (uRow2) uRow2.classList.remove('show');
+            if (bRow2) bRow2.classList.remove('show');
+
+            if (th1) { th1.rowSpan = 6; th1.style.display = ""; }
+            if (th2) { th2.style.display = "none"; }
+            if (th3) { th3.style.display = "none"; }
+
+            if (addBtn) { addBtn.style.display = ""; addBtn.title = "1차 집계 추가"; }
+            if (remBtn) { remBtn.style.display = "none"; }
+        } else if (App.midLevel === 1) {
+            if (uRow1) uRow1.classList.add('show');
+            if (bRow1) bRow1.classList.add('show');
+            if (uRow2) uRow2.classList.remove('show');
+            if (bRow2) bRow2.classList.remove('show');
+
+            if (th1) { th1.rowSpan = 2; th1.style.display = ""; }
+            if (th2) { th2.rowSpan = 4; th2.style.display = ""; }
+            if (th3) { th3.style.display = "none"; }
+
+            if (addBtn) { addBtn.style.display = ""; addBtn.title = "2차 집계 추가"; }
+            if (remBtn) { remBtn.style.display = ""; remBtn.title = "1차 집계 삭제"; }
+        } else if (App.midLevel === 2) {
+            if (uRow1) uRow1.classList.add('show');
+            if (bRow1) bRow1.classList.add('show');
+            if (uRow2) uRow2.classList.add('show');
+            if (bRow2) bRow2.classList.add('show');
+
+            if (th1) { th1.rowSpan = 2; th1.style.display = ""; }
+            if (th2) { th2.rowSpan = 2; th2.style.display = ""; }
+            if (th3) { th3.rowSpan = 2; th3.style.display = ""; }
+
+            if (addBtn) { addBtn.style.display = "none"; }
+            if (remBtn) { remBtn.style.display = ""; remBtn.title = "2차 집계 삭제"; }
+        }
+    };
+
+    // 하위 호환성 헬퍼
     App.isMidRowsVisible = function() {
-        const uRow = document.getElementById('f3iMidUsageRow');
-        return uRow && uRow.classList.contains('show');
+        return App.getMidLevel() > 0;
     };
 
     App.setMidRowsVisibility = function(visible) {
-        const uRow = document.getElementById('f3iMidUsageRow');
-        const bRow = document.getElementById('f3iMidBalRow');
-        if (uRow && bRow) {
-            if (visible) {
-                uRow.classList.add('show');
-                bRow.classList.add('show');
-            } else {
-                uRow.classList.remove('show');
-                bRow.classList.remove('show');
-            }
-        }
+        App.setMidLevel(visible ? (App.getMidLevel() || 1) : 0);
     };
 
     // 자동 수식 계산
     App.calculateAutoFields = function() {
         let usageD = 0; let usageA = 0; let endBalD = 0; let endBalA = 0; 
         let sumTodayRollD = 0; let sumTodayRollA = 0;
-        const isMidVisible = App.isMidRowsVisible();
+        const midLevel = App.getMidLevel();
 
         ['B','C','D','E','F','G'].forEach(col => {
             const factor = (col === 'B') ? App.FACTOR_788 : App.FACTOR_1576;
             const startBal = App.utils.parseNum(document.querySelector(`.target-calc[data-col="${col}"][data-row="1"]`)?.value);
             
             let wanKgSum = 0;
+            let wanKgSum2_3 = 0;
+            let wanKgSum4_5 = 0;
+            let wanKgSum6_7 = 0;
+
             for(let r=2; r<=7; r++) {
                 let cellVal = App.utils.parseNum(document.querySelector(`.target-calc[data-col="${col}"][data-row="${r}"]`)?.value);
+                let rowKg = 0;
                 if (cellVal >= 20) {
-                    wanKgSum += cellVal;
+                    rowKg = cellVal;
                 } else {
-                    wanKgSum += (cellVal * factor);
+                    rowKg = (cellVal * factor);
                     if (cellVal > 0 && cellVal <= 19) {
                         if (col === 'B') sumTodayRollD += cellVal;
                         else sumTodayRollA += cellVal;
                     }
                 }
+                wanKgSum += rowKg;
+                if (r === 2 || r === 3) wanKgSum2_3 += rowKg;
+                else if (r === 4 || r === 5) wanKgSum4_5 += rowKg;
+                else if (r === 6 || r === 7) wanKgSum6_7 += rowKg;
             }
             
             const beforeSum = startBal + wanKgSum;
@@ -54,28 +112,52 @@
             if (beforeInput) beforeInput.value = beforeSum > 0 ? beforeSum.toLocaleString() : "";
 
             // 1차 집계 계산 처리 및 1차 사용량 확정 고정 (Lock)
-            if (isMidVisible) {
-                const midBalInput = document.querySelector(`.f3i-input[data-col="${col}"][data-type="mid_bal"]`);
-                const midUsageInput = document.querySelector(`.f3i-input[data-col="${col}"][data-type="mid_usage"]`);
-                const midBalVal = App.utils.parseNum(midBalInput?.value);
+            const midBalInput1 = document.querySelector(`.f3i-input[data-col="${col}"][data-type="mid_bal_1"]`);
+            const midUsageInput1 = document.querySelector(`.f3i-input[data-col="${col}"][data-type="mid_usage_1"]`);
+            const midBalVal1 = App.utils.parseNum(midBalInput1?.value);
+            const paperBeforeMid1 = startBal + wanKgSum2_3;
 
-                if (midBalVal > 0 && beforeSum > 0) {
-                    const computedMidUsage = beforeSum - midBalVal;
-                    if (midUsageInput) {
-                        midUsageInput.dataset.fixedUsage = computedMidUsage;
-                        midUsageInput.value = computedMidUsage > 0 ? computedMidUsage.toLocaleString() : "0";
+            if (midLevel >= 1) {
+                if (midBalVal1 > 0 && paperBeforeMid1 > 0) {
+                    const computedMidUsage1 = paperBeforeMid1 - midBalVal1;
+                    if (midUsageInput1) {
+                        midUsageInput1.dataset.fixedUsage = computedMidUsage1;
+                        midUsageInput1.value = computedMidUsage1 > 0 ? computedMidUsage1.toLocaleString() : "0";
                     }
-                } else if (midUsageInput && midUsageInput.dataset.fixedUsage) {
-                    const fixedVal = Number(midUsageInput.dataset.fixedUsage);
-                    midUsageInput.value = fixedVal > 0 ? fixedVal.toLocaleString() : "0";
-                } else if (midUsageInput) {
-                    midUsageInput.value = "";
+                } else if (midUsageInput1 && midUsageInput1.dataset.fixedUsage) {
+                    const fixedVal = Number(midUsageInput1.dataset.fixedUsage);
+                    midUsageInput1.value = fixedVal > 0 ? fixedVal.toLocaleString() : "0";
+                } else if (midUsageInput1) {
+                    midUsageInput1.value = "";
                 }
             } else {
-                const midUsageInput = document.querySelector(`.f3i-input[data-col="${col}"][data-type="mid_usage"]`);
-                const midBalInput = document.querySelector(`.f3i-input[data-col="${col}"][data-type="mid_bal"]`);
-                if (midUsageInput) { midUsageInput.value = ""; delete midUsageInput.dataset.fixedUsage; }
-                if (midBalInput) { midBalInput.value = ""; }
+                if (midUsageInput1) { midUsageInput1.value = ""; delete midUsageInput1.dataset.fixedUsage; }
+                if (midBalInput1) { midBalInput1.value = ""; }
+            }
+
+            // 2차 집계 계산 처리 및 2차 사용량 확정 고정 (Lock)
+            const midBalInput2 = document.querySelector(`.f3i-input[data-col="${col}"][data-type="mid_bal_2"]`);
+            const midUsageInput2 = document.querySelector(`.f3i-input[data-col="${col}"][data-type="mid_usage_2"]`);
+            const midBalVal2 = App.utils.parseNum(midBalInput2?.value);
+            const startingPaperForMid2 = (midBalVal1 > 0) ? midBalVal1 : paperBeforeMid1;
+            const paperBeforeMid2 = startingPaperForMid2 + wanKgSum4_5;
+
+            if (midLevel >= 2) {
+                if (midBalVal2 > 0 && paperBeforeMid2 > 0) {
+                    const computedMidUsage2 = paperBeforeMid2 - midBalVal2;
+                    if (midUsageInput2) {
+                        midUsageInput2.dataset.fixedUsage = computedMidUsage2;
+                        midUsageInput2.value = computedMidUsage2 > 0 ? computedMidUsage2.toLocaleString() : "0";
+                    }
+                } else if (midUsageInput2 && midUsageInput2.dataset.fixedUsage) {
+                    const fixedVal = Number(midUsageInput2.dataset.fixedUsage);
+                    midUsageInput2.value = fixedVal > 0 ? fixedVal.toLocaleString() : "0";
+                } else if (midUsageInput2) {
+                    midUsageInput2.value = "";
+                }
+            } else {
+                if (midUsageInput2) { midUsageInput2.value = ""; delete midUsageInput2.dataset.fixedUsage; }
+                if (midBalInput2) { midBalInput2.value = ""; }
             }
 
             const endBal = App.utils.parseNum(document.querySelector(`.target-calc[data-col="${col}"][data-row="10"]`)?.value);
@@ -229,196 +311,81 @@
                 const dayNames = ['일요일','월요일','화요일','수요일','목요일','금요일','토요일'];
                 const formattedExcelDate = `${dateObj.getFullYear()}년 ${dateObj.getMonth()+1}월 ${dateObj.getDate()}일 ${dayNames[dateObj.getDay()]}`;
 
+                const midLevel = App.getMidLevel();
+
                 const ws_data = [
                     ["", "", "", "", "", "", "", formattedExcelDate, "", "", "", ""],
                     [],
                     ["", "788", "R51", "R52", "R53", "R54", "R55", "특집", "", "", "완롤 잔량", ""],
                     ["사용 전 잔량", val('[data-row="1"][data-col="B"]'), val('[data-row="1"][data-col="C"]'), val('[data-row="1"][data-col="D"]'), val('[data-row="1"][data-col="E"]'), val('[data-row="1"][data-col="F"]'), val('[data-row="1"][data-col="G"]'), val('[data-row="1"][data-col="H"]'), "", "", "A", "D"],
                     ["완 롤", val('[data-row="2"][data-col="B"]'), val('[data-row="2"][data-col="C"]'), val('[data-row="2"][data-col="D"]'), val('[data-row="2"][data-col="E"]'), val('[data-row="2"][data-col="F"]'), val('[data-row="2"][data-col="G"]'), "", "", "", val('#sideWanA'), val('#sideWanD')],
-                    ["", val('[data-row="3"][data-col="B"]'), val('[data-row="3"][data-col="C"]'), val('[data-row="3"][data-col="D"]'), val('[data-row="3"][data-col="E"]'), val('[data-row="3"][data-col="F"]'), val('[data-row="3"][data-col="G"]'), "사용량 총계:", val('#statTotalUsage'), "", "", ""],
-                    ["", val('[data-row="4"][data-col="B"]'), val('[data-row="4"][data-col="C"]'), val('[data-row="4"][data-col="D"]'), val('[data-row="4"][data-col="E"]'), val('[data-row="4"][data-col="F"]'), val('[data-row="4"][data-col="G"]'), "실사용량:", val('#statRealUsage'), "", "급지 재고", ""],
-                    ["", val('[data-row="5"][data-col="B"]'), val('[data-row="5"][data-col="C"]'), val('[data-row="5"][data-col="D"]'), val('[data-row="5"][data-col="E"]'), val('[data-row="5"][data-col="F"]'), val('[data-row="5"][data-col="G"]'), "증감:", val('#statDiff'), "", "A", "D"],
-                    ["", val('[data-row="6"][data-col="B"]'), val('[data-row="6"][data-col="C"]'), val('[data-row="6"][data-col="D"]'), val('[data-row="6"][data-col="E"]'), val('[data-row="6"][data-col="F"]'), val('[data-row="6"][data-col="G"]'), "", "", "", val('#sideGeupA'), val('#sideGeupD')],
-                    ["", val('[data-row="7"][data-col="B"]'), val('[data-row="7"][data-col="C"]'), val('[data-row="7"][data-col="D"]'), val('[data-row="7"][data-col="E"]'), val('[data-row="7"][data-col="F"]'), val('[data-row="7"][data-col="G"]'), "", "", "", "", ""],
-                    ["사용 전 합계", val('[data-row="8"][data-col="B"]'), val('[data-row="8"][data-col="C"]'), val('[data-row="8"][data-col="D"]'), val('[data-row="8"][data-col="E"]'), val('[data-row="8"][data-col="F"]'), val('[data-row="8"][data-col="G"]'), "사용량 A (1576mm):", val('#statUsageA'), "", "급지 출고", ""],
-                    ["사용량", val('[data-row="9"][data-col="B"]'), val('[data-row="9"][data-col="C"]'), val('[data-row="9"][data-col="D"]'), val('[data-row="9"][data-col="E"]'), val('[data-row="9"][data-col="F"]'), val('[data-row="9"][data-col="G"]'), "사용량 D (788mm):", val('#statUsageD'), "", "A", "D"],
-                    ["사용 후 잔량", val('[data-row="10"][data-col="B"]'), val('[data-row="10"][data-col="C"]'), val('[data-row="10"][data-col="D"]'), val('[data-row="10"][data-col="E"]'), val('[data-row="10"][data-col="F"]'), val('[data-row="10"][data-col="G"]'), "", "", "", val('#sideChulgoA'), val('#sideChulgoD')]
+                    ["", val('[data-row="3"][data-col="B"]'), val('[data-row="3"][data-col="C"]'), val('[data-row="3"][data-col="D"]'), val('[data-row="3"][data-col="E"]'), val('[data-row="3"][data-col="F"]'), val('[data-row="3"][data-col="G"]'), "사용량 총계:", val('#statTotalUsage'), "", "", ""]
                 ];
 
-                const wb = XLSX.utils.book_new();
-                const ws = XLSX.utils.aoa_to_sheet(ws_data);
-
-                ws['!merges'] = [
-                    { s: {r: 0, c: 7}, e: {r: 0, c: 11} }, { s: {r: 2, c: 7}, e: {r: 2, c: 8} },
-                    { s: {r: 3, c: 7}, e: {r: 3, c: 8} }, { s: {r: 4, c: 0}, e: {r: 9, c: 0} },
-                    { s: {r: 4, c: 7}, e: {r: 4, c: 8} }, { s: {r: 8, c: 7}, e: {r: 8, c: 8} },
-                    { s: {r: 9, c: 7}, e: {r: 9, c: 8} }, { s: {r: 12, c: 7}, e: {r: 12, c: 8} },
-                    { s: {r: 2, c: 10}, e: {r: 2, c: 11} }, { s: {r: 6, c: 10}, e: {r: 6, c: 11} },
+                const merges = [
+                    { s: {r: 0, c: 7}, e: {r: 0, c: 11} },
+                    { s: {r: 2, c: 7}, e: {r: 2, c: 8} },
+                    { s: {r: 3, c: 7}, e: {r: 3, c: 8} },
+                    { s: {r: 5, c: 7}, e: {r: 5, c: 8} },
+                    { s: {r: 2, c: 10}, e: {r: 2, c: 11} },
+                    { s: {r: 6, c: 10}, e: {r: 6, c: 11} },
                     { s: {r: 10, c: 10}, e: {r: 10, c: 11} }
                 ];
 
+                if (midLevel >= 1) {
+                    ws_data.push(["1차 사용량", val('[data-type="mid_usage_1"][data-col="B"]'), val('[data-type="mid_usage_1"][data-col="C"]'), val('[data-type="mid_usage_1"][data-col="D"]'), val('[data-type="mid_usage_1"][data-col="E"]'), val('[data-type="mid_usage_1"][data-col="F"]'), val('[data-type="mid_usage_1"][data-col="G"]'), "", "", "", "", ""]);
+                    ws_data.push(["1차 사용 후 잔량", val('[data-type="mid_bal_1"][data-col="B"]'), val('[data-type="mid_bal_1"][data-col="C"]'), val('[data-type="mid_bal_1"][data-col="D"]'), val('[data-type="mid_bal_1"][data-col="E"]'), val('[data-type="mid_bal_1"][data-col="F"]'), val('[data-type="mid_bal_1"][data-col="G"]'), "", "", "", "", ""]);
+                    merges.push({ s: {r: 4, c: 0}, e: {r: 5, c: 0} });
+                }
+
+                const wan3RowIdx = ws_data.length;
+                ws_data.push(["완 롤", val('[data-row="4"][data-col="B"]'), val('[data-row="4"][data-col="C"]'), val('[data-row="4"][data-col="D"]'), val('[data-row="4"][data-col="E"]'), val('[data-row="4"][data-col="F"]'), val('[data-row="4"][data-col="G"]'), "실사용량:", val('#statRealUsage'), "", "급지 재고", ""]);
+                merges.push({ s: {r: wan3RowIdx, c: 7}, e: {r: wan3RowIdx, c: 8} });
+
+                const wan4RowIdx = ws_data.length;
+                ws_data.push(["", val('[data-row="5"][data-col="B"]'), val('[data-row="5"][data-col="C"]'), val('[data-row="5"][data-col="D"]'), val('[data-row="5"][data-col="E"]'), val('[data-row="5"][data-col="F"]'), val('[data-row="5"][data-col="G"]'), "증감:", val('#statDiff'), "", "A", "D"]);
+                merges.push({ s: {r: wan4RowIdx, c: 7}, e: {r: wan4RowIdx, c: 8} });
+
+                if (midLevel >= 2) {
+                    ws_data.push(["2차 사용량", val('[data-type="mid_usage_2"][data-col="B"]'), val('[data-type="mid_usage_2"][data-col="C"]'), val('[data-type="mid_usage_2"][data-col="D"]'), val('[data-type="mid_usage_2"][data-col="E"]'), val('[data-type="mid_usage_2"][data-col="F"]'), val('[data-type="mid_usage_2"][data-col="G"]'), "", "", "", "", ""]);
+                    ws_data.push(["2차 사용 후 잔량", val('[data-type="mid_bal_2"][data-col="B"]'), val('[data-type="mid_bal_2"][data-col="C"]'), val('[data-type="mid_bal_2"][data-col="D"]'), val('[data-type="mid_bal_2"][data-col="E"]'), val('[data-type="mid_bal_2"][data-col="F"]'), val('[data-type="mid_bal_2"][data-col="G"]'), "", "", "", "", ""]);
+                    merges.push({ s: {r: wan3RowIdx, c: 0}, e: {r: wan4RowIdx, c: 0} });
+                }
+
+                const wan5RowIdx = ws_data.length;
+                ws_data.push(["완 롤", val('[data-row="6"][data-col="B"]'), val('[data-row="6"][data-col="C"]'), val('[data-row="6"][data-col="D"]'), val('[data-row="6"][data-col="E"]'), val('[data-row="6"][data-col="F"]'), val('[data-row="6"][data-col="G"]'), "", "", "", val('#sideGeupA'), val('#sideGeupD')]);
+
+                const wan6RowIdx = ws_data.length;
+                ws_data.push(["", val('[data-row="7"][data-col="B"]'), val('[data-row="7"][data-col="C"]'), val('[data-row="7"][data-col="D"]'), val('[data-row="7"][data-col="E"]'), val('[data-row="7"][data-col="F"]'), val('[data-row="7"][data-col="G"]'), "", "", "", "", ""]);
+
+                if (midLevel === 0) {
+                    merges.push({ s: {r: 4, c: 0}, e: {r: wan6RowIdx, c: 0} });
+                } else if (midLevel === 1) {
+                    merges.push({ s: {r: wan3RowIdx, c: 0}, e: {r: wan6RowIdx, c: 0} });
+                } else if (midLevel === 2) {
+                    merges.push({ s: {r: wan5RowIdx, c: 0}, e: {r: wan6RowIdx, c: 0} });
+                }
+
+                const sumBeforeRowIdx = ws_data.length;
+                ws_data.push(["사용 전 합계", val('[data-row="8"][data-col="B"]'), val('[data-row="8"][data-col="C"]'), val('[data-row="8"][data-col="D"]'), val('[data-row="8"][data-col="E"]'), val('[data-row="8"][data-col="F"]'), val('[data-row="8"][data-col="G"]'), "사용량 A (1576mm):", val('#statUsageA'), "", "급지 출고", ""]);
+                merges.push({ s: {r: sumBeforeRowIdx, c: 7}, e: {r: sumBeforeRowIdx, c: 8} });
+
+                const usageRowIdx = ws_data.length;
+                ws_data.push(["사용량", val('[data-row="9"][data-col="B"]'), val('[data-row="9"][data-col="C"]'), val('[data-row="9"][data-col="D"]'), val('[data-row="9"][data-col="E"]'), val('[data-row="9"][data-col="F"]'), val('[data-row="9"][data-col="G"]'), "사용량 D (788mm):", val('#statUsageD'), "", "A", "D"]);
+                merges.push({ s: {r: usageRowIdx, c: 7}, e: {r: usageRowIdx, c: 8} });
+
+                const endBalRowIdx = ws_data.length;
+                ws_data.push(["사용 후 잔량", val('[data-row="10"][data-col="B"]'), val('[data-row="10"][data-col="C"]'), val('[data-row="10"][data-col="D"]'), val('[data-row="10"][data-col="E"]'), val('[data-row="10"][data-col="F"]'), val('[data-row="10"][data-col="G"]'), "", "", "", val('#sideChulgoA'), val('#sideChulgoD')]);
+
+                const wb = XLSX.utils.book_new();
+                const ws = XLSX.utils.aoa_to_sheet(ws_data);
+                ws['!merges'] = merges;
+
                 ws['!cols'] = [
-                    {wch: 13}, {wch: 9}, {wch: 9}, {wch: 9}, {wch: 9}, 
+                    {wch: 15}, {wch: 9}, {wch: 9}, {wch: 9}, {wch: 9}, 
                     {wch: 9}, {wch: 9}, {wch: 20}, {wch: 17}, {wch: 1.3}, 
                     {wch: 10}, {wch: 10}
                 ];
-
-                ws['!rows'] = [
-                    {hpt: 35}, {hpt: 15}, {hpt: 25}, {hpt: 25}, {hpt: 25}, {hpt: 25}, {hpt: 25},
-                    {hpt: 25}, {hpt: 25}, {hpt: 25}, {hpt: 25}, {hpt: 25}, {hpt: 25}
-                ];
-
-                const thickBorder = { style: 'medium', color: {rgb: "000000"} };
-                
-                for (let R = 0; R <= 12; R++) {
-                    for (let C = 0; C <= 11; C++) {
-                        const cell_ref = XLSX.utils.encode_cell({c: C, r: R});
-                        if (!ws[cell_ref]) ws[cell_ref] = {t: 's', v: ''};
-
-                        let cell = ws[cell_ref];
-                        let style = {
-                            font: { name: "맑은 고딕", sz: 11, color: {rgb: "000000"} },
-                            alignment: { vertical: "center", horizontal: "center" },
-                            border: {},
-                            fill: { fgColor: {rgb: "ffffff"} }
-                        };
-
-                        if (R === 0 && C >= 7 && C <= 11) {
-                            style.font.sz = 14; style.font.bold = true; style.alignment.horizontal = "right";
-                        }
-                        if (R === 1 || C === 9) { cell.s = style; continue; }
-
-                        if (C <= 8 && R >= 2) {
-                            style.border = {
-                                top: {style: 'thin', color: {rgb: "8e8e93"}}, bottom: {style: 'thin', color: {rgb: "8e8e93"}},
-                                left: {style: 'thin', color: {rgb: "8e8e93"}}, right: {style: 'thin', color: {rgb: "8e8e93"}}
-                            };
-                            if (R === 2 || C === 0) style.fill = { fgColor: {rgb: "f5f5f7"} };
-                            if (R === 10 || R === 11 || C === 0 || R === 2) style.font.bold = true;
-                            if (R === 2) style.border.top = thickBorder;
-                            if (R === 12) style.border.bottom = thickBorder;
-                            if (C === 0) style.border.left = thickBorder;
-                            if (C === 6 || C === 8) style.border.right = thickBorder;
-                            if (R === 9 && C <= 6) style.border.bottom = thickBorder;
-
-                            if (C >= 7 && C <= 8) {
-                                if (R === 5) style.border.bottom = {};
-                                if (R === 6) { style.border.top = {}; style.border.bottom = {}; }
-                                if (R === 7) style.border.top = {};
-                                if (R === 10) style.border.bottom = {};
-                                if (R === 11) style.border.top = {};
-                                if (C === 7 && R >= 5 && R <= 11) style.alignment.horizontal = "right";
-                                if (C === 7 && [4, 8, 9, 12].includes(R)) style.border.right = {};
-                                if (C === 8 && [4, 8, 9, 12].includes(R)) style.border.left = {};
-                            }
-                        }
-
-                        if (C >= 10 && C <= 11) {
-                            const inBlock1 = R >= 2 && R <= 4;
-                            const inBlock2 = R >= 6 && R <= 8;
-                            const inBlock3 = R >= 10 && R <= 12;
-
-                            if (inBlock1 || inBlock2 || inBlock3) {
-                                style.border = {
-                                    top: {style: 'thin', color: {rgb: "8e8e93"}}, bottom: {style: 'thin', color: {rgb: "8e8e93"}},
-                                    left: {style: 'thin', color: {rgb: "8e8e93"}}, right: {style: 'thin', color: {rgb: "8e8e93"}}
-                                };
-                                if (R === 2 || R === 6 || R === 10) { style.fill = { fgColor: {rgb: "f5f5f7"} }; style.font.bold = true; }
-                                if (R === 3 || R === 7 || R === 11) { style.fill = { fgColor: {rgb: "fafafc"} }; }
-                                if ((inBlock2 || inBlock3) && (R === 8 || R === 12)) { style.font.bold = true; }
-                                if (R === 2 || R === 6 || R === 10) style.border.top = thickBorder;
-                                if (R === 4 || R === 8 || R === 12) style.border.bottom = thickBorder;
-                                if (C === 10) style.border.left = thickBorder;
-                                if (C === 11) style.border.right = thickBorder;
-                            }
-                        }
-                        cell.s = style;
-                    }
-                }
-
-                const applyExportBorder = (cellRef, borderPatch) => {
-                    const cell = ws[cellRef];
-                    if (!cell || !cell.s) return;
-                    cell.s.border = Object.assign({}, cell.s.border || {}, borderPatch);
-                };
-
-                const exportThinBorder = { style: 'thin', color: { rgb: "8e8e93" } };
-                const exportThickBorder = { style: 'medium', color: { rgb: "000000" } };
-                const setAllThin = (cellRef) => {
-                    applyExportBorder(cellRef, { top: exportThinBorder, bottom: exportThinBorder, left: exportThinBorder, right: exportThinBorder });
-                };
-
-                for (let r = 2; r <= 12; r++) {
-                    for (let c = 0; c <= 8; c++) { setAllThin(XLSX.utils.encode_cell({ c, r })); }
-                }
-                for (let c = 0; c <= 8; c++) {
-                    applyExportBorder(XLSX.utils.encode_cell({ c, r: 2 }), { top: exportThickBorder });
-                    applyExportBorder(XLSX.utils.encode_cell({ c, r: 12 }), { bottom: exportThickBorder });
-                }
-                for (let r = 2; r <= 12; r++) {
-                    applyExportBorder(XLSX.utils.encode_cell({ c: 0, r }), { left: exportThickBorder });
-                    applyExportBorder(XLSX.utils.encode_cell({ c: 8, r }), { right: exportThickBorder });
-                }
-                for (let c = 0; c <= 8; c++) { applyExportBorder(XLSX.utils.encode_cell({ c, r: 9 }), { bottom: exportThickBorder }); }
-                for (let r = 3; r <= 12; r++) {
-                    applyExportBorder(XLSX.utils.encode_cell({ c: 7, r }), { left: exportThinBorder });
-                    applyExportBorder(XLSX.utils.encode_cell({ c: 8, r }), { right: exportThinBorder });
-                }
-                [3, 4, 5, 6, 7, 10, 11].forEach((r) => {
-                    applyExportBorder(XLSX.utils.encode_cell({ c: 7, r }), { top: exportThinBorder, bottom: exportThinBorder });
-                    applyExportBorder(XLSX.utils.encode_cell({ c: 8, r }), { top: exportThinBorder, bottom: exportThinBorder });
-                });
-                [8, 9].forEach((r) => {
-                    applyExportBorder(XLSX.utils.encode_cell({ c: 7, r }), { top: {}, bottom: {} });
-                    applyExportBorder(XLSX.utils.encode_cell({ c: 8, r }), { top: {}, bottom: {} });
-                });
-                applyExportBorder(XLSX.utils.encode_cell({ c: 7, r: 12 }), { bottom: exportThickBorder });
-                applyExportBorder(XLSX.utils.encode_cell({ c: 8, r: 12 }), { bottom: exportThickBorder });
-
-                const miniRanges = [{ top: 2, bottom: 4 }, { top: 6, bottom: 8 }, { top: 10, bottom: 12 }];
-                for (const range of miniRanges) {
-                    for (let r = range.top; r <= range.bottom; r++) {
-                        for (let c = 10; c <= 11; c++) { setAllThin(XLSX.utils.encode_cell({ c, r })); }
-                    }
-                    for (let c = 10; c <= 11; c++) {
-                        applyExportBorder(XLSX.utils.encode_cell({ c, r: range.top }), { top: exportThickBorder });
-                        applyExportBorder(XLSX.utils.encode_cell({ c, r: range.bottom }), { bottom: exportThickBorder });
-                    }
-                    for (let r = range.top; r <= range.bottom; r++) {
-                        applyExportBorder(XLSX.utils.encode_cell({ c: 10, r }), { left: exportThickBorder });
-                        applyExportBorder(XLSX.utils.encode_cell({ c: 11, r }), { right: exportThickBorder });
-                    }
-                }
-
-                [2, 3].forEach((r) => {
-                    for (let c = 0; c <= 8; c++) { applyExportBorder(XLSX.utils.encode_cell({ c, r }), { bottom: exportThickBorder }); }
-                });
-                [2, 6, 10].forEach((r) => {
-                    for (let c = 10; c <= 11; c++) { applyExportBorder(XLSX.utils.encode_cell({ c, r }), { bottom: exportThickBorder }); }
-                });
-                for (let r = 2; r <= 12; r++) {
-                    applyExportBorder(XLSX.utils.encode_cell({ c: 0, r }), { right: exportThickBorder });
-                    applyExportBorder(XLSX.utils.encode_cell({ c: 6, r }), { right: exportThickBorder });
-                    applyExportBorder(XLSX.utils.encode_cell({ c: 8, r }), { right: exportThickBorder });
-                }
-
-                const setNoBorder = (c, r, side) => {
-                    const cellRef = XLSX.utils.encode_cell({ c, r });
-                    if (ws[cellRef] && ws[cellRef].s && ws[cellRef].s.border) delete ws[cellRef].s.border[side];
-                    if (side === 'bottom') {
-                        const adjRef = XLSX.utils.encode_cell({ c, r: r + 1 });
-                        if (ws[adjRef] && ws[adjRef].s && ws[adjRef].s.border) delete ws[adjRef].s.border.top;
-                    } else if (side === 'right') {
-                        const adjRef = XLSX.utils.encode_cell({ c: c + 1, r });
-                        if (ws[adjRef] && ws[adjRef].s && ws[adjRef].s.border) delete ws[adjRef].s.border.left;
-                    }
-                };
-
-                setNoBorder(7, 4, 'bottom'); setNoBorder(8, 4, 'bottom'); setNoBorder(7, 5, 'right'); setNoBorder(8, 5, 'bottom');
-                setNoBorder(7, 6, 'bottom'); setNoBorder(7, 6, 'right'); setNoBorder(8, 6, 'bottom'); setNoBorder(7, 7, 'bottom');
-                setNoBorder(7, 7, 'right'); setNoBorder(8, 7, 'bottom'); setNoBorder(7, 8, 'bottom'); setNoBorder(8, 8, 'bottom');
-                setNoBorder(7, 10, 'bottom'); setNoBorder(7, 10, 'right'); setNoBorder(8, 10, 'bottom'); setNoBorder(7, 11, 'bottom');
-                setNoBorder(7, 11, 'right'); setNoBorder(8, 11, 'bottom');
 
                 ws['!pageSetup'] = { orientation: 'landscape', fitToWidth: 1, fitToHeight: 1, paperSize: 9, horizontalCentered: true };
                 ws['!margins'] = { left: 0.5, right: 0.5, top: 0.5, bottom: 0.5, header: 0.3, footer: 0.3 };
@@ -455,45 +422,48 @@
             td.classList.remove('swap-candidate', 'swap-selected');
         });
         
-        const swapBtn = document.getElementById('f3iSwapBtn');
-        if (swapBtn) {
-            swapBtn.style.backgroundColor = '#007AFF';
-            swapBtn.textContent = '위치 변경';
-        }
+        document.querySelectorAll('.f3i-swap-btn').forEach(btn => {
+            btn.style.backgroundColor = '#007AFF';
+            btn.textContent = '위치 변경';
+        });
     };
 
     App.bindSwapFeature = function() {
-        const swapBtn = document.getElementById('f3iSwapBtn');
         const infoBar = document.getElementById('f3iSwapInfoBar');
+        const swapBtns = document.querySelectorAll('.f3i-swap-btn');
         
-        if (!swapBtn) return;
+        if (!swapBtns || swapBtns.length === 0) return;
         
-        swapBtn.addEventListener('click', function(e) {
-            e.preventDefault();
-            e.stopPropagation();
-            
-            if (App.swapState.active) {
-                App.disableSwapMode();
-            } else {
-                App.swapState.active = true;
-                App.swapState.firstSelectedCell = null;
+        swapBtns.forEach(btn => {
+            btn.addEventListener('click', function(e) {
+                e.preventDefault();
+                e.stopPropagation();
                 
-                swapBtn.style.backgroundColor = '#ff9500';
-                swapBtn.textContent = '변경 취소';
-                
-                if (infoBar) {
-                    infoBar.textContent = '변경하려는 잔량을 선택해 주세요';
-                    infoBar.style.display = 'block';
-                }
-                
-                // 1차 사용 후 잔량 (data-type="mid_bal") 및 사용 후 잔량 (data-row="10") 편집가능 셀을 후보로 지정
-                document.querySelectorAll('.f3i-td.editable').forEach(td => {
-                    const inp = td.querySelector('input.target-calc[data-type="mid_bal"], input.target-calc[data-row="10"]');
-                    if (inp) {
-                        td.classList.add('swap-candidate');
+                if (App.swapState.active) {
+                    App.disableSwapMode();
+                } else {
+                    App.swapState.active = true;
+                    App.swapState.firstSelectedCell = null;
+                    
+                    document.querySelectorAll('.f3i-swap-btn').forEach(b => {
+                        b.style.backgroundColor = '#ff9500';
+                        b.textContent = '변경 취소';
+                    });
+                    
+                    if (infoBar) {
+                        infoBar.textContent = '변경하려는 잔량을 선택해 주세요';
+                        infoBar.style.display = 'block';
                     }
-                });
-            }
+                    
+                    // 1차/2차 사용 후 잔량 (data-type^="mid_bal") 및 사용 후 잔량 (data-row="10") 편집가능 셀을 후보로 지정
+                    document.querySelectorAll('.f3i-td.editable').forEach(td => {
+                        const inp = td.querySelector('input.target-calc[data-type^="mid_bal"], input.target-calc[data-row="10"]');
+                        if (inp) {
+                            td.classList.add('swap-candidate');
+                        }
+                    });
+                }
+            });
         });
         
         // 이벤트 위임을 통해 셀 클릭 제어
@@ -527,7 +497,7 @@
                             infoBar.textContent = '변경하려는 잔량을 선택해 주세요';
                         }
                     } else {
-                        // 잔량 값 맞교환 (Swap 진행 시 확정된 1차 사용량 data-fixed-usage 고정 보장)
+                        // 잔량 값 맞교환
                         const input1 = App.swapState.firstSelectedCell.querySelector('input');
                         const input2 = input;
                         

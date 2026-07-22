@@ -25,15 +25,30 @@
                 App.bindSwapFeature();
             }
 
-            // 1차 집계 + 버튼 이벤트 바인딩
+            // 1차/2차 집계 + 및 - 버튼 이벤트 바인딩
             const addMidBtn = document.getElementById('f3iAddMidBtn');
             if (addMidBtn) {
                 addMidBtn.addEventListener('click', function(e) {
                     e.preventDefault();
                     e.stopPropagation();
-                    const visible = App.isMidRowsVisible();
-                    App.setMidRowsVisibility(!visible);
-                    App.calculateAutoFields();
+                    const currentLevel = App.getMidLevel();
+                    if (currentLevel < 2) {
+                        App.setMidLevel(currentLevel + 1);
+                        App.calculateAutoFields();
+                    }
+                });
+            }
+
+            const removeMidBtn = document.getElementById('f3iRemoveMidBtn');
+            if (removeMidBtn) {
+                removeMidBtn.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    const currentLevel = App.getMidLevel();
+                    if (currentLevel > 0) {
+                        App.setMidLevel(currentLevel - 1);
+                        App.calculateAutoFields();
+                    }
                 });
             }
             

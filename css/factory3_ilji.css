@@ -145,7 +145,7 @@
 /* 액션 버튼 */
 .f3i-action-btn { display: flex; align-items: center; border: none; padding: 6px 16px; border-radius: 8px; font-size: 13px; font-weight: 600; cursor: pointer; transition: all 0.2s; }
 
-/* 완롤 타이틀 박스 및 1차 집계 + 버튼 UI */
+/* 완롤 타이틀 박스 및 1차/2차 집계 + / - 버튼 UI */
 .f3i-wan-title-box {
     display: flex;
     align-items: center;
@@ -153,6 +153,12 @@
     gap: 6px;
     position: relative;
     width: 100%;
+}
+
+.f3i-mid-btn-group {
+    display: flex;
+    align-items: center;
+    gap: 4px;
 }
 
 .f3i-add-mid-btn {
@@ -173,8 +179,18 @@
     transition: transform 0.15s ease, background-color 0.15s ease;
 }
 
+.f3i-add-mid-btn.remove {
+    background-color: #8e8e93;
+    box-shadow: 0 1px 3px rgba(142, 142, 147, 0.4);
+}
+
 .f3i-add-mid-btn:hover {
     background-color: #d70015;
+    transform: scale(1.15);
+}
+
+.f3i-add-mid-btn.remove:hover {
+    background-color: #636366;
     transform: scale(1.15);
 }
 

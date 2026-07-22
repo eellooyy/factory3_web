@@ -112,10 +112,13 @@
                     </tr>
                     
                     <tr>
-                        <th class="f3i-th row-title border-right-thick" rowspan="6">
+                        <th class="f3i-th row-title border-right-thick" id="f3iWanTh1" rowspan="6">
                             <div class="f3i-wan-title-box">
                                 <span>완 롤</span>
-                                <button type="button" id="f3iAddMidBtn" class="f3i-add-mid-btn" title="1차 집계 추가">+</button>
+                                <div class="f3i-mid-btn-group">
+                                    <button type="button" id="f3iAddMidBtn" class="f3i-add-mid-btn" title="1차 집계 추가">+</button>
+                                    <button type="button" id="f3iRemoveMidBtn" class="f3i-add-mid-btn remove" title="집계 삭제" style="display: none;">-</button>
+                                </div>
                             </div>
                         </th>
                         <td class="f3i-td editable"><input type="text" class="f3i-input target-calc" data-col="B" data-row="2" readonly></td>
@@ -138,7 +141,38 @@
                         <td class="f3i-td editable special-cell"><input type="text" class="f3i-input" id="statTotalUsage" readonly></td>
                     </tr>
 
+                    <!-- 동적 1차 집계 행 영역 -->
+                    <tr class="f3i-mid-row border-top-thick" id="f3iMidUsageRow1">
+                        <th class="f3i-th row-title calc-row border-right-thick">1차 사용량</th>
+                        <td class="f3i-td readonly"><input type="text" class="f3i-input fw-bold mid-calc" data-col="B" data-type="mid_usage_1" readonly></td>
+                        <td class="f3i-td readonly"><input type="text" class="f3i-input fw-bold mid-calc" data-col="C" data-type="mid_usage_1" readonly></td>
+                        <td class="f3i-td readonly"><input type="text" class="f3i-input fw-bold mid-calc" data-col="D" data-type="mid_usage_1" readonly></td>
+                        <td class="f3i-td readonly"><input type="text" class="f3i-input fw-bold mid-calc" data-col="E" data-type="mid_usage_1" readonly></td>
+                        <td class="f3i-td readonly"><input type="text" class="f3i-input fw-bold mid-calc" data-col="F" data-type="mid_usage_1" readonly></td>
+                        <td class="f3i-td readonly border-right-thick"><input type="text" class="f3i-input fw-bold mid-calc" data-col="G" data-type="mid_usage_1" readonly></td>
+                        <td class="f3i-td special-cell" colspan="2"></td>
+                    </tr>
+
+                    <tr class="f3i-mid-row" id="f3iMidBalRow1">
+                        <th class="f3i-th row-title border-right-thick" style="position: relative; padding: 4px 0;">
+                            <div>1차 사용 후 잔량</div>
+                            <button type="button" id="f3iSwapBtn1" class="f3i-swap-btn" style="display: none; margin-top: 4px;">위치 변경</button>
+                        </th>
+                        <td class="f3i-td editable"><input type="text" class="f3i-input target-calc mid-calc" data-col="B" data-type="mid_bal_1" readonly></td>
+                        <td class="f3i-td editable"><input type="text" class="f3i-input target-calc mid-calc" data-col="C" data-type="mid_bal_1" readonly></td>
+                        <td class="f3i-td editable"><input type="text" class="f3i-input target-calc mid-calc" data-col="D" data-type="mid_bal_1" readonly></td>
+                        <td class="f3i-td editable"><input type="text" class="f3i-input target-calc mid-calc" data-col="E" data-type="mid_bal_1" readonly></td>
+                        <td class="f3i-td editable"><input type="text" class="f3i-input target-calc mid-calc" data-col="F" data-type="mid_bal_1" readonly></td>
+                        <td class="f3i-td editable border-right-thick"><input type="text" class="f3i-input target-calc mid-calc" data-col="G" data-type="mid_bal_1" readonly></td>
+                        <td class="f3i-td special-cell" colspan="2"></td>
+                    </tr>
+
                     <tr>
+                        <th class="f3i-th row-title border-right-thick" id="f3iWanTh2" style="display: none;">
+                            <div class="f3i-wan-title-box">
+                                <span>완 롤</span>
+                            </div>
+                        </th>
                         <td class="f3i-td editable"><input type="text" class="f3i-input target-calc" data-col="B" data-row="4" readonly></td>
                         <td class="f3i-td editable"><input type="text" class="f3i-input target-calc" data-col="C" data-row="4" readonly></td>
                         <td class="f3i-td editable"><input type="text" class="f3i-input target-calc" data-col="D" data-row="4" readonly></td>
@@ -160,7 +194,38 @@
                         <td class="f3i-td special-cell"><input type="text" class="f3i-input" id="statDiff" readonly></td>
                     </tr>
 
+                    <!-- 동적 2차 집계 행 영역 -->
+                    <tr class="f3i-mid-row border-top-thick" id="f3iMidUsageRow2">
+                        <th class="f3i-th row-title calc-row border-right-thick">2차 사용량</th>
+                        <td class="f3i-td readonly"><input type="text" class="f3i-input fw-bold mid-calc" data-col="B" data-type="mid_usage_2" readonly></td>
+                        <td class="f3i-td readonly"><input type="text" class="f3i-input fw-bold mid-calc" data-col="C" data-type="mid_usage_2" readonly></td>
+                        <td class="f3i-td readonly"><input type="text" class="f3i-input fw-bold mid-calc" data-col="D" data-type="mid_usage_2" readonly></td>
+                        <td class="f3i-td readonly"><input type="text" class="f3i-input fw-bold mid-calc" data-col="E" data-type="mid_usage_2" readonly></td>
+                        <td class="f3i-td readonly"><input type="text" class="f3i-input fw-bold mid-calc" data-col="F" data-type="mid_usage_2" readonly></td>
+                        <td class="f3i-td readonly border-right-thick"><input type="text" class="f3i-input fw-bold mid-calc" data-col="G" data-type="mid_usage_2" readonly></td>
+                        <td class="f3i-td special-cell" colspan="2"></td>
+                    </tr>
+
+                    <tr class="f3i-mid-row" id="f3iMidBalRow2">
+                        <th class="f3i-th row-title border-right-thick" style="position: relative; padding: 4px 0;">
+                            <div>2차 사용 후 잔량</div>
+                            <button type="button" id="f3iSwapBtn2" class="f3i-swap-btn" style="display: none; margin-top: 4px;">위치 변경</button>
+                        </th>
+                        <td class="f3i-td editable"><input type="text" class="f3i-input target-calc mid-calc" data-col="B" data-type="mid_bal_2" readonly></td>
+                        <td class="f3i-td editable"><input type="text" class="f3i-input target-calc mid-calc" data-col="C" data-type="mid_bal_2" readonly></td>
+                        <td class="f3i-td editable"><input type="text" class="f3i-input target-calc mid-calc" data-col="D" data-type="mid_bal_2" readonly></td>
+                        <td class="f3i-td editable"><input type="text" class="f3i-input target-calc mid-calc" data-col="E" data-type="mid_bal_2" readonly></td>
+                        <td class="f3i-td editable"><input type="text" class="f3i-input target-calc mid-calc" data-col="F" data-type="mid_bal_2" readonly></td>
+                        <td class="f3i-td editable border-right-thick"><input type="text" class="f3i-input target-calc mid-calc" data-col="G" data-type="mid_bal_2" readonly></td>
+                        <td class="f3i-td special-cell" colspan="2"></td>
+                    </tr>
+
                     <tr>
+                        <th class="f3i-th row-title border-right-thick" id="f3iWanTh3" style="display: none;">
+                            <div class="f3i-wan-title-box">
+                                <span>완 롤</span>
+                            </div>
+                        </th>
                         <td class="f3i-td editable"><input type="text" class="f3i-input target-calc" data-col="B" data-row="6" readonly></td>
                         <td class="f3i-td editable"><input type="text" class="f3i-input target-calc" data-col="C" data-row="6" readonly></td>
                         <td class="f3i-td editable"><input type="text" class="f3i-input target-calc" data-col="D" data-row="6" readonly></td>
@@ -177,32 +242,6 @@
                         <td class="f3i-td editable"><input type="text" class="f3i-input target-calc" data-col="E" data-row="7" readonly></td>
                         <td class="f3i-td editable"><input type="text" class="f3i-input target-calc" data-col="F" data-row="7" readonly></td>
                         <td class="f3i-td editable border-right-thick"><input type="text" class="f3i-input target-calc" data-col="G" data-row="7" readonly></td>
-                        <td class="f3i-td special-cell" colspan="2"></td>
-                    </tr>
-
-                    <!-- 동적 1차 집계 행 영역 -->
-                    <tr class="f3i-mid-row border-top-thick" id="f3iMidUsageRow">
-                        <th class="f3i-th row-title calc-row border-right-thick">1차 사용량</th>
-                        <td class="f3i-td readonly"><input type="text" class="f3i-input fw-bold mid-calc" data-col="B" data-type="mid_usage" readonly></td>
-                        <td class="f3i-td readonly"><input type="text" class="f3i-input fw-bold mid-calc" data-col="C" data-type="mid_usage" readonly></td>
-                        <td class="f3i-td readonly"><input type="text" class="f3i-input fw-bold mid-calc" data-col="D" data-type="mid_usage" readonly></td>
-                        <td class="f3i-td readonly"><input type="text" class="f3i-input fw-bold mid-calc" data-col="E" data-type="mid_usage" readonly></td>
-                        <td class="f3i-td readonly"><input type="text" class="f3i-input fw-bold mid-calc" data-col="F" data-type="mid_usage" readonly></td>
-                        <td class="f3i-td readonly border-right-thick"><input type="text" class="f3i-input fw-bold mid-calc" data-col="G" data-type="mid_usage" readonly></td>
-                        <td class="f3i-td special-cell" colspan="2"></td>
-                    </tr>
-
-                    <tr class="f3i-mid-row" id="f3iMidBalRow">
-                        <th class="f3i-th row-title border-right-thick" style="position: relative; padding: 4px 0;">
-                            <div>1차 사용 후 잔량</div>
-                            <button type="button" id="f3iSwapBtn" class="f3i-swap-btn" style="display: none; margin-top: 4px;">위치 변경</button>
-                        </th>
-                        <td class="f3i-td editable"><input type="text" class="f3i-input target-calc mid-calc" data-col="B" data-type="mid_bal" readonly></td>
-                        <td class="f3i-td editable"><input type="text" class="f3i-input target-calc mid-calc" data-col="C" data-type="mid_bal" readonly></td>
-                        <td class="f3i-td editable"><input type="text" class="f3i-input target-calc mid-calc" data-col="D" data-type="mid_bal" readonly></td>
-                        <td class="f3i-td editable"><input type="text" class="f3i-input target-calc mid-calc" data-col="E" data-type="mid_bal" readonly></td>
-                        <td class="f3i-td editable"><input type="text" class="f3i-input target-calc mid-calc" data-col="F" data-type="mid_bal" readonly></td>
-                        <td class="f3i-td editable border-right-thick"><input type="text" class="f3i-input target-calc mid-calc" data-col="G" data-type="mid_bal" readonly></td>
                         <td class="f3i-td special-cell" colspan="2"></td>
                     </tr>
 

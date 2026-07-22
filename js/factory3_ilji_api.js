@@ -27,12 +27,16 @@
             
             const loadedStartBalCols = new Set(); 
             App.state.prevWanA = 0; App.state.prevWanD = 0;
-            let hasMidData = false;
+            let hasMid1Data = false;
+            let hasMid2Data = false;
 
             if (data && data.length > 0) {
                 data.forEach(item => {
-                    if (item.item_type === 'mid_usage_1' || item.item_type === 'mid_bal_1') {
-                        if (item.value && Number(item.value) > 0) hasMidData = true;
+                    if (item.item_type === 'mid_usage_1' || item.item_type === 'mid_bal_1' || item.item_type === 'mid_usage' || item.item_type === 'mid_bal') {
+                        if (item.value && Number(item.value) > 0) hasMid1Data = true;
+                    }
+                    if (item.item_type === 'mid_usage_2' || item.item_type === 'mid_bal_2') {
+                        if (item.value && Number(item.value) > 0) hasMid2Data = true;
                     }
 
                     const typeTokens = item.item_type.split('_');
@@ -65,14 +69,23 @@
                     } else if (item.item_type === 'stat_total_usage') {
                         const el = document.getElementById('statTotalUsage');
                         if (el) el.value = val;
-                    } else if (item.item_type === 'mid_usage_1') {
-                        const el = document.querySelector(`.f3i-input[data-col="${c}"][data-type="mid_usage"]`);
+                    } else if (item.item_type === 'mid_usage_1' || item.item_type === 'mid_usage') {
+                        const el = document.querySelector(`.f3i-input[data-col="${c}"][data-type="mid_usage_1"]`) || document.querySelector(`.f3i-input[data-col="${c}"][data-type="mid_usage"]`);
                         if (el) {
                             el.value = val;
                             if (valNum !== 0) el.dataset.fixedUsage = valNum;
                         }
-                    } else if (item.item_type === 'mid_bal_1') {
-                        const el = document.querySelector(`.f3i-input[data-col="${c}"][data-type="mid_bal"]`);
+                    } else if (item.item_type === 'mid_bal_1' || item.item_type === 'mid_bal') {
+                        const el = document.querySelector(`.f3i-input[data-col="${c}"][data-type="mid_bal_1"]`) || document.querySelector(`.f3i-input[data-col="${c}"][data-type="mid_bal"]`);
+                        if (el) el.value = val;
+                    } else if (item.item_type === 'mid_usage_2') {
+                        const el = document.querySelector(`.f3i-input[data-col="${c}"][data-type="mid_usage_2"]`);
+                        if (el) {
+                            el.value = val;
+                            if (valNum !== 0) el.dataset.fixedUsage = valNum;
+                        }
+                    } else if (item.item_type === 'mid_bal_2') {
+                        const el = document.querySelector(`.f3i-input[data-col="${c}"][data-type="mid_bal_2"]`);
                         if (el) el.value = val;
                     } else {
                         const el = document.querySelector(`.f3i-input[data-row="${r}"][data-col="${c}"]`);
@@ -86,9 +99,10 @@
                 });
             }
 
-            // 1차 집계 데이터 유무에 따라 행 토글
-            if (typeof App.setMidRowsVisibility === 'function') {
-                App.setMidRowsVisibility(hasMidData);
+            // 집계 데이터 유무에 따라 레벨 설정 (2차 우선 -> 1차 -> 0)
+            const targetLevel = hasMid2Data ? 2 : (hasMid1Data ? 1 : 0);
+            if (typeof App.setMidLevel === 'function') {
+                App.setMidLevel(targetLevel);
             }
             
             const cols = ['B', 'C', 'D', 'E', 'F', 'G'];
@@ -127,7 +141,7 @@
         const cols = ['B', 'C', 'D', 'E', 'F', 'G'];
         const extractVal = (el) => el ? el.value.replace(/,/g, '').replace(/kg/g, '').replace(/R\/L/g, '').trim() : "";
 
-        const isMidVisible = App.isMidRowsVisible ? App.isMidRowsVisible() : false;
+        const midLevel = App.getMidLevel ? App.getMidLevel() : 0;
 
         cols.forEach(col => {
             const startEl = document.querySelector(`.f3i-input[data-row="1"][data-col="${col}"]`);
@@ -139,11 +153,18 @@
                 rawPayloadData.push({ item_type: `wan_roll_${r}`, col_id: col, value: extractVal(wanEl), memo: "" });
             }
 
-            if (isMidVisible) {
-                const midUsageEl = document.querySelector(`.f3i-input[data-col="${col}"][data-type="mid_usage"]`);
-                const midBalEl = document.querySelector(`.f3i-input[data-col="${col}"][data-type="mid_bal"]`);
-                rawPayloadData.push({ item_type: 'mid_usage_1', col_id: col, value: extractVal(midUsageEl), memo: "" });
-                rawPayloadData.push({ item_type: 'mid_bal_1', col_id: col, value: extractVal(midBalEl), memo: "" });
+            if (midLevel >= 1) {
+                const midUsageEl1 = document.querySelector(`.f3i-input[data-col="${col}"][data-type="mid_usage_1"]`);
+                const midBalEl1 = document.querySelector(`.f3i-input[data-col="${col}"][data-type="mid_bal_1"]`);
+                rawPayloadData.push({ item_type: 'mid_usage_1', col_id: col, value: extractVal(midUsageEl1), memo: "" });
+                rawPayloadData.push({ item_type: 'mid_bal_1', col_id: col, value: extractVal(midBalEl1), memo: "" });
+            }
+
+            if (midLevel >= 2) {
+                const midUsageEl2 = document.querySelector(`.f3i-input[data-col="${col}"][data-type="mid_usage_2"]`);
+                const midBalEl2 = document.querySelector(`.f3i-input[data-col="${col}"][data-type="mid_bal_2"]`);
+                rawPayloadData.push({ item_type: 'mid_usage_2', col_id: col, value: extractVal(midUsageEl2), memo: "" });
+                rawPayloadData.push({ item_type: 'mid_bal_2', col_id: col, value: extractVal(midBalEl2), memo: "" });
             }
 
             const endEl = document.querySelector(`.f3i-input[data-row="10"][data-col="${col}"]`);
