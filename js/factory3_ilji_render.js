@@ -482,7 +482,7 @@
                     
                     // 1차/2차 사용 후 잔량 (data-type^="mid_bal") 및 사용 후 잔량 (data-row="10") 편집가능 셀을 후보로 지정
                     document.querySelectorAll('.f3i-td.editable').forEach(td => {
-                        const inp = td.querySelector('input.target-calc[data-type^="mid_bal"], input.target-calc[data-row="10"]');
+                        const inp = td.querySelector('input.target-calc[data-row="1"], input.target-calc[data-type^="mid_bal"], input.target-calc[data-row="10"]');
                         if (inp) {
                             td.classList.add('swap-candidate');
                         }

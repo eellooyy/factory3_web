@@ -146,8 +146,8 @@
 .f3i-action-btn { display: flex; align-items: center; border: none; padding: 6px 16px; border-radius: 8px; font-size: 13px; font-weight: 600; cursor: pointer; transition: all 0.2s; }
 
 /* PDF 저장 버튼 (기존 엑셀 저장 버튼 대체, 붉은색) */
-.f3i-pdf-btn { background: #ff3b30; color: #fff; }
-.f3i-pdf-btn:not(:disabled):hover { background: #d70015; }
+.f3i-pdf-btn { background: #b8291f; color: #fff; }
+.f3i-pdf-btn:not(:disabled):hover { background: #8f1f17; }
 .f3i-pdf-btn:disabled { opacity: 0.6; cursor: not-allowed; }
 
 /* 완롤 타이틀 박스 및 1차/2차 집계 + / - 버튼 UI */
