@@ -51,6 +51,8 @@
                             val = valNum.toLocaleString() + " kg";
                         } else if (item.item_type.startsWith('side_wan')) {
                             val = valNum.toLocaleString() + " R/L";
+                        } else if (item.item_type.startsWith('pinout')) {
+                            val = valNum.toLocaleString() + " kg";
                         } else {
                             const rInt = parseInt(r, 10);
                             if (rInt >= 2 && rInt <= 7) {
@@ -65,6 +67,12 @@
                     
                     if (baseType === 'side_wan') {
                         const el = document.getElementById(`sideWan${c}`);
+                        if (el) el.value = val;
+                    } else if (item.item_type.startsWith('pinout')) {
+                        let targetCol = c;
+                        if (item.item_type.toLowerCase().endsWith('_a')) targetCol = 'A';
+                        else if (item.item_type.toLowerCase().endsWith('_d')) targetCol = 'D';
+                        const el = document.getElementById(`sidePinout${targetCol}`);
                         if (el) el.value = val;
                     } else if (item.item_type === 'stat_total_usage') {
                         const el = document.getElementById('statTotalUsage');
@@ -173,6 +181,8 @@
 
         rawPayloadData.push({ item_type: 'side_wan_1', col_id: 'A', value: extractVal(document.getElementById('sideWanA')), memo: "" });
         rawPayloadData.push({ item_type: 'side_wan_1', col_id: 'D', value: extractVal(document.getElementById('sideWanD')), memo: "" });
+        rawPayloadData.push({ item_type: 'pinout_a', col_id: 'A', value: extractVal(document.getElementById('sidePinoutA')), memo: "" });
+        rawPayloadData.push({ item_type: 'pinout_d', col_id: 'D', value: extractVal(document.getElementById('sidePinoutD')), memo: "" });
         rawPayloadData.push({ item_type: 'geup_real', col_id: 'A', value: extractVal(document.getElementById('sideGeupA')), memo: "" });
         rawPayloadData.push({ item_type: 'geup_real', col_id: 'D', value: extractVal(document.getElementById('sideGeupD')), memo: "" });
         rawPayloadData.push({ item_type: 'geup_out', col_id: 'A', value: extractVal(document.getElementById('sideChulgoA')), memo: "" });
