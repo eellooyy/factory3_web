@@ -279,10 +279,82 @@
                         <td class="f3i-td editable"><input type="text" class="f3i-input target-calc" data-col="E" data-row="10" readonly></td>
                         <td class="f3i-td editable"><input type="text" class="f3i-input target-calc" data-col="F" data-row="10" readonly></td>
                         <td class="f3i-td editable border-right-thick"><input type="text" class="f3i-input target-calc" data-col="G" data-row="10" readonly></td>
-                        <td class="f3i-td special-cell bottom-border" colspan="2"></td>
+                        <!-- 신규 추가: 핀아웃 발생 / 핀아웃 사용 조작 버튼 영역 -->
+                        <td class="f3i-td special-cell bottom-border" colspan="2" style="text-align: center; vertical-align: middle;">
+                            <div class="f3i-pinout-btn-wrap">
+                                <button type="button" id="f3iPinoutOccurBtn" class="f3i-pin-btn occur">핀아웃 발생</button>
+                                <button type="button" id="f3iPinoutUseBtn" class="f3i-pin-btn use">핀아웃 사용</button>
+                            </div>
+                        </td>
                     </tr>
                 </tbody>
             </table>
+
+            <!-- 신규 추가: 핀아웃 동적 레이아웃 영역 -->
+            <div id="f3iPinoutSection" class="f3i-pinout-section" style="display: none;">
+                <div class="f3i-pinout-header">
+                    <div class="f3i-pinout-title-wrap">
+                        <span class="material-symbols-outlined f3i-pinout-icon">layers</span>
+                        <span id="f3iPinoutTitleText" class="f3i-pinout-title">핀아웃 발생</span>
+                    </div>
+                    <button type="button" id="f3iPinoutCloseBtn" class="f3i-pinout-close-btn" title="닫기">&times;</button>
+                </div>
+                
+                <table class="f3i-table border-outer">
+                    <colgroup>
+                        <col style="width: 100px;"> 
+                        <col style="width: 75px;">  
+                        <col style="width: 75px;">  
+                        <col style="width: 75px;">  
+                        <col style="width: 75px;">  
+                        <col style="width: 75px;">  
+                        <col style="width: 75px;">  
+                        <col style="width: 230px;">
+                    </colgroup>
+                    <thead class="border-bottom-thick">
+                        <tr>
+                            <th class="f3i-th col-title border-right-thick" id="f3iPinoutTableHeadLabel">핀아웃</th>
+                            <th class="f3i-th">788</th>
+                            <th class="f3i-th">R51</th>
+                            <th class="f3i-th">R52</th>
+                            <th class="f3i-th">R53</th>
+                            <th class="f3i-th">R54</th>
+                            <th class="f3i-th border-right-thick">R55</th>
+                            <th class="f3i-th">비고</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <th class="f3i-th row-title border-right-thick">사용 전 잔량</th>
+                            <td class="f3i-td editable"><input type="text" class="f3i-input pinout-input" data-pin-row="1" data-col="B" readonly></td>
+                            <td class="f3i-td editable"><input type="text" class="f3i-input pinout-input" data-pin-row="1" data-col="C" readonly></td>
+                            <td class="f3i-td editable"><input type="text" class="f3i-input pinout-input" data-pin-row="1" data-col="D" readonly></td>
+                            <td class="f3i-td editable"><input type="text" class="f3i-input pinout-input" data-pin-row="1" data-col="E" readonly></td>
+                            <td class="f3i-td editable"><input type="text" class="f3i-input pinout-input" data-pin-row="1" data-col="F" readonly></td>
+                            <td class="f3i-td editable border-right-thick"><input type="text" class="f3i-input pinout-input" data-pin-row="1" data-col="G" readonly></td>
+                            <td class="f3i-td editable" rowspan="3"><textarea class="f3i-input pinout-memo" data-pin-memo="true" placeholder="핀아웃 관련 메모" readonly></textarea></td>
+                        </tr>
+                        <tr>
+                            <th class="f3i-th row-title calc-row border-right-thick">사용량</th>
+                            <td class="f3i-td editable"><input type="text" class="f3i-input pinout-input" data-pin-row="2" data-col="B" readonly></td>
+                            <td class="f3i-td editable"><input type="text" class="f3i-input pinout-input" data-pin-row="2" data-col="C" readonly></td>
+                            <td class="f3i-td editable"><input type="text" class="f3i-input pinout-input" data-pin-row="2" data-col="D" readonly></td>
+                            <td class="f3i-td editable"><input type="text" class="f3i-input pinout-input" data-pin-row="2" data-col="E" readonly></td>
+                            <td class="f3i-td editable"><input type="text" class="f3i-input pinout-input" data-pin-row="2" data-col="F" readonly></td>
+                            <td class="f3i-td editable border-right-thick"><input type="text" class="f3i-input pinout-input" data-pin-row="2" data-col="G" readonly></td>
+                        </tr>
+                        <tr class="border-top-thick">
+                            <th class="f3i-th row-title border-right-thick">사용 후 잔량</th>
+                            <td class="f3i-td editable"><input type="text" class="f3i-input pinout-input" data-pin-row="3" data-col="B" readonly></td>
+                            <td class="f3i-td editable"><input type="text" class="f3i-input pinout-input" data-pin-row="3" data-col="C" readonly></td>
+                            <td class="f3i-td editable"><input type="text" class="f3i-input pinout-input" data-pin-row="3" data-col="D" readonly></td>
+                            <td class="f3i-td editable"><input type="text" class="f3i-input pinout-input" data-pin-row="3" data-col="E" readonly></td>
+                            <td class="f3i-td editable"><input type="text" class="f3i-input pinout-input" data-pin-row="3" data-col="F" readonly></td>
+                            <td class="f3i-td editable border-right-thick"><input type="text" class="f3i-input pinout-input" data-pin-row="3" data-col="G" readonly></td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
         </div>
 
         <div class="f3i-side-panel">
@@ -299,7 +371,7 @@
                 </table>
             </div>
 
-            <!-- 신규 추가: 핀아웃 잔량 (4적층 구성) -->
+            <!-- 핀아웃 잔량 (4적층 구성) -->
             <div class="f3i-box">
                 <div class="f3i-box-header">핀아웃 잔량</div>
                 <table class="f3i-table mini-table border-outer">
