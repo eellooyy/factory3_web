@@ -246,11 +246,15 @@
 
 /* 핀아웃 관련 버튼 및 동적 레이아웃 스타일 추가 */
 .f3i-pinout-btn-wrap {
-    display: flex;
+    display: none;
     align-items: center;
     justify-content: center;
     gap: 6px;
     padding: 0 4px;
+}
+
+.f3i-wrapper.edit-mode .f3i-pinout-btn-wrap {
+    display: flex !important;
 }
 
 .f3i-pin-btn {
